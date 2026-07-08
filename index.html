@@ -158,24 +158,29 @@
     .danmaku-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     .danmaku-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-    /* ========== スマホ用UI調整 ========== */
-    @media (max-width: 600px) {
-      /* 動画一覧を1列にして見やすくする */
-      .video-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-      /* ヘッダー周りをコンパクトにする */
-      .logo {
-        font-size: 16px;
-      }
-      .header-actions {
-        gap: 8px;
-      }
-      .create-btn {
-        padding: 6px 10px;
-        font-size: 12px;
-      }
+   /* ========== スマホ用UI調整 ========== */
+    @media (max-width: 768px) {
+      /* 動画一覧をYouTube風に（1列＆画面端までサムネイルを広げる） */
+      .home-container, .channel-container { padding: 0; margin-top: 16px; }
+      .video-grid { grid-template-columns: 1fr; gap: 24px; }
+      .grid-item { margin: 0; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
+      .thumbnail-img { border-radius: 0; } /* 角を四角くする */
+      .grid-item .grid-title, .grid-item .grid-author { padding: 0 16px; }
+      .grid-item .grid-title { font-size: 16px; margin-top: 12px; }
+
+      /* ヘッダー周りをコンパクトに */
+      .logo { font-size: 15px; }
+      .header-actions { gap: 8px; }
+      .create-btn { padding: 6px 10px; font-size: 12px; }
+      
+      /* 視聴画面のレイアウト整理 */
+      .watch-layout { padding: 0; margin: 0; }
+      .video-wrapper { border-radius: 0; } /* スマホでは動画の角を丸めない */
+      .video-meta-bar { padding: 12px; flex-direction: column; align-items: stretch; }
+      .meta-actions { justify-content: space-between; margin-top: 8px; }
+      .danmaku-input-area, .nickname-area, .comment-section { padding: 0 12px; }
+      .related-item .thumbnail-img { width: 140px; }
+
       /* モーダル（アップロードやログイン画面）の幅をスマホに合わせる */
       .modal-content {
         width: 95%;
@@ -228,7 +233,7 @@
     <div class="watch-layout">
       <div class="watch-main">
         <div class="video-wrapper">
-          <video id="mainVideo" class="main-video-player" controls></video>
+          <video id="mainVideo" class="main-video-player" controls playsinline webkit-playsinline></video>
           <div id="danmakuContainer" class="danmaku-container"></div>
         </div>
 
