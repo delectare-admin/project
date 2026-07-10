@@ -164,6 +164,12 @@
     .danmaku-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     .danmaku-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
+    /* チャンネル登録ボタン */
+    .subscribe-btn { background-color: #0f0f0f; color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; margin-left: 12px; }
+    .subscribe-btn:hover { background-color: #272727; }
+    .subscribe-btn.subscribed { background-color: #f2f2f2; color: #0f0f0f; }
+    .subscribe-btn.subscribed:hover { background-color: #e5e5e5; }
+
     /* ========== スマホ用UI調整 ========== */
     @media (max-width: 768px) {
       .home-container, .channel-container { padding: 0; margin-top: 16px; }
@@ -186,12 +192,6 @@
 
       .modal-content { width: 95%; height: 90vh; }
       .video-title { font-size: 16px; }
-
-      /* チャンネル登録ボタン */
-      .subscribe-btn { background-color: #0f0f0f; color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; margin-left: 12px; }
-      .subscribe-btn:hover { background-color: #272727; }
-      .subscribe-btn.subscribed { background-color: #f2f2f2; color: #0f0f0f; }
-      .subscribe-btn.subscribed:hover { background-color: #e5e5e5; }
 
       /* チャンネルヘッダーのスマホ対応 */
       .channel-header { flex-direction: column; text-align: center; justify-content: center; }
@@ -403,7 +403,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -490,7 +490,9 @@
     const pipBtn = document.getElementById('pipBtn');
     const blockUserBtn = document.getElementById('blockUserBtn');
     const reportBtn = document.getElementById('reportBtn');
+    
     let currentUserBlocks = [];
+    let currentUserSubscriptions = []; // ★修正ポイント: ここで宣言
 
     // ログイン関連
     const loginOpenBtn = document.getElementById('loginOpenBtn');
@@ -667,14 +669,16 @@
       if (user) {
         let channelName = 'ゲストチャンネル';
         let avatarUrl = '';
-        currentUserBlocks = snap.data().blockedUids || [];
-        currentUserSubscriptions = snap.data().subscribedTo || []; 
+        currentUserBlocks = []; // ★修正ポイント: 安全な位置に移動
+        currentUserSubscriptions = []; // ★修正ポイント: 安全な位置に移動
+        
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
           if (snap.exists()) {
             channelName = snap.data().channelName;
             avatarUrl = snap.data().avatarUrl || '';
             currentUserBlocks = snap.data().blockedUids || [];
+            currentUserSubscriptions = snap.data().subscribedTo || []; 
           }
         } catch (error) {
           console.error("ユーザー情報の取得に失敗:", error);
@@ -1380,6 +1384,7 @@
         saveCustomizeBtn.disabled = false;
       }
     });
+
     // ==========================================
     // チャンネル登録機能の処理
     // ==========================================
