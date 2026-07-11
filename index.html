@@ -31,6 +31,18 @@
     #channelNameDisplay { font-weight: bold; font-size: 14px; cursor: pointer; }
     #channelNameDisplay:hover { text-decoration: underline; }
 
+    /* ========== サイドナビゲーション ========== */
+    .side-nav { position: fixed; top: 56px; left: 0; bottom: 0; width: 240px; background-color: white; padding: 12px 0; z-index: 50; overflow-y: auto; }
+    .nav-item { display: flex; align-items: center; padding: 10px 24px; cursor: pointer; gap: 16px; border-radius: 10px; margin: 0 12px 4px; color: #0f0f0f; }
+    .nav-item:hover { background-color: #f2f2f2; }
+    .nav-item.active { background-color: #f2f2f2; font-weight: bold; }
+    .nav-item img { width: 24px; height: 24px; object-fit: contain; }
+    
+    /* メインコンテンツエリア（サイドバーの右側） */
+    .main-content { margin-left: 240px; padding-top: 24px; min-height: calc(100vh - 56px); box-sizing: border-box; }
+    body.watch-mode .side-nav { display: none; }
+    body.watch-mode .main-content { margin-left: 0; padding-top: 0; }
+
     /* モーダル共通 */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
@@ -64,7 +76,7 @@
     .google-btn:hover { background-color: #3367D6; }
 
     /* ホーム・チャンネル共通レイアウト */
-    .home-container, .channel-container { max-width: 1280px; margin: 40px auto; padding: 0 24px; }
+    .home-container, .channel-container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
     
     .sort-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
     .sort-btn { background-color: #f2f2f2; border: none; padding: 7px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; color: #606060; cursor: pointer; }
@@ -181,7 +193,14 @@
       header { flex-wrap: wrap; height: auto; padding: 10px 16px; }
       .header-search-bar { order: 3; width: 100%; max-width: 100%; margin: 12px 0 0 0; }
       
-      .home-container, .channel-container { padding: 0; margin-top: 16px; }
+      /* モバイル時のサイドバーを下部固定ナビゲーションに変更 */
+      .side-nav { top: auto; bottom: 0; width: 100%; height: 56px; flex-direction: row; justify-content: space-around; padding: 0; border-top: 1px solid #e5e5e5; display: flex; }
+      .nav-item { flex-direction: column; gap: 4px; margin: 0; padding: 8px 0; flex: 1; border-radius: 0; justify-content: center; }
+      .nav-item span { font-size: 10px; }
+      .nav-item img { width: 20px; height: 20px; }
+      .main-content { margin-left: 0; padding-top: 16px; padding-bottom: 60px; }
+
+      .home-container, .channel-container { padding: 0; margin-top: 0; }
       .video-grid { grid-template-columns: 1fr; gap: 24px; }
       .grid-item { margin: 0; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
       .thumbnail-img { border-radius: 0; }
@@ -202,7 +221,7 @@
       .modal-content { width: 95%; height: 90vh; }
       .video-title { font-size: 16px; }
 
-      .channel-header { flex-direction: column; text-align: center; justify-content: center; }
+      .channel-header { flex-direction: column; text-align: center; justify-content: center; padding-top: 16px; }
       #channelAvatarHeader { margin: 0 auto; width: 80px; height: 80px; font-size: 32px; }
       .channel-actions-row { justify-content: center; }
     }
@@ -213,7 +232,6 @@
   <header>
     <div class="logo" id="logoHome">▶ デレクターレ（Delectare）</div>
     
-    <!-- 追加：ヘッダー中央の検索バー -->
     <div class="header-search-bar">
       <input type="text" id="searchInput" placeholder="検索...">
       <button id="searchBtn">🔍</button>
@@ -233,89 +251,106 @@
     </div>
   </header>
 
-  <div id="homeScreen" class="home-container">
-    <div class="sort-controls">
-      <button id="sortNewestBtn" class="sort-btn active">新着順</button>
-      <button id="sortPopularBtn" class="sort-btn">人気順</button>
+  <!-- 左サイドナビゲーション -->
+  <nav class="side-nav" id="sideNav">
+    <div class="nav-item active" id="navHomeBtn">
+      <img src="スクリーンショット 2026-07-11 113437.jpg" alt="Home">
+      <span>ホーム</span>
     </div>
-    <div id="videoGrid" class="video-grid">
-      <p class="empty-list-msg">読み込み中...</p>
+    <div class="nav-item" id="navSubscriptionsBtn">
+      <img src="スクリーンショット 2026-07-11 113654.png" alt="Subscriptions">
+      <span>登録チャンネル</span>
     </div>
-  </div>
+  </nav>
 
-  <div id="channelScreen" class="channel-container" style="display: none;">
-    <div class="channel-header" style="display: flex; align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e5e5; margin-bottom: 24px;">
-      <div id="channelAvatarHeader" style="width: 120px; height: 120px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 48px; flex-shrink: 0;"></div>
-      <div class="channel-info-main" style="flex: 1;">
-        <h2 id="channelPageTitle" style="font-size: 28px; margin: 0 0 4px 0;"></h2>
-        <p class="channel-meta-stats" style="color: #606060; font-size: 14px; margin: 0 0 16px 0;">@<span id="channelHandle"></span> ・ チャンネル登録者数 <span id="channelSubscriberCount">0</span>人 ・ <span id="channelVideoCount">0</span> 本の動画</p>
-        <div class="channel-actions-row" style="display: flex; gap: 8px;">
-          <button id="customizeBtn" class="rate-btn" style="display: none;">チャンネルをカスタマイズ</button>
-          <button class="rate-btn">動画を管理</button>
-        </div>
+  <!-- メインコンテンツラッパー -->
+  <div class="main-content" id="mainContent">
+    
+    <div id="homeScreen" class="home-container">
+      <div class="sort-controls">
+        <button id="sortNewestBtn" class="sort-btn active">新着順</button>
+        <button id="sortPopularBtn" class="sort-btn">人気順</button>
+      </div>
+      <div id="videoGrid" class="video-grid">
+        <p class="empty-list-msg">読み込み中...</p>
       </div>
     </div>
-    <div id="channelGrid" class="video-grid"></div>
-  </div>
 
-  <div id="watchScreen" style="display: none;">
-    <div class="watch-layout">
-      <div class="watch-main">
-        <div class="video-wrapper">
-          <video id="mainVideo" class="main-video-player" controls playsinline webkit-playsinline></video>
-          <div id="danmakuContainer" class="danmaku-container"></div>
+    <div id="channelScreen" class="channel-container" style="display: none;">
+      <div class="channel-header" style="display: flex; align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e5e5; margin-bottom: 24px;">
+        <div id="channelAvatarHeader" style="width: 120px; height: 120px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 48px; flex-shrink: 0;"></div>
+        <div class="channel-info-main" style="flex: 1;">
+          <h2 id="channelPageTitle" style="font-size: 28px; margin: 0 0 4px 0;"></h2>
+          <p class="channel-meta-stats" style="color: #606060; font-size: 14px; margin: 0 0 16px 0;">@<span id="channelHandle"></span> ・ チャンネル登録者数 <span id="channelSubscriberCount">0</span>人 ・ <span id="channelVideoCount">0</span> 本の動画</p>
+          <div class="channel-actions-row" style="display: flex; gap: 8px;">
+            <button id="customizeBtn" class="rate-btn" style="display: none;">チャンネルをカスタマイズ</button>
+            <button class="rate-btn">動画を管理</button>
+          </div>
         </div>
+      </div>
+      <div id="channelGrid" class="video-grid"></div>
+    </div>
 
-       <div class="video-meta-bar">
-          <div class="title-area">
-            <h1 class="video-title" id="mainTitle">動画のタイトル</h1>
-            
-            <div class="uploader-info-container">
-              <div id="uploaderAvatar" style="width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; cursor: pointer; flex-shrink: 0;"></div>
-              <div id="uploaderDetails" class="uploader-details">
-                <div id="uploaderName" class="uploader-name">チャンネル名</div>
-                <div id="uploaderSubscriberCount" class="uploader-sub-count">チャンネル登録者数 0人</div>
+    <div id="watchScreen" style="display: none;">
+      <div class="watch-layout">
+        <div class="watch-main">
+          <div class="video-wrapper">
+            <video id="mainVideo" class="main-video-player" controls playsinline webkit-playsinline></video>
+            <div id="danmakuContainer" class="danmaku-container"></div>
+          </div>
+
+         <div class="video-meta-bar">
+            <div class="title-area">
+              <h1 class="video-title" id="mainTitle">動画のタイトル</h1>
+              
+              <div class="uploader-info-container">
+                <div id="uploaderAvatar" style="width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; cursor: pointer; flex-shrink: 0;"></div>
+                <div id="uploaderDetails" class="uploader-details">
+                  <div id="uploaderName" class="uploader-name">チャンネル名</div>
+                  <div id="uploaderSubscriberCount" class="uploader-sub-count">チャンネル登録者数 0人</div>
+                </div>
+                <button id="subscribeBtn" class="subscribe-btn" style="display: none;">チャンネル登録</button>
+                <button id="blockUserBtn" class="rate-btn" style="font-size: 12px; padding: 4px 10px; display: none; margin-left: 8px;">🚫</button>
               </div>
-              <button id="subscribeBtn" class="subscribe-btn" style="display: none;">チャンネル登録</button>
-              <button id="blockUserBtn" class="rate-btn" style="font-size: 12px; padding: 4px 10px; display: none; margin-left: 8px;">🚫</button>
+              
             </div>
-            
+            <div class="meta-actions">
+              <span id="viewCount">- 回視聴</span>
+              <button id="likeBtn" class="rate-btn" disabled>👍 <span id="likeCount">0</span></button>
+              <button id="dislikeBtn" class="rate-btn" disabled>👎 <span id="dislikeCount">0</span></button>
+              <button id="reportBtn" class="rate-btn" style="color: #cc0000;">🚨 通報</button>
+              <button id="pipBtn" class="pip-btn">◱ PiPで弾幕再生</button>
+            </div>
           </div>
-          <div class="meta-actions">
-            <span id="viewCount">- 回視聴</span>
-            <button id="likeBtn" class="rate-btn" disabled>👍 <span id="likeCount">0</span></button>
-            <button id="dislikeBtn" class="rate-btn" disabled>👎 <span id="dislikeCount">0</span></button>
-            <button id="reportBtn" class="rate-btn" style="color: #cc0000;">🚨 通報</button>
-            <button id="pipBtn" class="pip-btn">◱ PiPで弾幕再生</button>
+
+          <div class="danmaku-input-area">
+            <input type="text" id="danmakuInput" placeholder="動画の今の時間に弾幕を流す...">
+            <button id="danmakuSubmitBtn" disabled>弾幕を送信</button>
+          </div>
+
+          <div class="nickname-area" id="nicknameArea">
+            <label for="nicknameInput">お名前（ニックネーム）</label>
+            <input type="text" id="nicknameInput" placeholder="未入力の場合は「ゲスト」">
+          </div>
+          <div class="channel-badge" id="channelBadge" style="display:none;"></div>
+
+          <div class="comment-section">
+            <h3>コメント</h3>
+            <div class="comment-input-area">
+              <div class="comment-avatar" id="commentAvatar">U</div>
+              <input type="text" id="commentInput" placeholder="コメントを追加...">
+              <button id="commentSubmitBtn" disabled>コメント</button>
+            </div>
+            <div id="commentList" class="comment-list"></div>
           </div>
         </div>
 
-        <div class="danmaku-input-area">
-          <input type="text" id="danmakuInput" placeholder="動画の今の時間に弾幕を流す...">
-          <button id="danmakuSubmitBtn" disabled>弾幕を送信</button>
-        </div>
-
-        <div class="nickname-area" id="nicknameArea">
-          <label for="nicknameInput">お名前（ニックネーム）</label>
-          <input type="text" id="nicknameInput" placeholder="未入力の場合は「ゲスト」">
-        </div>
-        <div class="channel-badge" id="channelBadge" style="display:none;"></div>
-
-        <div class="comment-section">
-          <h3>コメント</h3>
-          <div class="comment-input-area">
-            <div class="comment-avatar" id="commentAvatar">U</div>
-            <input type="text" id="commentInput" placeholder="コメントを追加...">
-            <button id="commentSubmitBtn" disabled>コメント</button>
-          </div>
-          <div id="commentList" class="comment-list"></div>
-        </div>
+        <div class="watch-sidebar" id="relatedVideosSidebar"></div>
       </div>
-
-      <div class="watch-sidebar" id="relatedVideosSidebar"></div>
     </div>
-  </div>
+  </div> <!-- main-content 終了 -->
 
+  <!-- 各種モーダルはそのまま -->
   <div id="uploadModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
@@ -513,6 +548,26 @@
     
     let currentUserBlocks = [];
     let currentUserSubscriptions = [];
+    let currentFeed = 'all'; // ★追加: ホーム画面の表示状態（全動画 or 登録チャンネル）
+
+    // サイドナビゲーションの操作
+    const navHomeBtn = document.getElementById('navHomeBtn');
+    const navSubscriptionsBtn = document.getElementById('navSubscriptionsBtn');
+
+    navHomeBtn.addEventListener('click', () => {
+      currentFeed = 'all';
+      navHomeBtn.classList.add('active');
+      navSubscriptionsBtn.classList.remove('active');
+      goHome();
+    });
+
+    navSubscriptionsBtn.addEventListener('click', () => {
+      if (!currentUser) return alert('登録したチャンネルを見るにはログインしてください。');
+      currentFeed = 'subscriptions';
+      navSubscriptionsBtn.classList.add('active');
+      navHomeBtn.classList.remove('active');
+      goHome();
+    });
 
     // ログイン関連
     const loginOpenBtn = document.getElementById('loginOpenBtn');
@@ -565,12 +620,13 @@
     }
 
     // ==========================================
-    // マイプロフィール表示機能（YouTube風に統合）
+    // マイプロフィール表示機能
     // ==========================================
     async function showMyProfile(targetUid = null) {
       const uid = targetUid || (currentUser ? currentUser.uid : null);
       if (!uid || uid === "undefined" || uid === "null") return;
 
+      document.body.classList.remove('watch-mode'); // チャンネルページではサイドバーを表示
       homeScreen.style.display = 'none';
       watchScreen.style.display = 'none';
       channelScreen.style.display = 'block';
@@ -736,7 +792,7 @@
     });
 
     // ==========================================
-    // 動画一覧（Storage） ＋ サムネイル表示
+    // 動画一覧（Storage） ＋ サムネイル表示 ＋ 絞り込み
     // ==========================================
     let allVideos = []; 
     let currentSort = 'newest';
@@ -769,6 +825,12 @@
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
       let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid));
+      
+      // サイドバーでの絞り込みを適用
+      if (currentFeed === 'subscriptions') {
+        list = list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
+      }
+
       if (keyword) list = list.filter(v => v.title.toLowerCase().includes(keyword));
 
       if (currentSort === 'popular') {
@@ -789,6 +851,7 @@
     }
 
     searchInput.addEventListener('input', () => {
+      document.body.classList.remove('watch-mode');
       homeScreen.style.display = 'block';
       channelScreen.style.display = 'none';
       watchScreen.style.display = 'none';
@@ -809,7 +872,11 @@
 
     function renderGrid(list, container) {
       if (list.length === 0) {
-        container.innerHTML = '<p class="empty-list-msg">動画が見つかりません。</p>';
+        if (currentFeed === 'subscriptions') {
+          container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">まだチャンネルを登録していないか、登録したチャンネルの動画がありません。</p>';
+        } else {
+          container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">動画が見つかりません。</p>';
+        }
         return;
       }
       container.innerHTML = '';
@@ -892,6 +959,7 @@
         window.documentPictureInPicture.window.close();
       }
 
+      document.body.classList.add('watch-mode'); // 視聴画面ではサイドナビを非表示にする
       homeScreen.style.display = 'none';
       channelScreen.style.display = 'none';
       watchScreen.style.display = 'block';
@@ -952,9 +1020,15 @@
       blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
     }
 
-    logoHome.addEventListener('click', goHome);
+    logoHome.addEventListener('click', () => {
+      currentFeed = 'all';
+      navHomeBtn.classList.add('active');
+      navSubscriptionsBtn.classList.remove('active');
+      goHome();
+    });
 
     function goHome() {
+      document.body.classList.remove('watch-mode'); // ホームに戻ったらサイドナビを表示
       uploadModal.classList.remove('active');
       createMenu.classList.remove('active');
       watchScreen.style.display = 'none';
@@ -969,7 +1043,7 @@
       }
       
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      loadVideoList();
+      applyFilterAndSort(); // currentFeed の状態に合わせて一覧を再描画
     }
 
     // ==========================================
@@ -1421,7 +1495,6 @@
 
     const observer = new MutationObserver(() => {
       const targetUid = uploaderNameEl.dataset.uid;
-      // ログイン済み かつ 自分の動画ではない かつ 相手がゲスト(未登録)ではない時だけ表示
       if (currentUser && targetUid && targetUid !== "undefined" && targetUid !== "null" && currentUser.uid !== targetUid) {
         subscribeBtn.style.display = 'block';
         subscribeBtn.dataset.targetUid = targetUid;
@@ -1444,41 +1517,35 @@
         const targetUid = subscribeBtn.dataset.targetUid;
         if (!targetUid || targetUid === "undefined" || targetUid === "null") return alert('このユーザーは登録できません。');
 
-        subscribeBtn.disabled = true; // 連打防止（すぐに解除されます）
+        subscribeBtn.disabled = true; // 連打防止
         
         const userRef = doc(db, 'users', currentUser.uid);
         const targetRef = doc(db, 'users', targetUid);
         const isSubscribed = currentUserSubscriptions.includes(targetUid);
         
-        // 画面の数字を即座に変更するための準備
         let currentCount = parseInt(subCountEl.textContent.replace(/[^0-9]/g, '')) || 0;
 
         try {
           if (isSubscribed) {
-            // ▼ 先に画面の見た目だけ変更する（オプティミスティックUI）
             subscribeBtn.textContent = 'チャンネル登録';
             subscribeBtn.classList.remove('subscribed');
             currentUserSubscriptions = currentUserSubscriptions.filter(id => id !== targetUid);
             subCountEl.textContent = `チャンネル登録者数 ${Math.max(0, currentCount - 1)}人`;
 
-            // ▼ 裏側でこっそりデータを送る（エラーが出ても無視して画面をフリーズさせない）
             await setDoc(userRef, { subscribedTo: arrayRemove(targetUid) }, { merge: true });
-            try { await setDoc(targetRef, { subscriberCount: increment(-1) }, { merge: true }); } catch (e) { /* 相手のデータが作れなくても無視 */ }
+            try { await setDoc(targetRef, { subscriberCount: increment(-1) }, { merge: true }); } catch (e) { }
             
           } else {
-            // ▼ 先に画面の見た目だけ変更する（オプティミスティックUI）
             subscribeBtn.textContent = '登録済み';
             subscribeBtn.classList.add('subscribed');
             currentUserSubscriptions.push(targetUid);
             subCountEl.textContent = `チャンネル登録者数 ${currentCount + 1}人`;
 
-            // ▼ 裏側でこっそりデータを送る
             await setDoc(userRef, { subscribedTo: arrayUnion(targetUid) }, { merge: true });
-            try { await setDoc(targetRef, { subscriberCount: increment(1) }, { merge: true }); } catch (e) { /* 相手のデータが作れなくても無視 */ }
+            try { await setDoc(targetRef, { subscriberCount: increment(1) }, { merge: true }); } catch (e) { }
           }
         } catch (error) {
           console.error("通信エラー:", error);
-          // 致命的なエラー以外はポップアップを出さない
         } finally {
           subscribeBtn.disabled = false;
         }
