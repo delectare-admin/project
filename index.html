@@ -91,8 +91,13 @@
     .video-meta-bar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
     .title-area { flex: 1; }
     .video-title { font-size: 20px; font-weight: bold; margin: 0 0 8px 0; line-height: 1.4; }
-    .uploader-link { font-size: 14px; font-weight: bold; color: #0f0f0f; text-decoration: none; display: inline-block; padding: 8px 16px; background-color: #f2f2f2; border-radius: 20px; cursor: pointer; }
-    .uploader-link:hover { background-color: #e5e5e5; }
+    
+    /* チャンネル情報のYouTube風スマートレイアウト */
+    .uploader-info-container { display: flex; align-items: center; gap: 12px; margin-top: 12px; margin-bottom: 16px; }
+    .uploader-details { display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
+    .uploader-name { font-size: 16px; font-weight: bold; color: #0f0f0f; text-decoration: none; }
+    .uploader-details:hover .uploader-name { text-decoration: underline; }
+    .uploader-sub-count { font-size: 12px; color: #606060; margin-top: 2px; }
     
     .meta-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     #viewCount { font-size: 14px; font-weight: bold; color: #606060; }
@@ -164,8 +169,8 @@
     .danmaku-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     .danmaku-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-    /* チャンネル登録ボタン */
-    .subscribe-btn { background-color: #0f0f0f; color: white; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; margin-left: 12px; }
+    /* チャンネル登録ボタン（YouTubeスタイル） */
+    .subscribe-btn { background-color: #0f0f0f; color: white; border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; margin-left: 12px; }
     .subscribe-btn:hover { background-color: #272727; }
     .subscribe-btn.subscribed { background-color: #f2f2f2; color: #0f0f0f; }
     .subscribe-btn.subscribed:hover { background-color: #e5e5e5; }
@@ -257,12 +262,18 @@
        <div class="video-meta-bar">
           <div class="title-area">
             <h1 class="video-title" id="mainTitle">動画のタイトル</h1>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-              <div id="uploaderAvatar" style="width: 36px; height: 36px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; cursor: pointer;"></div>
-              <div id="uploaderName" class="uploader-link" style="margin-bottom: 0;">チャンネル名</div>
-                  <button id="subscribeBtn" class="subscribe-btn" style="display: none;">チャンネル登録</button>
-                  <button id="blockUserBtn" class="rate-btn" style="font-size: 12px; padding: 4px 10px; display: none;">🚫 ブロック</button>
+            
+            <!-- YouTube風に進化させたチャンネル情報エリア -->
+            <div class="uploader-info-container">
+              <div id="uploaderAvatar" style="width: 40px; height: 40px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; cursor: pointer; flex-shrink: 0;"></div>
+              <div id="uploaderDetails" class="uploader-details">
+                <div id="uploaderName" class="uploader-name">チャンネル名</div>
+                <div id="uploaderSubscriberCount" class="uploader-sub-count">チャンネル登録者数 0人</div>
+              </div>
+              <button id="subscribeBtn" class="subscribe-btn" style="display: none;">チャンネル登録</button>
+              <button id="blockUserBtn" class="rate-btn" style="font-size: 12px; padding: 4px 10px; display: none; margin-left: 8px;">🚫</button>
             </div>
+            
           </div>
           <div class="meta-actions">
             <span id="viewCount">- 回視聴</span>
@@ -465,6 +476,9 @@
     const mainVideo = document.getElementById('mainVideo');
     const mainTitle = document.getElementById('mainTitle');
     const uploaderNameEl = document.getElementById('uploaderName');
+    const uploaderAvatarEl = document.getElementById('uploaderAvatar');
+    const uploaderDetailsEl = document.getElementById('uploaderDetails');
+    const subCountEl = document.getElementById('uploaderSubscriberCount');
     const danmakuContainer = document.getElementById('danmakuContainer');
     const relatedVideosSidebar = document.getElementById('relatedVideosSidebar');
 
@@ -492,7 +506,7 @@
     const reportBtn = document.getElementById('reportBtn');
     
     let currentUserBlocks = [];
-    let currentUserSubscriptions = []; // ★修正ポイント: ここで宣言
+    let currentUserSubscriptions = [];
 
     // ログイン関連
     const loginOpenBtn = document.getElementById('loginOpenBtn');
@@ -669,8 +683,8 @@
       if (user) {
         let channelName = 'ゲストチャンネル';
         let avatarUrl = '';
-        currentUserBlocks = []; // ★修正ポイント: 安全な位置に移動
-        currentUserSubscriptions = []; // ★修正ポイント: 安全な位置に移動
+        currentUserBlocks = []; 
+        currentUserSubscriptions = []; 
         
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
@@ -823,7 +837,7 @@
     // ==========================================
     // チャンネルページ遷移機能
     // ==========================================
-    uploaderNameEl.addEventListener('click', () => {
+    function triggerChannelNavigation() {
       const uid = uploaderNameEl.dataset.uid;
       showMyProfile(uid);
       
@@ -833,10 +847,9 @@
         mainVideo.pause();
         mainVideo.src = "";
       }
-    });
-    document.getElementById('uploaderAvatar').addEventListener('click', () => {
-      uploaderNameEl.click();
-    });
+    }
+    uploaderDetailsEl.addEventListener('click', triggerChannelNavigation);
+    uploaderAvatarEl.addEventListener('click', triggerChannelNavigation);
 
     // ==========================================
     // サイドバー（関連動画）描画
@@ -880,25 +893,34 @@
       uploaderNameEl.textContent = videoData.uploaderName;
       uploaderNameEl.dataset.uid = videoData.uploaderUid;
 
-      // 投稿者のアイコンを非同期で取得して表示
-      const uploaderAvatarEl = document.getElementById('uploaderAvatar');
+      // 投稿者のアイコンと登録者数を非同期で取得して表示
       if (videoData.uploaderUid) {
         try {
           const uploaderSnap = await getDoc(doc(db, 'users', videoData.uploaderUid));
-          if (uploaderSnap.exists() && uploaderSnap.data().avatarUrl) {
-            uploaderAvatarEl.style.backgroundImage = `url(${uploaderSnap.data().avatarUrl})`;
-            uploaderAvatarEl.textContent = '';
+          if (uploaderSnap.exists()) {
+            const uData = uploaderSnap.data();
+            if (uData.avatarUrl) {
+              uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`;
+              uploaderAvatarEl.textContent = '';
+            } else {
+              uploaderAvatarEl.style.backgroundImage = 'none';
+              uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
+            }
+            subCountEl.textContent = `チャンネル登録者数 ${uData.subscriberCount || 0}人`;
           } else {
             uploaderAvatarEl.style.backgroundImage = 'none';
             uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
+            subCountEl.textContent = 'チャンネル登録者数 0人';
           }
         } catch (e) {
           uploaderAvatarEl.style.backgroundImage = 'none';
           uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
+          subCountEl.textContent = 'チャンネル登録者数 0人';
         }
       } else {
         uploaderAvatarEl.style.backgroundImage = 'none';
         uploaderAvatarEl.textContent = 'ゲ';
+        subCountEl.textContent = '';
       }
       
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1176,7 +1198,6 @@
       lastTime = currentTime;
     });
 
-    // 動画と連動して弾幕の動きをコントロール（一時停止・再生対応）
     mainVideo.addEventListener('pause', () => {
       danmakuContainer.classList.add('is-paused');
     });
@@ -1370,10 +1391,10 @@
           avatarUrl = await getDownloadURL(storageRef);
         }
 
-        await updateDoc(doc(db, 'users', currentUser.uid), {
+        await setDoc(doc(db, 'users', currentUser.uid), {
           channelName: newName,
           avatarUrl: avatarUrl
-        });
+        }, { merge: true });
 
         alert('プロフィールを更新しました！');
         location.reload();
@@ -1386,14 +1407,14 @@
     });
 
     // ==========================================
-    // チャンネル登録機能の処理
+    // チャンネル登録機能の処理 (バグ修正＆UI連動版)
     // ==========================================
     const subscribeBtn = document.getElementById('subscribeBtn');
 
-    // 視聴画面を開いた時にボタンの状態を切り替える（watchVideo関数の代わりにここで監視）
     const observer = new MutationObserver(() => {
       const targetUid = uploaderNameEl.dataset.uid;
-      if (currentUser && targetUid && currentUser.uid !== targetUid) {
+      // ログイン済み かつ 自分の動画ではない時だけ登録ボタンを表示
+      if (currentUser && targetUid && targetUid !== "undefined" && currentUser.uid !== targetUid) {
         subscribeBtn.style.display = 'block';
         subscribeBtn.dataset.targetUid = targetUid;
         if (currentUserSubscriptions.includes(targetUid)) {
@@ -1409,12 +1430,11 @@
     });
     observer.observe(uploaderNameEl, { attributes: true, childList: true, characterData: true });
 
-    // ボタンをクリックした時の処理
     if (subscribeBtn) {
       subscribeBtn.addEventListener('click', async () => {
         if (!currentUser) return alert('チャンネル登録するにはログインしてください。');
         const targetUid = subscribeBtn.dataset.targetUid;
-        if (!targetUid) return;
+        if (!targetUid || targetUid === "undefined") return alert('このユーザーは登録できません。');
 
         subscribeBtn.disabled = true;
         const userRef = doc(db, 'users', currentUser.uid);
@@ -1422,21 +1442,32 @@
 
         try {
           if (currentUserSubscriptions.includes(targetUid)) {
-            // ▼ 登録解除の処理
-            await updateDoc(userRef, { subscribedTo: arrayRemove(targetUid) });
-            await updateDoc(targetRef, { subscriberCount: increment(-1) });
+            // ▼ 登録解除の処理（枠が無ければ作る setDoc + merge に変更）
+            await setDoc(userRef, { subscribedTo: arrayRemove(targetUid) }, { merge: true });
+            await setDoc(targetRef, { subscriberCount: increment(-1) }, { merge: true });
             
             currentUserSubscriptions = currentUserSubscriptions.filter(id => id !== targetUid);
             subscribeBtn.textContent = 'チャンネル登録';
             subscribeBtn.classList.remove('subscribed');
+            
+            // 画面の数字を即座に減らす
+            const subCountEl = document.getElementById('uploaderSubscriberCount');
+            let currentCount = parseInt(subCountEl.textContent.replace(/[^0-9]/g, '')) || 0;
+            subCountEl.textContent = `チャンネル登録者数 ${Math.max(0, currentCount - 1)}人`;
+            
           } else {
             // ▼ チャンネル登録の処理
-            await updateDoc(userRef, { subscribedTo: arrayUnion(targetUid) });
-            await updateDoc(targetRef, { subscriberCount: increment(1) });
+            await setDoc(userRef, { subscribedTo: arrayUnion(targetUid) }, { merge: true });
+            await setDoc(targetRef, { subscriberCount: increment(1) }, { merge: true });
             
             currentUserSubscriptions.push(targetUid);
             subscribeBtn.textContent = '登録済み';
             subscribeBtn.classList.add('subscribed');
+            
+            // 画面の数字を即座に増やす
+            const subCountEl = document.getElementById('uploaderSubscriberCount');
+            let currentCount = parseInt(subCountEl.textContent.replace(/[^0-9]/g, '')) || 0;
+            subCountEl.textContent = `チャンネル登録者数 ${currentCount + 1}人`;
           }
         } catch (error) {
           console.error(error);
@@ -1446,7 +1477,6 @@
         }
       });
     }
-
   </script>
 </body>
 </html>
