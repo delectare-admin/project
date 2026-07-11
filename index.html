@@ -10,7 +10,6 @@
     header { display: flex; justify-content: space-between; align-items: center; padding: 10px 24px; height: 56px; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
     .logo { font-size: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
     
-    /* ヘッダーの検索バー（YouTube風） */
     .header-search-bar { display: flex; flex: 1; max-width: 600px; margin: 0 24px; }
     .header-search-bar input { flex: 1; padding: 10px 20px; border: 1px solid #ccc; border-right: none; border-radius: 20px 0 0 20px; font-size: 16px; outline: none; }
     .header-search-bar input:focus { border: 1px solid #065fd4; }
@@ -25,7 +24,6 @@
     .menu-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; }
     .menu-item:hover { background-color: #f2f2f2; }
     
-    /* ヘッダーのユーザー情報周り */
     #userInfo { display: none; align-items: center; gap: 10px; }
     #userProfileAvatar { width: 32px; height: 32px; border-radius: 50%; background-color: #065fd4; background-size: cover; background-position: center; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; font-size: 16px; }
     #channelNameDisplay { font-weight: bold; font-size: 14px; cursor: pointer; }
@@ -38,7 +36,7 @@
     .nav-item.active { background-color: #f2f2f2; font-weight: bold; }
     .nav-item img { width: 24px; height: 24px; object-fit: contain; }
     
-    /* メインコンテンツエリア（サイドバーの右側） */
+    /* メインコンテンツエリア */
     .main-content { margin-left: 240px; padding-top: 24px; min-height: calc(100vh - 56px); box-sizing: border-box; }
     body.watch-mode .side-nav { display: none; }
     body.watch-mode .main-content { margin-left: 0; padding-top: 0; }
@@ -66,7 +64,6 @@
     .save-btn { background-color: #065fd4; color: white; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; width: 100%; box-sizing: border-box; }
     .save-btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
-    /* ログイン／新規登録モーダル */
     .auth-modal-content { max-width: 400px; height: auto; }
     .auth-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
     .auth-error { color: #cc0000; font-size: 13px; display: none; }
@@ -75,14 +72,11 @@
     .google-btn { background-color: #4285F4; color: white; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; }
     .google-btn:hover { background-color: #3367D6; }
 
-    /* ホーム・チャンネル共通レイアウト */
     .home-container, .channel-container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
-    
     .sort-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
     .sort-btn { background-color: #f2f2f2; border: none; padding: 7px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; color: #606060; cursor: pointer; }
     .sort-btn.active { background-color: #0f0f0f; color: white; }
 
-    /* 動画一覧 */
     .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
     .grid-item { position: relative; cursor: pointer; }
     .thumbnail-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; background-color: #000; pointer-events: none; }
@@ -108,7 +102,6 @@
     .title-area { flex: 1; }
     .video-title { font-size: 20px; font-weight: bold; margin: 0 0 8px 0; line-height: 1.4; }
     
-    /* チャンネル情報のYouTube風スマートレイアウト */
     .uploader-info-container { display: flex; align-items: center; gap: 12px; margin-top: 12px; margin-bottom: 16px; }
     .uploader-details { display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
     .uploader-name { font-size: 16px; font-weight: bold; color: #0f0f0f; text-decoration: none; }
@@ -118,7 +111,6 @@
     .meta-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     #viewCount { font-size: 14px; font-weight: bold; color: #606060; }
     
-    /* 評価ボタン・PiPボタン */
     .rate-btn, .pip-btn { background-color: #f2f2f2; border: none; border-radius: 20px; padding: 8px 16px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s ease; display: inline-flex; align-items: center; gap: 6px; }
     .rate-btn:hover, .pip-btn:hover { background-color: #e5e5e5; }
     .rate-btn:disabled { opacity: 0.5; cursor: default; }
@@ -131,14 +123,15 @@
       100% { transform: scale(1); }
     }
 
-    /* サイドバー関連動画 */
     .related-item { display: flex; gap: 12px; cursor: pointer; }
     .related-item .thumbnail-img { width: 168px; aspect-ratio: 16/9; border-radius: 8px; flex-shrink: 0; }
     .related-item .info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .related-item .info-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .related-item .info-author { font-size: 12px; color: #606060; }
 
-    /* ニックネーム・コメント欄 */
+    /* ============================================== */
+    /* コメント関連のスタイル大幅強化（テキストエリア化・返信対応） */
+    /* ============================================== */
     .nickname-area { margin: 20px 0 12px; }
     .nickname-area label { font-size: 12px; color: #606060; font-weight: bold; display: block; margin-bottom: 6px; }
     .nickname-area input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 100%; max-width: 280px; box-sizing: border-box; }
@@ -148,18 +141,33 @@
     .comment-section h3 { margin-top: 0; font-size: 18px; margin-bottom: 16px; }
     .comment-input-area { display: flex; gap: 12px; margin-bottom: 32px; align-items: flex-start; }
     .comment-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #065fd4; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; background-size: cover; background-position: center; }
-    .comment-input-area input { flex: 1; padding: 8px 0; border: none; border-bottom: 1px solid #ccc; font-size: 14px; outline: none; background: transparent; }
-    .comment-input-area input:focus { border-bottom: 2px solid #0f0f0f; padding-bottom: 7px; }
-    .comment-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px; width: auto;}
+    
+    /* 複数行対応テキストエリア化 */
+    .comment-input-area textarea { flex: 1; padding: 8px 0; border: none; border-bottom: 1px solid #ccc; font-size: 14px; outline: none; background: transparent; resize: none; overflow: hidden; font-family: inherit; line-height: 1.4; transition: border-color 0.2s; }
+    .comment-input-area textarea:focus { border-bottom: 2px solid #0f0f0f; padding-bottom: 7px; }
+    
+    .comment-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px; width: auto; flex-shrink: 0; margin-top: 4px; }
     .comment-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
+    
     .comment-list { display: flex; flex-direction: column; gap: 20px; }
     .comment-item { display: flex; gap: 12px; }
-    .comment-content { flex: 1; }
+    .comment-content { flex: 1; min-width: 0; }
     .comment-content .comment-author { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
     .comment-content .comment-date { font-size: 12px; color: #606060; font-weight: normal; margin-left: 8px; }
-    .comment-content .comment-text { font-size: 14px; color: #0f0f0f; white-space: pre-wrap; line-height: 1.4; }
-    .comment-delete-btn { background: none; border: none; color: #909090; font-size: 12px; cursor: pointer; padding: 0; margin-top: 4px; }
-    .comment-delete-btn:hover { color: #cc0000; text-decoration: underline; }
+    .comment-content .comment-text { font-size: 14px; color: #0f0f0f; white-space: pre-wrap; line-height: 1.5; word-wrap: break-word; }
+    
+    /* コメントのアクションボタン（いいね、低評価、返信） */
+    .comment-actions-bar { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
+    .comment-action-btn { background: none; border: none; font-size: 13px; color: #606060; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 16px; transition: background-color 0.2s; font-weight: bold; }
+    .comment-action-btn:hover { background-color: #f2f2f2; }
+    .comment-action-btn.active { color: #0f0f0f; }
+
+    /* 返信入力エリア */
+    .reply-input-area { display: none; gap: 12px; align-items: flex-start; margin-top: 12px; margin-bottom: 16px; }
+    .reply-input-area textarea { flex: 1; padding: 8px 0; border: none; border-bottom: 1px solid #ccc; font-size: 14px; outline: none; background: transparent; resize: none; overflow: hidden; font-family: inherit; line-height: 1.4; transition: border-color 0.2s; }
+    .reply-input-area textarea:focus { border-bottom: 2px solid #0f0f0f; padding-bottom: 7px; }
+    .reply-input-area button { background-color: #065fd4; color: white; border: none; padding: 8px 16px; border-radius: 16px; cursor: pointer; font-weight: bold; font-size: 13px; flex-shrink: 0; margin-top: 4px; }
+    .reply-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
     /* ニコニコ風「弾幕」 */
     .video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; margin-bottom: 12px; overflow: hidden; background-color: #000; border-radius: 12px; }
@@ -178,11 +186,12 @@
     .danmaku-container.is-paused .danmaku-comment { animation-play-state: paused; }
 
     .danmaku-input-area { display: flex; gap: 8px; margin-bottom: 24px; }
-    .danmaku-input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; font-size: 14px; }
+    .danmaku-input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; font-size: 14px; outline: none; }
+    .danmaku-input-area input:focus { border: 1px solid #065fd4; }
     .danmaku-input-area button { background-color: #065fd4; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
     .danmaku-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-    /* チャンネル登録ボタン（YouTubeスタイル） */
+    /* チャンネル登録ボタン */
     .subscribe-btn { background-color: #0f0f0f; color: white; border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; margin-left: 12px; }
     .subscribe-btn:hover { background-color: #272727; }
     .subscribe-btn.subscribed { background-color: #f2f2f2; color: #0f0f0f; }
@@ -193,7 +202,6 @@
       header { flex-wrap: wrap; height: auto; padding: 10px 16px; }
       .header-search-bar { order: 3; width: 100%; max-width: 100%; margin: 12px 0 0 0; }
       
-      /* モバイル時のサイドバーを下部固定ナビゲーションに変更 */
       .side-nav { top: auto; bottom: 0; width: 100%; height: 56px; flex-direction: row; justify-content: space-around; padding: 0; border-top: 1px solid #e5e5e5; display: flex; }
       .nav-item { flex-direction: column; gap: 4px; margin: 0; padding: 8px 0; flex: 1; border-radius: 0; justify-content: center; }
       .nav-item span { font-size: 10px; }
@@ -251,7 +259,6 @@
     </div>
   </header>
 
-  <!-- 左サイドナビゲーション -->
   <nav class="side-nav" id="sideNav">
     <div class="nav-item active" id="navHomeBtn">
       <img src="スクリーンショット 2026-07-11 113437.jpg" alt="Home">
@@ -263,7 +270,6 @@
     </div>
   </nav>
 
-  <!-- メインコンテンツラッパー -->
   <div class="main-content" id="mainContent">
     
     <div id="homeScreen" class="home-container">
@@ -312,7 +318,6 @@
                 <button id="subscribeBtn" class="subscribe-btn" style="display: none;">チャンネル登録</button>
                 <button id="blockUserBtn" class="rate-btn" style="font-size: 12px; padding: 4px 10px; display: none; margin-left: 8px;">🚫</button>
               </div>
-              
             </div>
             <div class="meta-actions">
               <span id="viewCount">- 回視聴</span>
@@ -338,7 +343,8 @@
             <h3>コメント</h3>
             <div class="comment-input-area">
               <div class="comment-avatar" id="commentAvatar">U</div>
-              <input type="text" id="commentInput" placeholder="コメントを追加...">
+              <!-- ▼ テキストエリアに変更！改行対応＆Enterで送信 -->
+              <textarea id="commentInput" rows="1" placeholder="コメントを追加..."></textarea>
               <button id="commentSubmitBtn" disabled>コメント</button>
             </div>
             <div id="commentList" class="comment-list"></div>
@@ -348,23 +354,21 @@
         <div class="watch-sidebar" id="relatedVideosSidebar"></div>
       </div>
     </div>
-  </div> <!-- main-content 終了 -->
+  </div>
 
-  <!-- 各種モーダルはそのまま -->
+  <!-- 各種モーダル -->
   <div id="uploadModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="modalTitle">動画のアップロード</h2>
         <button id="closeModalBtn" class="close-btn">✕</button>
       </div>
-
       <div id="step1Area" class="step-1-area">
         <div class="upload-icon-circle">⬆️</div>
         <p>アップロードする動画ファイルを選択してください</p>
         <input type="file" id="fileInput" accept="video/*" style="display: none;">
         <button id="selectFileBtn" class="select-file-btn">ファイルを選択</button>
       </div>
-
       <div id="step2Area" class="step-2-area">
         <div class="details-layout">
           <div class="form-area">
@@ -483,9 +487,7 @@
       return path.replace(/\//g, '__');
     }
 
-    // ==========================================
-    // UI要素の取得
-    // ==========================================
+    // UI要素
     const logoHome = document.getElementById('logoHome');
     const createBtn = document.getElementById('createBtn');
     const createMenu = document.getElementById('createMenu');
@@ -548,9 +550,8 @@
     
     let currentUserBlocks = [];
     let currentUserSubscriptions = [];
-    let currentFeed = 'all'; // ★追加: ホーム画面の表示状態（全動画 or 登録チャンネル）
+    let currentFeed = 'all'; 
 
-    // サイドナビゲーションの操作
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navSubscriptionsBtn = document.getElementById('navSubscriptionsBtn');
 
@@ -569,7 +570,7 @@
       goHome();
     });
 
-    // ログイン関連
+    // ログイン
     const loginOpenBtn = document.getElementById('loginOpenBtn');
     const userInfo = document.getElementById('userInfo');
     const channelNameDisplay = document.getElementById('channelNameDisplay');
@@ -591,9 +592,7 @@
     let currentVideoId = "";
     let unsubscribeComments = null;
     let currentUser = null; 
-    
-    let hasLiked = false;
-    let hasDisliked = false;
+    let hasLiked = false; let hasDisliked = false;
 
     nicknameInput.value = localStorage.getItem('mytube_nickname') || '';
     updateAvatarLetter();
@@ -611,25 +610,14 @@
         commentAvatar.textContent = name.charAt(0).toUpperCase();
       }
     }
-    function getNickname() {
-      if (currentUser) return currentUser.channelName;
-      return nicknameInput.value.trim() || 'ゲスト';
-    }
-    function getAuthorUid() {
-      return currentUser ? currentUser.uid : null;
-    }
+    function getNickname() { return currentUser ? currentUser.channelName : (nicknameInput.value.trim() || 'ゲスト'); }
+    function getAuthorUid() { return currentUser ? currentUser.uid : null; }
 
-    // ==========================================
-    // マイプロフィール表示機能
-    // ==========================================
     async function showMyProfile(targetUid = null) {
       const uid = targetUid || (currentUser ? currentUser.uid : null);
       if (!uid || uid === "undefined" || uid === "null") return;
-
-      document.body.classList.remove('watch-mode'); // チャンネルページではサイドバーを表示
-      homeScreen.style.display = 'none';
-      watchScreen.style.display = 'none';
-      channelScreen.style.display = 'block';
+      document.body.classList.remove('watch-mode');
+      homeScreen.style.display = 'none'; watchScreen.style.display = 'none'; channelScreen.style.display = 'block';
 
       const userSnap = await getDoc(doc(db, 'users', uid));
       const userData = userSnap.exists() ? userSnap.data() : { channelName: 'ゲスト', subscriberCount: 0 };
@@ -640,16 +628,12 @@
       document.getElementById('channelSubscriberCount').textContent = userData.subscriberCount || 0;
       
       if (userData.avatarUrl) {
-        channelAvatarHeader.style.backgroundImage = `url(${userData.avatarUrl})`;
-        channelAvatarHeader.textContent = '';
+        channelAvatarHeader.style.backgroundImage = `url(${userData.avatarUrl})`; channelAvatarHeader.textContent = '';
       } else {
-        channelAvatarHeader.style.backgroundImage = 'none';
-        channelAvatarHeader.textContent = userData.channelName.charAt(0).toUpperCase();
+        channelAvatarHeader.style.backgroundImage = 'none'; channelAvatarHeader.textContent = userData.channelName.charAt(0).toUpperCase();
       }
 
-      const customizeBtn = document.getElementById('customizeBtn');
-      customizeBtn.style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
-
+      document.getElementById('customizeBtn').style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
       const userVideos = allVideos.filter(v => v.uploaderUid === uid);
       document.getElementById('channelVideoCount').textContent = userVideos.length;
       renderGrid(userVideos, channelGrid);
@@ -658,571 +642,286 @@
     userProfileAvatar.addEventListener('click', () => showMyProfile());
     channelNameDisplay.addEventListener('click', () => showMyProfile());
 
-    // ==========================================
-    // 認証処理（メール＆Google）
-    // ==========================================
+    // 認証
     let authMode = 'login';
-    loginOpenBtn.addEventListener('click', () => {
-      authMode = 'login';
-      updateAuthModalUI();
-      authEmail.value = '';
-      authPassword.value = '';
-      authChannelName.value = '';
-      authModal.classList.add('active');
-    });
+    loginOpenBtn.addEventListener('click', () => { authMode = 'login'; updateAuthModalUI(); authEmail.value = ''; authPassword.value = ''; authChannelName.value = ''; authModal.classList.add('active'); });
     closeAuthModalBtn.addEventListener('click', () => authModal.classList.remove('active'));
-
-    authToggleLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      authMode = authMode === 'login' ? 'signup' : 'login';
-      updateAuthModalUI();
-    });
+    authToggleLink.addEventListener('click', (e) => { e.preventDefault(); authMode = authMode === 'login' ? 'signup' : 'login'; updateAuthModalUI(); });
 
     function updateAuthModalUI() {
       authErrorMsg.style.display = 'none';
       if (authMode === 'signup') {
-        authModalTitle.textContent = '新規登録';
-        signupNameGroup.style.display = 'block';
-        authSubmitBtn.textContent = 'メールアドレスで登録';
-        authToggleText.textContent = 'すでにアカウントをお持ちの方は';
-        authToggleLink.textContent = 'ログイン';
+        authModalTitle.textContent = '新規登録'; signupNameGroup.style.display = 'block'; authSubmitBtn.textContent = 'メールアドレスで登録'; authToggleText.textContent = 'すでにアカウントをお持ちの方は'; authToggleLink.textContent = 'ログイン';
       } else {
-        authModalTitle.textContent = 'ログイン';
-        signupNameGroup.style.display = 'none';
-        authSubmitBtn.textContent = 'メールアドレスでログイン';
-        authToggleText.textContent = 'アカウントをお持ちでない方は';
-        authToggleLink.textContent = '新規登録';
+        authModalTitle.textContent = 'ログイン'; signupNameGroup.style.display = 'none'; authSubmitBtn.textContent = 'メールアドレスでログイン'; authToggleText.textContent = 'アカウントをお持ちでない方は'; authToggleLink.textContent = '新規登録';
       }
     }
 
     authSubmitBtn.addEventListener('click', async () => {
-      const email = authEmail.value.trim();
-      const password = authPassword.value;
+      const email = authEmail.value.trim(); const password = authPassword.value;
       if (!email || !password) return;
-
-      authSubmitBtn.disabled = true;
-      authErrorMsg.style.display = 'none';
+      authSubmitBtn.disabled = true; authErrorMsg.style.display = 'none';
       try {
         if (authMode === 'signup') {
           const channelName = authChannelName.value.trim() || 'ゲストチャンネル';
           const cred = await createUserWithEmailAndPassword(auth, email, password);
           await setDoc(doc(db, 'users', cred.user.uid), { channelName, email, createdAt: serverTimestamp(), subscriberCount: 0 });
-        } else {
-          await signInWithEmailAndPassword(auth, email, password);
-        }
+        } else { await signInWithEmailAndPassword(auth, email, password); }
         authModal.classList.remove('active');
-      } catch (error) {
-        authErrorMsg.textContent = "ログインに失敗しました。メールアドレスとパスワードを確認してください。";
-        authErrorMsg.style.display = 'block';
-      } finally {
-        authSubmitBtn.disabled = false;
-      }
+      } catch (error) { authErrorMsg.textContent = "失敗しました。"; authErrorMsg.style.display = 'block'; } finally { authSubmitBtn.disabled = false; }
     });
 
     googleAuthBtn.addEventListener('click', async () => {
-      authErrorMsg.style.display = 'none';
       try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        const userRef = doc(db, 'users', user.uid);
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) {
-          await setDoc(userRef, {
-            channelName: user.displayName || 'Googleユーザー',
-            email: user.email,
-            createdAt: serverTimestamp(),
-            subscriberCount: 0
-          });
-        }
+        const result = await signInWithPopup(auth, googleProvider); const user = result.user; const userRef = doc(db, 'users', user.uid); const snap = await getDoc(userRef);
+        if (!snap.exists()) await setDoc(userRef, { channelName: user.displayName || 'Googleユーザー', email: user.email, createdAt: serverTimestamp(), subscriberCount: 0 });
         authModal.classList.remove('active');
-      } catch (error) {
-        authErrorMsg.textContent = 'Googleログインに失敗しました。';
-        authErrorMsg.style.display = 'block';
-      }
+      } catch (error) { authErrorMsg.textContent = '失敗しました。'; authErrorMsg.style.display = 'block'; }
     });
 
     logoutBtn.addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        let channelName = 'ゲストチャンネル';
-        let avatarUrl = '';
-        currentUserBlocks = []; 
-        currentUserSubscriptions = []; 
-        
+        let channelName = 'ゲストチャンネル'; let avatarUrl = ''; currentUserBlocks = []; currentUserSubscriptions = []; 
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
-          if (snap.exists()) {
-            channelName = snap.data().channelName;
-            avatarUrl = snap.data().avatarUrl || '';
-            currentUserBlocks = snap.data().blockedUids || [];
-            currentUserSubscriptions = snap.data().subscribedTo || []; 
-          }
-        } catch (error) {
-          console.error("ユーザー情報の取得に失敗:", error);
-          channelName = user.displayName || '名無しユーザー';
-        }
+          if (snap.exists()) { channelName = snap.data().channelName; avatarUrl = snap.data().avatarUrl || ''; currentUserBlocks = snap.data().blockedUids || []; currentUserSubscriptions = snap.data().subscribedTo || []; }
+        } catch (error) { channelName = user.displayName || '名無しユーザー'; }
 
         currentUser = { uid: user.uid, channelName, avatarUrl };
-        loginOpenBtn.style.display = 'none';
-        userInfo.style.display = 'flex';
-        channelNameDisplay.textContent = channelName;
-        
-        if (avatarUrl) {
-          userProfileAvatar.style.backgroundImage = `url(${avatarUrl})`;
-          userProfileAvatar.style.backgroundSize = 'cover';
-          userProfileAvatar.textContent = '';
-        } else {
-          userProfileAvatar.style.backgroundImage = 'none';
-          userProfileAvatar.textContent = channelName.charAt(0).toUpperCase();
-        }
-
-        nicknameArea.style.display = 'none';
-        channelBadge.style.display = 'block';
-        channelBadge.textContent = '「' + channelName + '」としてコメントします';
+        loginOpenBtn.style.display = 'none'; userInfo.style.display = 'flex'; channelNameDisplay.textContent = channelName;
+        if (avatarUrl) { userProfileAvatar.style.backgroundImage = `url(${avatarUrl})`; userProfileAvatar.style.backgroundSize = 'cover'; userProfileAvatar.textContent = ''; } else { userProfileAvatar.style.backgroundImage = 'none'; userProfileAvatar.textContent = channelName.charAt(0).toUpperCase(); }
+        nicknameArea.style.display = 'none'; channelBadge.style.display = 'block'; channelBadge.textContent = '「' + channelName + '」としてコメントします';
       } else {
-        currentUser = null;
-        loginOpenBtn.style.display = 'inline-flex';
-        userInfo.style.display = 'none';
-        nicknameArea.style.display = 'block';
-        channelBadge.style.display = 'none';
+        currentUser = null; loginOpenBtn.style.display = 'inline-flex'; userInfo.style.display = 'none'; nicknameArea.style.display = 'block'; channelBadge.style.display = 'none';
       }
-      updateAvatarLetter();
-      loadVideoList(); 
+      updateAvatarLetter(); loadVideoList(); 
     });
 
-    // ==========================================
-    // 動画一覧（Storage） ＋ サムネイル表示 ＋ 絞り込み
-    // ==========================================
-    let allVideos = []; 
-    let currentSort = 'newest';
-
+    // 動画一覧
+    let allVideos = []; let currentSort = 'newest';
     async function loadVideoList() {
       videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
       const listRef = ref(storage, 'videos/');
       try {
-        const res = await listAll(listRef);
-        const items = res.items.slice().reverse();
-        allVideos = [];
+        const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
         for (const itemRef of items) {
-          const [url, metadata] = await Promise.all([
-            getDownloadURL(itemRef),
-            getMetadata(itemRef)
-          ]);
+          const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
           const title = (metadata.customMetadata && metadata.customMetadata.title) || itemRef.name;
           const uploaderUid = (metadata.customMetadata && metadata.customMetadata.uploaderUid) || null;
           const uploaderName = (metadata.customMetadata && metadata.customMetadata.uploaderName) || 'ゲスト';
           const thumbUrl = (metadata.customMetadata && metadata.customMetadata.thumbUrl) || null;
-          
           allVideos.push({ url, title, itemRef, uploaderUid, uploaderName, thumbUrl });
         }
         applyFilterAndSort();
-      } catch (error) {
-        videoGrid.innerHTML = '<p class="empty-list-msg">一覧の読み込みに失敗しました。</p>';
-      }
+      } catch (error) { videoGrid.innerHTML = '<p class="empty-list-msg">失敗しました。</p>'; }
     }
 
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
       let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid));
-      
-      // サイドバーでの絞り込みを適用
-      if (currentFeed === 'subscriptions') {
-        list = list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
-      }
-
+      if (currentFeed === 'subscriptions') list = list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
       if (keyword) list = list.filter(v => v.title.toLowerCase().includes(keyword));
 
       if (currentSort === 'popular') {
         const withScore = await Promise.all(list.map(async (v) => {
-          try {
-            const statsSnap = await getDoc(doc(db, 'videoStats', statsDocId(v.itemRef.fullPath)));
-            const data = statsSnap.exists() ? statsSnap.data() : { views: 0, likes: 0 };
-            return { ...v, score: (data.views || 0) + (data.likes || 0) * 3 };
-          } catch {
-            return { ...v, score: 0 };
-          }
+          try { const statsSnap = await getDoc(doc(db, 'videoStats', statsDocId(v.itemRef.fullPath))); const data = statsSnap.exists() ? statsSnap.data() : { views: 0, likes: 0 }; return { ...v, score: (data.views || 0) + (data.likes || 0) * 3 }; } catch { return { ...v, score: 0 }; }
         }));
-        withScore.sort((a, b) => b.score - a.score);
-        renderGrid(withScore, videoGrid);
-      } else {
-        renderGrid(list, videoGrid);
-      }
+        withScore.sort((a, b) => b.score - a.score); renderGrid(withScore, videoGrid);
+      } else { renderGrid(list, videoGrid); }
     }
 
-    searchInput.addEventListener('input', () => {
-      document.body.classList.remove('watch-mode');
-      homeScreen.style.display = 'block';
-      channelScreen.style.display = 'none';
-      watchScreen.style.display = 'none';
-      applyFilterAndSort();
-    });
-    
-    sortNewestBtn.addEventListener('click', () => {
-      currentSort = 'newest';
-      sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
-      applyFilterAndSort();
-    });
-    
-    sortPopularBtn.addEventListener('click', () => {
-      currentSort = 'popular';
-      sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active');
-      applyFilterAndSort();
-    });
+    searchInput.addEventListener('input', () => { document.body.classList.remove('watch-mode'); homeScreen.style.display = 'block'; channelScreen.style.display = 'none'; watchScreen.style.display = 'none'; applyFilterAndSort(); });
+    sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
+    sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
 
     function renderGrid(list, container) {
       if (list.length === 0) {
-        if (currentFeed === 'subscriptions') {
-          container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">まだチャンネルを登録していないか、登録したチャンネルの動画がありません。</p>';
-        } else {
-          container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">動画が見つかりません。</p>';
-        }
-        return;
+        container.innerHTML = currentFeed === 'subscriptions' ? '<p class="empty-list-msg" style="grid-column: 1/-1;">登録したチャンネルの動画がありません。</p>' : '<p class="empty-list-msg" style="grid-column: 1/-1;">動画が見つかりません。</p>'; return;
       }
       container.innerHTML = '';
       list.forEach(v => {
         const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
-        const gridItem = document.createElement('div');
-        gridItem.className = 'grid-item';
-        
-        const mediaHtml = v.thumbUrl 
-          ? `<img src="${v.thumbUrl}" class="thumbnail-img">` 
-          : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
-
-        gridItem.innerHTML = `
-          ${mediaHtml}
-          <div class="grid-title">${escapeHtml(v.title)}</div>
-          <div class="grid-author">${escapeHtml(v.uploaderName)}</div>
-          ${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}
-        `;
+        const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
+        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
+        gridItem.innerHTML = `${mediaHtml}<div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div>${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}`;
         gridItem.addEventListener('click', () => watchVideo(v));
-
         const deleteBtn = gridItem.querySelector('.delete-video-btn');
-        if (deleteBtn) {
-          deleteBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (!confirm(`「${v.title}」を削除しますか？`)) return;
-            try { await deleteObject(v.itemRef); loadVideoList(); } catch (error) {}
-          });
-        }
+        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await deleteObject(v.itemRef); loadVideoList(); } catch (error) {} });
         container.appendChild(gridItem);
       });
     }
 
-    // ==========================================
-    // チャンネルページ遷移機能
-    // ==========================================
     function triggerChannelNavigation() {
-      const uid = uploaderNameEl.dataset.uid;
-      showMyProfile(uid);
-      
-      const isStandardPiP = document.pictureInPictureElement === mainVideo;
-      const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-      if (!isStandardPiP && !isDocumentPiP) {
-        mainVideo.pause();
-        mainVideo.src = "";
-      }
+      const uid = uploaderNameEl.dataset.uid; showMyProfile(uid);
+      const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
+      if (!isStandardPiP && !isDocumentPiP) { mainVideo.pause(); mainVideo.src = ""; }
     }
-    uploaderDetailsEl.addEventListener('click', triggerChannelNavigation);
-    uploaderAvatarEl.addEventListener('click', triggerChannelNavigation);
+    uploaderDetailsEl.addEventListener('click', triggerChannelNavigation); uploaderAvatarEl.addEventListener('click', triggerChannelNavigation);
 
-    // ==========================================
-    // サイドバー（関連動画）描画
-    // ==========================================
     function renderSidebar(excludePath) {
-      relatedVideosSidebar.innerHTML = '';
-      const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath);
+      relatedVideosSidebar.innerHTML = ''; const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath);
       others.slice(0, 10).forEach(v => {
-        const item = document.createElement('div');
-        item.className = 'related-item';
-        const mediaHtml = v.thumbUrl 
-          ? `<img src="${v.thumbUrl}" class="thumbnail-img">` 
-          : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
-          
-        item.innerHTML = `
-          ${mediaHtml}
-          <div class="info">
-            <div class="info-title">${escapeHtml(v.title)}</div>
-            <div class="info-author">${escapeHtml(v.uploaderName)}</div>
-          </div>
-        `;
-        item.addEventListener('click', () => watchVideo(v));
-        relatedVideosSidebar.appendChild(item);
+        const item = document.createElement('div'); item.className = 'related-item';
+        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
+        item.innerHTML = `${mediaHtml}<div class="info"><div class="info-title">${escapeHtml(v.title)}</div><div class="info-author">${escapeHtml(v.uploaderName)}</div></div>`;
+        item.addEventListener('click', () => watchVideo(v)); relatedVideosSidebar.appendChild(item);
       });
     }
 
-    // ==========================================
-    // 画面切り替え（視聴・ホーム）
-    // ==========================================
     async function watchVideo(videoData) {
-      if ('documentPictureInPicture' in window && window.documentPictureInPicture.window) {
-        window.documentPictureInPicture.window.close();
-      }
+      if ('documentPictureInPicture' in window && window.documentPictureInPicture.window) window.documentPictureInPicture.window.close();
+      document.body.classList.add('watch-mode'); homeScreen.style.display = 'none'; channelScreen.style.display = 'none'; watchScreen.style.display = 'block';
+      mainVideo.src = videoData.url; mainTitle.textContent = videoData.title; uploaderNameEl.textContent = videoData.uploaderName; uploaderNameEl.dataset.uid = videoData.uploaderUid;
 
-      document.body.classList.add('watch-mode'); // 視聴画面ではサイドナビを非表示にする
-      homeScreen.style.display = 'none';
-      channelScreen.style.display = 'none';
-      watchScreen.style.display = 'block';
-
-      mainVideo.src = videoData.url;
-      mainTitle.textContent = videoData.title;
-      uploaderNameEl.textContent = videoData.uploaderName;
-      uploaderNameEl.dataset.uid = videoData.uploaderUid;
-
-      // 投稿者のアイコンと登録者数を非同期で取得して表示
       if (videoData.uploaderUid && videoData.uploaderUid !== "null" && videoData.uploaderUid !== "undefined") {
         try {
           const uploaderSnap = await getDoc(doc(db, 'users', videoData.uploaderUid));
           if (uploaderSnap.exists()) {
             const uData = uploaderSnap.data();
-            if (uData.avatarUrl) {
-              uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`;
-              uploaderAvatarEl.textContent = '';
-            } else {
-              uploaderAvatarEl.style.backgroundImage = 'none';
-              uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
-            }
+            if (uData.avatarUrl) { uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`; uploaderAvatarEl.textContent = ''; } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); }
             subCountEl.textContent = `チャンネル登録者数 ${uData.subscriberCount || 0}人`;
-          } else {
-            uploaderAvatarEl.style.backgroundImage = 'none';
-            uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
-            subCountEl.textContent = 'チャンネル登録者数 0人';
-          }
-        } catch (e) {
-          uploaderAvatarEl.style.backgroundImage = 'none';
-          uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase();
-          subCountEl.textContent = 'チャンネル登録者数 0人';
-        }
-      } else {
-        uploaderAvatarEl.style.backgroundImage = 'none';
-        uploaderAvatarEl.textContent = 'ゲ';
-        subCountEl.textContent = '';
-      }
+          } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); subCountEl.textContent = 'チャンネル登録者数 0人'; }
+        } catch (e) { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); subCountEl.textContent = 'チャンネル登録者数 0人'; }
+      } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = 'ゲ'; subCountEl.textContent = ''; }
       
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      mainVideo.play();
-
-      currentVideoId = videoData.itemRef.fullPath;
-      commentInput.value = ""; commentSubmitBtn.disabled = true;
-      danmakuContainer.innerHTML = ''; videoComments = []; lastTime = 0;
-      danmakuInput.value = ""; danmakuSubmitBtn.disabled = true;
-
-      hasLiked = false;
-      hasDisliked = false;
-      likeBtn.disabled = true; dislikeBtn.disabled = true;
-      likeBtn.classList.remove('active-like'); dislikeBtn.classList.remove('active-dislike');
-      viewCountEl.textContent = '- 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0';
-
-      loadComments();
-      await loadStats();
-      renderSidebar(currentVideoId);
+      window.scrollTo({ top: 0, behavior: 'smooth' }); mainVideo.play(); currentVideoId = videoData.itemRef.fullPath;
       
+      commentInput.value = ""; commentInput.style.height = 'auto'; commentSubmitBtn.disabled = true;
+      danmakuContainer.innerHTML = ''; videoComments = []; lastTime = 0; danmakuInput.value = ""; danmakuSubmitBtn.disabled = true;
+      hasLiked = false; hasDisliked = false; likeBtn.disabled = true; dislikeBtn.disabled = true; likeBtn.classList.remove('active-like'); dislikeBtn.classList.remove('active-dislike'); viewCountEl.textContent = '- 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0';
+      loadComments(); await loadStats(); renderSidebar(currentVideoId);
       blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
     }
 
-    logoHome.addEventListener('click', () => {
-      currentFeed = 'all';
-      navHomeBtn.classList.add('active');
-      navSubscriptionsBtn.classList.remove('active');
-      goHome();
-    });
+    logoHome.addEventListener('click', () => { currentFeed = 'all'; navHomeBtn.classList.add('active'); navSubscriptionsBtn.classList.remove('active'); goHome(); });
 
     function goHome() {
-      document.body.classList.remove('watch-mode'); // ホームに戻ったらサイドナビを表示
-      uploadModal.classList.remove('active');
-      createMenu.classList.remove('active');
-      watchScreen.style.display = 'none';
-      channelScreen.style.display = 'none';
-      homeScreen.style.display = 'block';
-      
-      const isStandardPiP = document.pictureInPictureElement === mainVideo;
-      const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-      if (!isStandardPiP && !isDocumentPiP) {
-        mainVideo.pause();
-        mainVideo.src = "";
-      }
-      
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      applyFilterAndSort(); // currentFeed の状態に合わせて一覧を再描画
+      document.body.classList.remove('watch-mode'); uploadModal.classList.remove('active'); createMenu.classList.remove('active'); watchScreen.style.display = 'none'; channelScreen.style.display = 'none'; homeScreen.style.display = 'block';
+      const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
+      if (!isStandardPiP && !isDocumentPiP) { mainVideo.pause(); mainVideo.src = ""; }
+      window.scrollTo({ top: 0, behavior: 'smooth' }); applyFilterAndSort(); 
     }
 
-    // ==========================================
-    // PiP（ピクチャーインピクチャー）機能
-    // ==========================================
-    pipBtn.addEventListener('click', async () => {
-      if ('documentPictureInPicture' in window) {
-        try {
-          if (window.documentPictureInPicture.window) {
-            window.documentPictureInPicture.window.close();
-            return;
-          }
-
-          const pipWindow = await window.documentPictureInPicture.requestWindow({
-            width: mainVideo.clientWidth || 640,
-            height: mainVideo.clientHeight || 360,
-          });
-
-          [...document.styleSheets].forEach((styleSheet) => {
-            try {
-              const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
-              const style = document.createElement('style');
-              style.textContent = cssRules;
-              pipWindow.document.head.appendChild(style);
-            } catch (e) {
-              const link = document.createElement('link');
-              link.rel = 'stylesheet';
-              link.type = styleSheet.type;
-              link.media = styleSheet.media;
-              link.href = styleSheet.href;
-              pipWindow.document.head.appendChild(link);
-            }
-          });
-
-          const videoWrapper = document.querySelector('.video-wrapper');
-          videoWrapper.classList.add('in-pip');
-          pipWindow.document.body.appendChild(videoWrapper);
-          pipWindow.document.body.style.margin = '0';
-          pipWindow.document.body.style.overflow = 'hidden';
-          pipWindow.document.body.style.backgroundColor = '#000';
-
-          pipWindow.addEventListener('pagehide', () => {
-            videoWrapper.classList.remove('in-pip');
-            const watchMain = document.querySelector('.watch-main');
-            watchMain.insertBefore(videoWrapper, document.querySelector('.video-meta-bar'));
-          });
-
-        } catch (error) {
-          console.error('Document PiP エラー:', error);
-        }
-      } 
-      else if (document.pictureInPictureEnabled) {
-        try {
-          if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-          } else {
-            alert('お使いのブラウザは動画のみのPiPになります。');
-            await mainVideo.requestPictureInPicture();
-          }
-        } catch (error) {
-          console.error('PiPエラー:', error);
-        }
-      } else {
-        alert('お使いのブラウザはPiP機能をサポートしていません。');
-      }
+    pipBtn.addEventListener('click', async () => { /* 省略（そのまま） */ 
+      if ('documentPictureInPicture' in window) { try { if (window.documentPictureInPicture.window) { window.documentPictureInPicture.window.close(); return; } const pipWindow = await window.documentPictureInPicture.requestWindow({ width: mainVideo.clientWidth || 640, height: mainVideo.clientHeight || 360, }); [...document.styleSheets].forEach((styleSheet) => { try { const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join(''); const style = document.createElement('style'); style.textContent = cssRules; pipWindow.document.head.appendChild(style); } catch (e) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href; pipWindow.document.head.appendChild(link); } }); const videoWrapper = document.querySelector('.video-wrapper'); videoWrapper.classList.add('in-pip'); pipWindow.document.body.appendChild(videoWrapper); pipWindow.document.body.style.margin = '0'; pipWindow.document.body.style.overflow = 'hidden'; pipWindow.document.body.style.backgroundColor = '#000'; pipWindow.addEventListener('pagehide', () => { videoWrapper.classList.remove('in-pip'); const watchMain = document.querySelector('.watch-main'); watchMain.insertBefore(videoWrapper, document.querySelector('.video-meta-bar')); }); } catch (error) { console.error(error); } } else if (document.pictureInPictureEnabled) { try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else { alert('動画のみのPiPになります。'); await mainVideo.requestPictureInPicture(); } } catch (error) {} } else { alert('非サポートブラウザです。'); }
     });
 
-    // ==========================================
-    // 再生回数・高評価／低評価
-    // ==========================================
     async function loadStats() {
       const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
       try {
         const snap = await getDoc(statsRef);
-        if (!snap.exists()) {
-          await setDoc(statsRef, { views: 1, likes: 0, dislikes: 0 });
-          viewCountEl.textContent = '1 回視聴';
-          likeCountEl.textContent = '0';
-          dislikeCountEl.textContent = '0';
-        } else {
-          const data = snap.data();
-          await updateDoc(statsRef, { views: increment(1) });
-          viewCountEl.textContent = ((data.views || 0) + 1) + ' 回視聴';
-          likeCountEl.textContent = data.likes || 0;
-          dislikeCountEl.textContent = data.dislikes || 0;
-        }
-      } catch (error) { viewCountEl.textContent = '-'; } 
-      finally { likeBtn.disabled = false; dislikeBtn.disabled = false; }
+        if (!snap.exists()) { await setDoc(statsRef, { views: 1, likes: 0, dislikes: 0 }); viewCountEl.textContent = '1 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0'; } else { const data = snap.data(); await updateDoc(statsRef, { views: increment(1) }); viewCountEl.textContent = ((data.views || 0) + 1) + ' 回視聴'; likeCountEl.textContent = data.likes || 0; dislikeCountEl.textContent = data.dislikes || 0; }
+      } catch (error) { viewCountEl.textContent = '-'; } finally { likeBtn.disabled = false; dislikeBtn.disabled = false; }
     }
 
     likeBtn.addEventListener('click', async () => {
-      if (!currentVideoId) return;
-      likeBtn.disabled = true;
+      if (!currentVideoId) return; likeBtn.disabled = true;
       try {
         const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
-        if (!hasLiked) {
-          await updateDoc(statsRef, { likes: increment(1) });
-          likeCountEl.textContent = (parseInt(likeCountEl.textContent, 10) || 0) + 1;
-          likeBtn.classList.add('active-like');
-          hasLiked = true;
-          if (hasDisliked) {
-            await updateDoc(statsRef, { dislikes: increment(-1) });
-            dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1);
-            dislikeBtn.classList.remove('active-dislike');
-            hasDisliked = false;
-          }
-        } else {
-          await updateDoc(statsRef, { likes: increment(-1) });
-          likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1);
-          likeBtn.classList.remove('active-like');
-          hasLiked = false;
-        }
-      } catch (error) {} 
-      finally { likeBtn.disabled = false; }
+        if (!hasLiked) { await updateDoc(statsRef, { likes: increment(1) }); likeCountEl.textContent = (parseInt(likeCountEl.textContent, 10) || 0) + 1; likeBtn.classList.add('active-like'); hasLiked = true; if (hasDisliked) { await updateDoc(statsRef, { dislikes: increment(-1) }); dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1); dislikeBtn.classList.remove('active-dislike'); hasDisliked = false; } } else { await updateDoc(statsRef, { likes: increment(-1) }); likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1); likeBtn.classList.remove('active-like'); hasLiked = false; }
+      } catch (error) {} finally { likeBtn.disabled = false; }
     });
 
     dislikeBtn.addEventListener('click', async () => {
-      if (!currentVideoId) return;
-      dislikeBtn.disabled = true;
+      if (!currentVideoId) return; dislikeBtn.disabled = true;
       try {
         const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
-        if (!hasDisliked) {
-          await updateDoc(statsRef, { dislikes: increment(1) });
-          dislikeCountEl.textContent = (parseInt(dislikeCountEl.textContent, 10) || 0) + 1;
-          dislikeBtn.classList.add('active-dislike');
-          hasDisliked = true;
-          if (hasLiked) {
-            await updateDoc(statsRef, { likes: increment(-1) });
-            likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1);
-            likeBtn.classList.remove('active-like');
-            hasLiked = false;
-          }
-        } else {
-          await updateDoc(statsRef, { dislikes: increment(-1) });
-          dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1);
-          dislikeBtn.classList.remove('active-dislike');
-          hasDisliked = false;
-        }
-      } catch (error) {} 
-      finally { dislikeBtn.disabled = false; }
+        if (!hasDisliked) { await updateDoc(statsRef, { dislikes: increment(1) }); dislikeCountEl.textContent = (parseInt(dislikeCountEl.textContent, 10) || 0) + 1; dislikeBtn.classList.add('active-dislike'); hasDisliked = true; if (hasLiked) { await updateDoc(statsRef, { likes: increment(-1) }); likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1); likeBtn.classList.remove('active-like'); hasLiked = false; } } else { await updateDoc(statsRef, { dislikes: increment(-1) }); dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1); dislikeBtn.classList.remove('active-dislike'); hasDisliked = false; }
+      } catch (error) {} finally { dislikeBtn.disabled = false; }
     });
 
     // ==========================================
-    // 通常コメント機能
+    // コメント＆弾幕の入力機能（自動伸縮 ＆ Enterで送信）
     // ==========================================
-    commentInput.addEventListener('input', () => commentSubmitBtn.disabled = commentInput.value.trim() === "");
+    function autoResizeTextArea(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
+    commentInput.addEventListener('input', function() {
+      commentSubmitBtn.disabled = this.value.trim() === "";
+      autoResizeTextArea(this);
+    });
+
+    // コメントのキーボードショートカット（Shift+Enterで改行、Enterだけで送信）
+    commentInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // デフォルトの改行を防ぐ
+        if (!commentSubmitBtn.disabled) commentSubmitBtn.click();
+      }
+    });
 
     commentSubmitBtn.addEventListener('click', async () => {
-      const text = commentInput.value.trim();
-      if (!text) return;
-      commentInput.value = ""; commentSubmitBtn.disabled = true;
-      try {
-        await addDoc(collection(db, "comments"), {
-          videoId: currentVideoId, text: text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", createdAt: serverTimestamp()
-        });
-      } catch (error) {}
+      const text = commentInput.value.trim(); if (!text) return;
+      commentInput.value = ""; commentInput.style.height = 'auto'; commentSubmitBtn.disabled = true;
+      try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text: text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", createdAt: serverTimestamp(), parentId: null }); } catch (error) {}
     });
 
-    commentList.addEventListener('click', async (e) => {
-      if (!e.target.classList.contains('comment-delete-btn')) return;
-      if (!confirm('このコメントを削除しますか？')) return;
-      try { await deleteDoc(doc(db, 'comments', e.target.dataset.id)); } catch (error) {}
-    });
-
-    // ==========================================
-    // 弾幕機能
-    // ==========================================
     danmakuInput.addEventListener('input', () => danmakuSubmitBtn.disabled = danmakuInput.value.trim() === "");
+    
+    // 弾幕のキーボードショートカット（Enterだけで送信）
+    danmakuInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!danmakuSubmitBtn.disabled) danmakuSubmitBtn.click();
+      }
+    });
 
     danmakuSubmitBtn.addEventListener('click', async () => {
-      const text = danmakuInput.value.trim();
-      if (!text) return;
+      const text = danmakuInput.value.trim(); if (!text) return;
       danmakuInput.value = ""; danmakuSubmitBtn.disabled = true;
-      try {
-        await addDoc(collection(db, "comments"), {
-          videoId: currentVideoId, text: text, author: getNickname(), authorUid: getAuthorUid(), type: "danmaku", videoTime: mainVideo.currentTime, createdAt: serverTimestamp()
-        });
-      } catch (error) {}
+      try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text: text, author: getNickname(), authorUid: getAuthorUid(), type: "danmaku", videoTime: mainVideo.currentTime, createdAt: serverTimestamp() }); } catch (error) {}
     });
+
+    // ==========================================
+    // コメントリストの描画（評価・返信対応）
+    // ==========================================
+    function renderCommentNode(comment, childReplies = [], isReply = false) {
+      const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
+      const author = comment.author || 'ゲスト';
+      const canDelete = currentUser && comment.authorUid && currentUser.uid === comment.authorUid;
+      const likes = comment.likes || 0;
+      const dislikes = comment.dislikes || 0;
+      
+      const hasLikedC = currentUser && (comment.likedUsers || []).includes(currentUser.uid);
+      const hasDislikedC = currentUser && (comment.dislikedUsers || []).includes(currentUser.uid);
+
+      const div = document.createElement('div');
+      div.className = 'comment-item';
+      if (isReply) { div.style.marginTop = "12px"; div.style.marginBottom = "0"; }
+
+      div.innerHTML = `
+        <div class="comment-avatar" style="${comment.authorUid === (currentUser && currentUser.uid) && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}">${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
+        <div class="comment-content">
+          <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
+          <div class="comment-text">${escapeHtml(comment.text)}</div>
+          
+          <div class="comment-actions-bar">
+            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" data-id="${comment.id}">👍 ${likes > 0 ? likes : ''}</button>
+            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" data-id="${comment.id}">👎 ${dislikes > 0 ? dislikes : ''}</button>
+            ${!isReply ? `<button class="comment-action-btn reply-toggle-btn" data-id="${comment.id}">返信</button>` : ''}
+            ${canDelete ? `<button class="comment-action-btn comment-delete-btn" data-id="${comment.id}" style="color: #909090;">削除</button>` : ''}
+          </div>
+          
+          ${!isReply ? `
+            <div class="reply-input-area" id="reply-area-${comment.id}">
+              <div class="comment-avatar" style="${currentUser && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}; width: 24px; height: 24px; font-size: 10px;">${currentUser && currentUser.avatarUrl ? '' : escapeHtml(getNickname().charAt(0).toUpperCase())}</div>
+              <textarea rows="1" placeholder="返信を追加..." id="reply-input-${comment.id}"></textarea>
+              <button class="submit-reply-btn" data-id="${comment.id}" disabled>返信</button>
+            </div>
+            <div class="replies-list" id="replies-list-${comment.id}"></div>
+          ` : ''}
+        </div>
+      `;
+
+      if (!isReply && childReplies.length > 0) {
+        const repliesContainer = div.querySelector(`#replies-list-${comment.id}`);
+        childReplies.forEach(reply => { repliesContainer.appendChild(renderCommentNode(reply, [], true)); });
+      }
+      return div;
+    }
 
     function loadComments() {
       if (unsubscribeComments) unsubscribeComments();
@@ -1230,325 +929,229 @@
       const q = query(collection(db, "comments"), where("videoId", "==", currentVideoId));
 
       unsubscribeComments = onSnapshot(q, (snapshot) => {
-        videoComments = [];
-        const comments = [];
+        videoComments = []; const allComments = [];
         snapshot.forEach((docSnap) => {
           const data = { id: docSnap.id, ...docSnap.data() };
           if (currentUserBlocks.includes(data.authorUid)) return; 
-          if (data.type === "danmaku") { videoComments.push(data); } else { comments.push(data); }
+          if (data.type === "danmaku") { videoComments.push(data); } else { allComments.push(data); }
         });
 
-        comments.sort((a, b) => {
-          const timeA = a.createdAt ? a.createdAt.toMillis() : Date.now();
-          const timeB = b.createdAt ? b.createdAt.toMillis() : Date.now();
-          return timeB - timeA;
-        });
+        // トップレベルは新しい順、返信は古い順
+        const topComments = allComments.filter(c => !c.parentId).sort((a, b) => (b.createdAt?.toMillis() || Date.now()) - (a.createdAt?.toMillis() || Date.now()));
+        const replies = allComments.filter(c => c.parentId).sort((a, b) => (a.createdAt?.toMillis() || Date.now()) - (b.createdAt?.toMillis() || Date.now()));
 
         commentList.innerHTML = "";
-        if (comments.length === 0) {
-          commentList.innerHTML = "<p style='color:#606060; font-size:14px;'>最初のコメントを書き込みましょう！</p>"; return;
-        }
+        if (topComments.length === 0) { commentList.innerHTML = "<p style='color:#606060; font-size:14px;'>最初のコメントを書き込みましょう！</p>"; return; }
 
-        comments.forEach(comment => {
-          const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
-          const author = comment.author || 'ゲスト';
-          const canDelete = currentUser && comment.authorUid && currentUser.uid === comment.authorUid;
-
-          const div = document.createElement('div');
-          div.className = 'comment-item';
-          div.innerHTML = `
-            <div class="comment-avatar" style="${comment.authorUid === (currentUser && currentUser.uid) && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}">${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
-            <div class="comment-content">
-              <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
-              <div class="comment-text">${escapeHtml(comment.text)}</div>
-              ${canDelete ? `<button class="comment-delete-btn" data-id="${comment.id}">削除</button>` : ''}
-            </div>
-          `;
+        topComments.forEach(comment => {
+          const div = renderCommentNode(comment, replies.filter(r => r.parentId === comment.id));
           commentList.appendChild(div);
         });
       });
     }
 
+    // コメントリスト全体へのイベント委譲（いいね・返信・削除など）
+    commentList.addEventListener('click', async (e) => {
+      const target = e.target;
+      
+      // コメント削除
+      if (target.classList.contains('comment-delete-btn')) {
+        if (!confirm('このコメントを削除しますか？')) return;
+        try { await deleteDoc(doc(db, 'comments', target.dataset.id)); } catch (error) {}
+        return;
+      }
+
+      // 返信入力欄の表示トグル
+      if (target.classList.contains('reply-toggle-btn')) {
+        const area = document.getElementById(`reply-area-${target.dataset.id}`);
+        area.style.display = area.style.display === 'flex' ? 'none' : 'flex';
+        return;
+      }
+
+      // 返信の送信
+      if (target.classList.contains('submit-reply-btn')) {
+        const parentId = target.dataset.id;
+        const input = document.getElementById(`reply-input-${parentId}`);
+        const text = input.value.trim();
+        if (!text) return;
+        target.disabled = true;
+        try {
+          await addDoc(collection(db, "comments"), { videoId: currentVideoId, text: text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", parentId: parentId, createdAt: serverTimestamp() });
+          input.value = ""; input.style.height = 'auto'; document.getElementById(`reply-area-${parentId}`).style.display = 'none';
+        } catch (error) {} finally { target.disabled = false; }
+        return;
+      }
+
+      // コメントのいいね
+      if (target.closest('.like-comment-btn')) {
+        if (!currentUser) return alert('評価するにはログインしてください。');
+        const btn = target.closest('.like-comment-btn'); const cid = btn.dataset.id;
+        const commentRef = doc(db, 'comments', cid); const snap = await getDoc(commentRef);
+        if(snap.exists()) {
+          const data = snap.data(); const likedUsers = data.likedUsers || []; const dislikedUsers = data.dislikedUsers || [];
+          if(likedUsers.includes(currentUser.uid)) {
+            await setDoc(commentRef, { likedUsers: arrayRemove(currentUser.uid), likes: increment(-1) }, { merge: true });
+          } else {
+            await setDoc(commentRef, { likedUsers: arrayUnion(currentUser.uid), likes: increment(1) }, { merge: true });
+            if(dislikedUsers.includes(currentUser.uid)) await setDoc(commentRef, { dislikedUsers: arrayRemove(currentUser.uid), dislikes: increment(-1) }, { merge: true });
+          }
+        }
+        return;
+      }
+
+      // コメントの低評価
+      if (target.closest('.dislike-comment-btn')) {
+        if (!currentUser) return alert('評価するにはログインしてください。');
+        const btn = target.closest('.dislike-comment-btn'); const cid = btn.dataset.id;
+        const commentRef = doc(db, 'comments', cid); const snap = await getDoc(commentRef);
+        if(snap.exists()) {
+          const data = snap.data(); const likedUsers = data.likedUsers || []; const dislikedUsers = data.dislikedUsers || [];
+          if(dislikedUsers.includes(currentUser.uid)) {
+            await setDoc(commentRef, { dislikedUsers: arrayRemove(currentUser.uid), dislikes: increment(-1) }, { merge: true });
+          } else {
+            await setDoc(commentRef, { dislikedUsers: arrayUnion(currentUser.uid), dislikes: increment(1) }, { merge: true });
+            if(likedUsers.includes(currentUser.uid)) await setDoc(commentRef, { likedUsers: arrayRemove(currentUser.uid), likes: increment(-1) }, { merge: true });
+          }
+        }
+        return;
+      }
+    });
+
+    // 返信テキストエリアの自動伸縮とEnter送信
+    commentList.addEventListener('input', (e) => {
+      if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) {
+        const parentId = e.target.id.replace('reply-input-', '');
+        const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`);
+        if(btn) btn.disabled = e.target.value.trim() === "";
+        autoResizeTextArea(e.target);
+      }
+    });
+    
+    commentList.addEventListener('keydown', (e) => {
+      if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const parentId = e.target.id.replace('reply-input-', '');
+          const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`);
+          if(btn && !btn.disabled) btn.click();
+        }
+      }
+    });
+
+    // 弾幕アニメーション制御
     mainVideo.addEventListener('timeupdate', () => {
       const currentTime = mainVideo.currentTime;
       if (currentTime < lastTime) { lastTime = currentTime; return; }
       videoComments.forEach(comment => {
-        if (comment.videoTime !== undefined && comment.videoTime >= lastTime && comment.videoTime < currentTime) {
-          shootDanmaku(comment.text);
-        }
+        if (comment.videoTime !== undefined && comment.videoTime >= lastTime && comment.videoTime < currentTime) shootDanmaku(comment.text);
       });
       lastTime = currentTime;
     });
 
-    mainVideo.addEventListener('pause', () => {
-      danmakuContainer.classList.add('is-paused');
-    });
-    mainVideo.addEventListener('play', () => {
-      danmakuContainer.classList.remove('is-paused');
-    });
+    mainVideo.addEventListener('pause', () => danmakuContainer.classList.add('is-paused'));
+    mainVideo.addEventListener('play', () => danmakuContainer.classList.remove('is-paused'));
 
     function shootDanmaku(text) {
-      const span = document.createElement('span');
-      span.className = 'danmaku-comment';
-      span.textContent = text;
-      span.style.top = (Math.floor(Math.random() * 80) + 5) + '%';
-      danmakuContainer.appendChild(span);
-      span.addEventListener('animationend', () => span.remove());
+      const span = document.createElement('span'); span.className = 'danmaku-comment'; span.textContent = text; span.style.top = (Math.floor(Math.random() * 80) + 5) + '%'; danmakuContainer.appendChild(span); span.addEventListener('animationend', () => span.remove());
     }
 
     // ==========================================
-    // アップロード用モーダルの動き ＋ サムネイル
+    // アップロード用モーダル
     // ==========================================
     createBtn.addEventListener('click', () => createMenu.classList.toggle('active'));
-    uploadMenuBtn.addEventListener('click', () => {
-      createMenu.classList.remove('active');
-      uploadModal.classList.add('active');
-      step1Area.style.display = 'flex'; step2Area.style.display = 'none';
-      fileInput.value = ''; thumbInput.value = '';
-    });
+    uploadMenuBtn.addEventListener('click', () => { createMenu.classList.remove('active'); uploadModal.classList.add('active'); step1Area.style.display = 'flex'; step2Area.style.display = 'none'; fileInput.value = ''; thumbInput.value = ''; });
     closeModalBtn.addEventListener('click', () => uploadModal.classList.remove('active'));
     selectFileBtn.addEventListener('click', () => fileInput.click());
 
     let selectedFile = null;
     fileInput.addEventListener('change', (event) => {
       selectedFile = event.target.files[0];
-      if (selectedFile) {
-        videoTitleInput.value = selectedFile.name.split('.').slice(0, -1).join('.') || selectedFile.name;
-        previewFileName.textContent = selectedFile.name;
-        previewVideo.src = URL.createObjectURL(selectedFile);
-        step1Area.style.display = 'none'; step2Area.style.display = 'flex';
-      }
+      if (selectedFile) { videoTitleInput.value = selectedFile.name.split('.').slice(0, -1).join('.') || selectedFile.name; previewFileName.textContent = selectedFile.name; previewVideo.src = URL.createObjectURL(selectedFile); step1Area.style.display = 'none'; step2Area.style.display = 'flex'; }
     });
 
-    backModalBtn.addEventListener('click', () => {
-      step2Area.style.display = 'none'; step1Area.style.display = 'flex';
-      fileInput.value = ''; thumbInput.value = ''; selectedFile = null;
-    });
+    backModalBtn.addEventListener('click', () => { step2Area.style.display = 'none'; step1Area.style.display = 'flex'; fileInput.value = ''; thumbInput.value = ''; selectedFile = null; });
 
     saveBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
-      saveBtn.disabled = true;
-      
-      let finalThumbUrl = "";
-      
-      if (thumbInput.files && thumbInput.files[0]) {
-        saveBtn.textContent = 'サムネイル送信中...';
-        try {
-          const thumbFile = thumbInput.files[0];
-          const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name);
-          await uploadBytes(thumbRef, thumbFile);
-          finalThumbUrl = await getDownloadURL(thumbRef);
-        } catch (error) {
-          console.error("サムネエラー", error);
-        }
-      }
-
+      if (!selectedFile) return; saveBtn.disabled = true; let finalThumbUrl = "";
+      if (thumbInput.files && thumbInput.files[0]) { saveBtn.textContent = 'サムネイル送信中...'; try { const thumbFile = thumbInput.files[0]; const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name); await uploadBytes(thumbRef, thumbFile); finalThumbUrl = await getDownloadURL(thumbRef); } catch (error) {} }
       const storageRef = ref(storage, 'videos/' + selectedFile.name);
-      
-      const metadata = { 
-        customMetadata: { 
-          title: videoTitleInput.value, 
-          uploaderUid: getAuthorUid() || '',
-          uploaderName: getNickname(),
-          thumbUrl: finalThumbUrl
-        } 
-      };
-      
+      const metadata = { customMetadata: { title: videoTitleInput.value, uploaderUid: getAuthorUid() || '', uploaderName: getNickname(), thumbUrl: finalThumbUrl } };
       const uploadTask = uploadBytesResumable(storageRef, selectedFile, metadata);
 
       uploadTask.on('state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          saveBtn.textContent = '動画送信中... ' + Math.floor(progress) + '%';
-        },
-        (error) => {
-          alert('エラーが発生しました。');
-          saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            uploadModal.classList.remove('active');
-            saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
-            watchVideo({ url: downloadURL, title: videoTitleInput.value, itemRef: uploadTask.snapshot.ref, uploaderName: getNickname(), uploaderUid: getAuthorUid() });
-            loadVideoList();
-          });
-        }
+        (snapshot) => { const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100; saveBtn.textContent = '動画送信中... ' + Math.floor(progress) + '%'; },
+        (error) => { alert('エラーが発生しました。'); saveBtn.textContent = '保存して公開'; saveBtn.disabled = false; },
+        () => { getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => { uploadModal.classList.remove('active'); saveBtn.textContent = '保存して公開'; saveBtn.disabled = false; watchVideo({ url: downloadURL, title: videoTitleInput.value, itemRef: uploadTask.snapshot.ref, uploaderName: getNickname(), uploaderUid: getAuthorUid() }); loadVideoList(); }); }
       );
     });
 
-    // ==========================================
-    // 通報機能・ブロック機能の処理
-    // ==========================================
+    // 通報機能・ブロック機能
     reportBtn.addEventListener('click', async () => {
       if (!currentUser) return alert('通報するにはログインしてください。');
-      const reason = prompt('通報の理由を入力してください（例：著作権侵害、スパム、不適切な表現など）\n※管理者が24時間以内に確認します。');
-      if (!reason) return;
-
-      try {
-        await addDoc(collection(db, 'reports'), {
-          videoId: currentVideoId,
-          videoTitle: mainTitle.textContent,
-          uploaderUid: uploaderNameEl.dataset.uid,
-          reportedBy: currentUser.uid,
-          reason: reason,
-          createdAt: serverTimestamp(),
-          status: 'pending'
-        });
-        alert('通報が完了しました。ご協力ありがとうございます。');
-      } catch (error) {
-        alert('通報に失敗しました。');
-      }
+      const reason = prompt('通報の理由を入力してください'); if (!reason) return;
+      try { await addDoc(collection(db, 'reports'), { videoId: currentVideoId, videoTitle: mainTitle.textContent, uploaderUid: uploaderNameEl.dataset.uid, reportedBy: currentUser.uid, reason: reason, createdAt: serverTimestamp(), status: 'pending' }); alert('通報が完了しました。ご協力ありがとうございます。'); } catch (error) { alert('通報に失敗しました。'); }
     });
 
     blockUserBtn.addEventListener('click', async () => {
       if (!currentUser) return alert('ブロックするにはログインしてください。');
-      const targetUid = uploaderNameEl.dataset.uid;
-      if (targetUid === currentUser.uid) return alert('自分自身はブロックできません。');
-      
+      const targetUid = uploaderNameEl.dataset.uid; if (targetUid === currentUser.uid) return alert('自分自身はブロックできません。');
       if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは表示されなくなります。')) return;
-
-      try {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          blockedUids: arrayUnion(targetUid)
-        });
-        currentUserBlocks.push(targetUid);
-        alert('ブロックしました。ホーム画面に戻ります。');
-        goHome();
-      } catch (error) {
-        alert('ブロック処理に失敗しました。');
-      }
+      try { await setDoc(doc(db, 'users', currentUser.uid), { blockedUids: arrayUnion(targetUid) }, { merge: true }); currentUserBlocks.push(targetUid); alert('ブロックしました。ホーム画面に戻ります。'); goHome(); } catch (error) { alert('ブロック処理に失敗しました。'); }
     });
 
-    // ==========================================
-    // チャンネルカスタマイズ機能の処理
-    // ==========================================
-    const customizeBtn = document.getElementById('customizeBtn');
-    const customizeModal = document.getElementById('customizeModal');
-    const closeCustomizeModalBtn = document.getElementById('closeCustomizeModalBtn');
-    const customizeAvatarPreview = document.getElementById('customizeAvatarPreview');
-    const avatarFileInput = document.getElementById('avatarFileInput');
-    const customizeNameInput = document.getElementById('customizeNameInput');
-    const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
+    // カスタマイズ機能
+    const customizeBtn = document.getElementById('customizeBtn'); const customizeModal = document.getElementById('customizeModal'); const closeCustomizeModalBtn = document.getElementById('closeCustomizeModalBtn'); const customizeAvatarPreview = document.getElementById('customizeAvatarPreview'); const avatarFileInput = document.getElementById('avatarFileInput'); const customizeNameInput = document.getElementById('customizeNameInput'); const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
 
     customizeBtn.addEventListener('click', () => {
       customizeNameInput.value = currentUser.channelName;
-      if (currentUser.avatarUrl) {
-        customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`;
-        customizeAvatarPreview.textContent = '';
-      } else {
-        customizeAvatarPreview.style.backgroundImage = 'none';
-        customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase();
-      }
+      if (currentUser.avatarUrl) { customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`; customizeAvatarPreview.textContent = ''; } else { customizeAvatarPreview.style.backgroundImage = 'none'; customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase(); }
       customizeModal.classList.add('active');
     });
 
     closeCustomizeModalBtn.addEventListener('click', () => customizeModal.classList.remove('active'));
-
-    avatarFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const url = URL.createObjectURL(file);
-        customizeAvatarPreview.style.backgroundImage = `url(${url})`;
-        customizeAvatarPreview.textContent = '';
-      }
-    });
+    avatarFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); customizeAvatarPreview.style.backgroundImage = `url(${url})`; customizeAvatarPreview.textContent = ''; } });
 
     saveCustomizeBtn.addEventListener('click', async () => {
-      if (!currentUser) return;
-      saveCustomizeBtn.disabled = true;
-      const newName = customizeNameInput.value.trim();
-      if (!newName) {
-        alert('チャンネル名を入力してください。');
-        saveCustomizeBtn.disabled = false;
-        return;
-      }
-      
+      if (!currentUser) return; saveCustomizeBtn.disabled = true; const newName = customizeNameInput.value.trim();
+      if (!newName) { alert('チャンネル名を入力してください。'); saveCustomizeBtn.disabled = false; return; }
       let avatarUrl = currentUser.avatarUrl || "";
-
       try {
-        if (avatarFileInput.files[0]) {
-          const file = avatarFileInput.files[0];
-          const storageRef = ref(storage, `avatars/${currentUser.uid}`);
-          await uploadBytes(storageRef, file);
-          avatarUrl = await getDownloadURL(storageRef);
-        }
-
-        await setDoc(doc(db, 'users', currentUser.uid), {
-          channelName: newName,
-          avatarUrl: avatarUrl
-        }, { merge: true });
-
-        alert('プロフィールを更新しました！');
-        location.reload();
-      } catch (error) {
-        console.error(error);
-        alert('保存に失敗しました。');
-      } finally {
-        saveCustomizeBtn.disabled = false;
-      }
+        if (avatarFileInput.files[0]) { const file = avatarFileInput.files[0]; const storageRef = ref(storage, `avatars/${currentUser.uid}`); await uploadBytes(storageRef, file); avatarUrl = await getDownloadURL(storageRef); }
+        await setDoc(doc(db, 'users', currentUser.uid), { channelName: newName, avatarUrl: avatarUrl }, { merge: true });
+        alert('プロフィールを更新しました！'); location.reload();
+      } catch (error) { alert('保存に失敗しました。'); } finally { saveCustomizeBtn.disabled = false; }
     });
 
-    // ==========================================
-    // チャンネル登録機能の処理（オプティミスティックUIによるエラー回避版）
-    // ==========================================
+    // チャンネル登録機能
     const subscribeBtn = document.getElementById('subscribeBtn');
-
     const observer = new MutationObserver(() => {
       const targetUid = uploaderNameEl.dataset.uid;
       if (currentUser && targetUid && targetUid !== "undefined" && targetUid !== "null" && currentUser.uid !== targetUid) {
-        subscribeBtn.style.display = 'block';
-        subscribeBtn.dataset.targetUid = targetUid;
-        if (currentUserSubscriptions.includes(targetUid)) {
-          subscribeBtn.textContent = '登録済み';
-          subscribeBtn.classList.add('subscribed');
-        } else {
-          subscribeBtn.textContent = 'チャンネル登録';
-          subscribeBtn.classList.remove('subscribed');
-        }
-      } else {
-        subscribeBtn.style.display = 'none';
-      }
+        subscribeBtn.style.display = 'block'; subscribeBtn.dataset.targetUid = targetUid;
+        if (currentUserSubscriptions.includes(targetUid)) { subscribeBtn.textContent = '登録済み'; subscribeBtn.classList.add('subscribed'); } else { subscribeBtn.textContent = 'チャンネル登録'; subscribeBtn.classList.remove('subscribed'); }
+      } else { subscribeBtn.style.display = 'none'; }
     });
     observer.observe(uploaderNameEl, { attributes: true, childList: true, characterData: true });
 
     if (subscribeBtn) {
       subscribeBtn.addEventListener('click', async () => {
         if (!currentUser) return alert('チャンネル登録するにはログインしてください。');
-        const targetUid = subscribeBtn.dataset.targetUid;
-        if (!targetUid || targetUid === "undefined" || targetUid === "null") return alert('このユーザーは登録できません。');
-
-        subscribeBtn.disabled = true; // 連打防止
-        
-        const userRef = doc(db, 'users', currentUser.uid);
-        const targetRef = doc(db, 'users', targetUid);
-        const isSubscribed = currentUserSubscriptions.includes(targetUid);
-        
+        const targetUid = subscribeBtn.dataset.targetUid; if (!targetUid || targetUid === "undefined" || targetUid === "null") return alert('このユーザーは登録できません。');
+        subscribeBtn.disabled = true; 
+        const userRef = doc(db, 'users', currentUser.uid); const targetRef = doc(db, 'users', targetUid); const isSubscribed = currentUserSubscriptions.includes(targetUid);
         let currentCount = parseInt(subCountEl.textContent.replace(/[^0-9]/g, '')) || 0;
 
         try {
           if (isSubscribed) {
-            subscribeBtn.textContent = 'チャンネル登録';
-            subscribeBtn.classList.remove('subscribed');
-            currentUserSubscriptions = currentUserSubscriptions.filter(id => id !== targetUid);
-            subCountEl.textContent = `チャンネル登録者数 ${Math.max(0, currentCount - 1)}人`;
-
+            subscribeBtn.textContent = 'チャンネル登録'; subscribeBtn.classList.remove('subscribed'); currentUserSubscriptions = currentUserSubscriptions.filter(id => id !== targetUid); subCountEl.textContent = `チャンネル登録者数 ${Math.max(0, currentCount - 1)}人`;
             await setDoc(userRef, { subscribedTo: arrayRemove(targetUid) }, { merge: true });
             try { await setDoc(targetRef, { subscriberCount: increment(-1) }, { merge: true }); } catch (e) { }
-            
           } else {
-            subscribeBtn.textContent = '登録済み';
-            subscribeBtn.classList.add('subscribed');
-            currentUserSubscriptions.push(targetUid);
-            subCountEl.textContent = `チャンネル登録者数 ${currentCount + 1}人`;
-
+            subscribeBtn.textContent = '登録済み'; subscribeBtn.classList.add('subscribed'); currentUserSubscriptions.push(targetUid); subCountEl.textContent = `チャンネル登録者数 ${currentCount + 1}人`;
             await setDoc(userRef, { subscribedTo: arrayUnion(targetUid) }, { merge: true });
             try { await setDoc(targetRef, { subscriberCount: increment(1) }, { merge: true }); } catch (e) { }
           }
-        } catch (error) {
-          console.error("通信エラー:", error);
-        } finally {
-          subscribeBtn.disabled = false;
-        }
+        } catch (error) {} finally { subscribeBtn.disabled = false; }
       });
     }
   </script>
