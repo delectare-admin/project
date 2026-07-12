@@ -695,27 +695,51 @@
       }
     }
 
-    authSubmitBtn.addEventListener('click', async () => {
-      const email = authEmail.value.trim(); const password = authPassword.value;
-      if (!email || !password) return;
-      authSubmitBtn.disabled = true; authErrorMsg.style.display = 'none';
-      try {
-        if (authMode === 'signup') {
-          const channelName = authChannelName.value.trim() || 'ゲストチャンネル';
-          const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, 'users', cred.user.uid), { channelName, email, createdAt: serverTimestamp(), subscriberCount: 0 });
-        } else { await signInWithEmailAndPassword(auth, email, password); }
-        authModal.classList.remove('active');
-      } catch (error) { authErrorMsg.textContent = "失敗しました。"; authErrorMsg.style.display = 'block'; } finally { authSubmitBtn.disabled = false; }
-    });
+   authSubmitBtn.addEventListener('click', async () => {
+  const email = authEmail.value.trim(); const password = authPassword.value;
+  if (!email || !password) return;
+  authSubmitBtn.disabled = true; authErrorMsg.style.display = 'none';
+  try {
+    if (authMode === 'signup') {
+      const channelName = authChannelName.value.trim() || 'ゲストチャンネル';
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, 'users', cred.user.uid), { channelName, email, createdAt: serverTimestamp(), subscriberCount: 0 });
+    } else { await signInWithEmailAndPassword(auth, email, password); }
+    authModal.classList.remove('active');
+  } catch (error) {
+    console.error('認証エラー:', error.code, error.message); // ← 本当の原因をコンソールに出す
+    authErrorMsg.textContent = translateAuthError(error.code); // ← 具体的な理由を表示する
+    authErrorMsg.style.display = 'block';
+  } finally { authSubmitBtn.disabled = false; }
+});
 
-    googleAuthBtn.addEventListener('click', async () => {
-      try {
-        const result = await signInWithPopup(auth, googleProvider); const user = result.user; const userRef = doc(db, 'users', user.uid); const snap = await getDoc(userRef);
-        if (!snap.exists()) await setDoc(userRef, { channelName: user.displayName || 'Googleユーザー', email: user.email, createdAt: serverTimestamp(), subscriberCount: 0 });
-        authModal.classList.remove('active');
-      } catch (error) { authErrorMsg.textContent = '失敗しました。'; authErrorMsg.style.display = 'block'; }
-    });
+// ★新規追加：エラーコードを分かりやすい日本語に変換する関数
+function translateAuthError(code) {
+  const map = {
+    'auth/email-already-in-use': 'このメールアドレスは既に登録されています。',
+    'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
+    'auth/weak-password': 'パスワードは6文字以上にしてください。',
+    'auth/user-not-found': 'このメールアドレスのアカウントが見つかりません。',
+    'auth/wrong-password': 'パスワードが間違っています。',
+    'auth/invalid-credential': 'メールアドレスまたはパスワードが間違っています。',
+    'auth/too-many-requests': '試行回数が多すぎます。しばらく待ってから再試行してください。',
+    'auth/network-request-failed': 'ネットワークエラーです。通信環境を確認してください。',
+    'auth/operation-not-allowed': 'メール/パスワードでのログインが無効になっています。Firebaseコンソールの設定を確認してください。'
+  };
+  return map[code] || ('失敗しました。(' + code + ')');
+}
+
+   googleAuthBtn.addEventListener('click', async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider); const user = result.user; const userRef = doc(db, 'users', user.uid); const snap = await getDoc(userRef);
+    if (!snap.exists()) await setDoc(userRef, { channelName: user.displayName || 'Googleユーザー', email: user.email, createdAt: serverTimestamp(), subscriberCount: 0 });
+    authModal.classList.remove('active');
+  } catch (error) {
+    console.error('Googleログインエラー:', error.code, error.message);
+    authErrorMsg.textContent = translateAuthError(error.code);
+    authErrorMsg.style.display = 'block';
+  }
+});
 
     logoutBtn.addEventListener('click', () => signOut(auth));
 
