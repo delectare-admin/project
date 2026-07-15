@@ -10,7 +10,21 @@
     
     header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; box-sizing: border-box; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
     
-    .logo { font-size: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+   .logo { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; /* 画像と文字の間の隙間 */
+  font-size: 20px; 
+  font-weight: bold; 
+  cursor: pointer; 
+  flex-shrink: 0; 
+}
+
+.logo-img { 
+  height: 28px; /* 画像の高さ。大きすぎる場合はこの数値を小さくしてください */
+  width: auto; 
+  object-fit: contain; 
+}
     
     .header-search-bar { display: flex; flex: 1; max-width: 600px; margin: 0 24px; }
     .header-search-bar input { flex: 1; padding: 10px 20px; border: 1px solid #ccc; border-right: none; border-radius: 20px 0 0 20px; font-size: 16px; outline: none; }
@@ -245,7 +259,10 @@
 <body>
 
   <header>
-    <div class="logo" id="logoHome">▶ デレクターレ（Delectare）</div>
+  <div class="logo" id="logoHome">
+    <img src="logo.png" alt="ロゴ" class="logo-img">
+    デレクターレ（Delectare）
+  </div>
     <div class="header-search-bar">
       <input type="text" id="searchInput" placeholder="検索...">
       <button id="searchBtn">🔍</button>
