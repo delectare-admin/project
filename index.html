@@ -297,9 +297,11 @@
 <body>
 
   <header>
-  <div class="logo" id="logoHome">
-    <img src="logo.png" alt="ロゴ" class="logo-img">
-    デレクターレ（Delectare）
+ <!-- ロゴ部分 -->
+<div class="logo" id="logoHome">
+  <img src="logo.png" alt="ロゴ" class="logo-img">
+  デレクターレ（Delectare）
+</div>
  <!-- 元の header-search-bar に style="position: relative;" を追加 -->
 <div class="header-search-bar" style="position: relative;">
   <input type="text" id="searchInput" placeholder="検索...">
@@ -323,15 +325,21 @@
     </div>
   </header>
 
-  <nav class="side-nav" id="sideNav">
-    <div class="nav-item active" id="navHomeBtn">
-      <img src="スクリーンショット 2026-07-11 113437.jpg" alt="ホーム">
-      <span>ホーム</span>
-    </div>
-    <div class="nav-item" id="navSubscriptionsBtn">
-      <img src="スクリーンショット 2026-07-11 113654.png" alt="登録チャンネル">
-      <span>登録チャンネル</span>
-    </div>
+  <!-- サイド/下部ナビゲーション部分 -->
+<nav class="side-nav" id="sideNav">
+  <div class="nav-item active" id="navHomeBtn">
+    <img src="icon-home.jpg" alt="ホーム">
+    <span>ホーム</span>
+  </div>
+  <div class="nav-item" id="navSubscriptionsBtn">
+    <img src="icon-sub.png" alt="登録チャンネル">
+    <span>登録チャンネル</span>
+  </div>
+  <div class="nav-item" id="navHistoryBtn">
+    <span class="nav-item-icon">🕒</span>
+    <span>履歴</span>
+  </div>
+</nav>
     <!-- ▼ 履歴ボタンを追加 ▼ -->
     <div class="nav-item" id="navHistoryBtn">
       <span class="nav-item-icon">🕒</span>
