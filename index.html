@@ -143,6 +143,24 @@
     .empty-list-msg { color: #606060; font-size: 14px; text-align: center; width: 100%; margin-top: 40px; }
     .delete-video-btn { display: none; position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; font-size: 14px; cursor: pointer; }
     .grid-item:hover .delete-video-btn { display: block; }
+    
+
+    .grid-item-info { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; }
+    .grid-item-text { flex: 1; min-width: 0; }
+    .grid-item .grid-title { font-size: 15px; font-weight: bold; margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    
+    .grid-menu-wrapper { position: relative; flex-shrink: 0; margin-left: 8px; }
+    .grid-menu-btn-yt { background: none; border: none; font-size: 18px; font-weight: bold; color: #0f0f0f; cursor: pointer; padding: 0 8px; visibility: hidden; }
+    .grid-item:hover .grid-menu-btn-yt { visibility: visible; } /* PCではホバー時のみ表示 */
+    
+    .grid-dropdown { display: none; position: absolute; right: 0; top: 24px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 260px; z-index: 100; overflow: hidden; flex-direction: column; border: 1px solid #e5e5e5; }
+    .grid-dropdown.active { display: flex; }
+    .grid-dropdown-item { padding: 12px 16px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #0f0f0f; }
+    .grid-dropdown-item:hover { background-color: #f2f2f2; }
+
+    @media (max-width: 768px) {
+      .grid-menu-btn-yt { visibility: visible; } 
+    }
 
     .watch-layout { display: flex; gap: 24px; max-width: 1280px; margin: 24px auto; padding: 0 24px; align-items: flex-start; }
     .watch-main { flex: 1; min-width: 0; }
@@ -695,7 +713,8 @@
     const blockUserBtn = document.getElementById('blockUserBtn');
     const reportBtn = document.getElementById('reportBtn');
     
-    let currentUserBlocks = [];
+   let currentUserBlocks = [];
+    let currentUserNotInterested = []; 
     let currentUserSubscriptions = [];
     let currentFeed = 'all'; 
     let currentCategory = 'すべて';
@@ -856,7 +875,13 @@
         let channelName = 'ゲストチャンネル'; let avatarUrl = ''; currentUserBlocks = []; currentUserSubscriptions = []; 
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
-          if (snap.exists()) { channelName = snap.data().channelName; avatarUrl = snap.data().avatarUrl || ''; currentUserBlocks = snap.data().blockedUids || []; currentUserSubscriptions = snap.data().subscribedTo || []; }
+         if (snap.exists()) { 
+            channelName = snap.data().channelName; 
+            avatarUrl = snap.data().avatarUrl || ''; 
+            currentUserBlocks = snap.data().blockedUids || []; 
+            currentUserNotInterested = snap.data().notInterestedUids || []; // ← これを追加！
+            currentUserSubscriptions = snap.data().subscribedTo || []; 
+          }
         } catch (error) {}
 
         currentUser = { uid: user.uid, channelName, avatarUrl };
@@ -905,7 +930,7 @@ async function loadVideoList() {
 }
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
-      let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid));
+     let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid) && !currentUserNotInterested.includes(v.uploaderUid));
       
       const categoryFilterBar = document.getElementById('categoryFilterBar');
       const sortControlsArea = document.getElementById('sortControlsArea');
@@ -1019,7 +1044,7 @@ async function loadVideoList() {
     sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
     sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
 
-    function renderGrid(list, container) {
+  function renderGrid(list, container) {
       if (list.length === 0) {
         if (currentFeed === 'subscriptions') {
           container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">登録したチャンネルの動画がありません。</p>';
@@ -1031,6 +1056,96 @@ async function loadVideoList() {
         return;
       }
       container.innerHTML = '';
+      
+      list.forEach(v => {
+        const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
+        const gridItem = document.createElement('div'); 
+        gridItem.className = 'grid-item';
+        
+        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
+        
+        // 動画カードのHTML（YouTube風の3点メニューを追加）
+        gridItem.innerHTML = `
+          ${mediaHtml}
+          ${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}
+          <div class="grid-item-info">
+            <div class="grid-item-text">
+              <div class="grid-title">${escapeHtml(v.title)}</div>
+              <div class="grid-author">${escapeHtml(v.uploaderName)}</div>
+            </div>
+            <div class="grid-menu-wrapper">
+              <button class="grid-menu-btn-yt">⋮</button>
+              <div class="grid-dropdown">
+                <div class="grid-dropdown-item not-interested-btn" data-uid="${v.uploaderUid}">🚫 チャンネルをおすすめに表示しない</div>
+                <div class="grid-dropdown-item block-channel-btn" data-uid="${v.uploaderUid}">⛔ チャンネルをブロックする</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // ① サムネイル等をクリックしたら動画再生画面へ
+        gridItem.addEventListener('click', () => watchVideo(v));
+
+        // ② 削除ボタン（自分の動画のみ）
+        const deleteBtn = gridItem.querySelector('.delete-video-btn');
+        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { 
+          e.stopPropagation(); 
+          if (!confirm(`「${v.title}」を削除しますか？`)) return; 
+          try { await deleteObject(v.itemRef); loadVideoList(); } catch (error) {} 
+        });
+
+        // ③ 3点メニューボタンを開く処理
+        const menuBtn = gridItem.querySelector('.grid-menu-btn-yt');
+        const dropdown = gridItem.querySelector('.grid-dropdown');
+        
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // 動画再生画面への遷移を防ぐ
+          
+          // 他の開いているメニューをすべて閉じる
+          document.querySelectorAll('.grid-dropdown.active').forEach(menu => {
+            if (menu !== dropdown) menu.classList.remove('active');
+          });
+          
+          dropdown.classList.toggle('active');
+        });
+
+        // ④「おすすめに表示しない」の処理
+        const notInterestedBtn = gridItem.querySelector('.not-interested-btn');
+        notInterestedBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          dropdown.classList.remove('active');
+          if (!currentUser) return alert('この機能を使うにはログインしてください。');
+          if (v.uploaderUid === currentUser.uid) return alert('自分のチャンネルは非表示にできません。');
+          
+          try {
+            await setDoc(doc(db, 'users', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true });
+            currentUserNotInterested.push(v.uploaderUid);
+            alert('このチャンネルの動画を今後おすすめに表示しません。');
+            applyFilterAndSort(); // 画面をリロードして非表示を反映
+          } catch (error) { alert('設定に失敗しました。'); }
+        });
+
+        // ⑤「ブロックする」の処理
+        const blockBtn = gridItem.querySelector('.block-channel-btn');
+        blockBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          dropdown.classList.remove('active');
+          if (!currentUser) return alert('この機能を使うにはログインしてください。');
+          if (v.uploaderUid === currentUser.uid) return alert('自分自身はブロックできません。');
+          if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは一切表示されなくなります。')) return;
+          
+          try {
+            await setDoc(doc(db, 'users', currentUser.uid), { blockedUids: arrayUnion(v.uploaderUid) }, { merge: true });
+            currentUserBlocks.push(v.uploaderUid);
+            alert('ブロックしました。');
+            applyFilterAndSort(); // 画面をリロードして非表示を反映
+          } catch (error) { alert('ブロック処理に失敗しました。'); }
+        });
+
+        container.appendChild(gridItem);
+      });
+    }
+      container.innerHTML = '';
       list.forEach(v => {
         const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
         const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
@@ -1041,7 +1156,6 @@ async function loadVideoList() {
         if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await deleteObject(v.itemRef); loadVideoList(); } catch (error) {} });
         container.appendChild(gridItem);
       });
-    }
 
     function triggerChannelNavigation() {
       const uid = uploaderNameEl.dataset.uid; showMyProfile(uid);
@@ -1424,6 +1538,14 @@ async function loadVideoList() {
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = '変更を保存';
+      }
+    });
+    // 画面のどこかをクリックしたら、開いている3点メニューを閉じる
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.grid-menu-wrapper')) {
+        document.querySelectorAll('.grid-dropdown.active').forEach(menu => {
+          menu.classList.remove('active');
+        });
       }
     });
   </script>
