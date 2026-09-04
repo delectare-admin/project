@@ -287,6 +287,19 @@
       #channelAvatarHeader { margin: 0 auto; width: 80px; height: 80px; font-size: 32px; }
       .channel-actions-row { justify-content: center; }
     }
+    .manage-list-item { display: flex; gap: 16px; padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background-color: white; align-items: flex-start; }
+    .manage-list-item .thumb { width: 160px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; background-color: #000; flex-shrink: 0; }
+    .manage-list-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .manage-list-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .manage-list-date { font-size: 13px; color: #606060; margin-bottom: 12px; }
+    .manage-list-actions { display: flex; gap: 8px; }
+    .manage-btn { background-color: #f2f2f2; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .manage-btn:hover { background-color: #e5e5e5; }
+    .manage-btn-delete { color: #cc0000; }
+    @media (max-width: 768px) {
+      .manage-list-item { flex-direction: column; }
+      .manage-list-item .thumb { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -364,6 +377,10 @@
       </div>
     </div>
 
+   <div id="manageScreen" class="home-container" style="display: none; max-width: 1000px;">
+      <h2 class="page-title-heading" style="display: block;">チャンネルのコンテンツ</h2>
+      <div id="manageList" style="display: flex; flex-direction: column; gap: 16px; padding: 0 24px;"></div>
+    </div>
     <div id="channelScreen" class="channel-container" style="display: none;">
       <div class="channel-header" style="display: flex; align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e5e5; margin-bottom: 24px;">
         <div id="channelAvatarHeader" style="width: 120px; height: 120px; border-radius: 50%; background-color: #ccc; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 48px; flex-shrink: 0;"></div>
@@ -372,7 +389,7 @@
           <p class="channel-meta-stats" style="color: #606060; font-size: 14px; margin: 0 0 16px 0;">@<span id="channelHandle"></span> ・ チャンネル登録者数 <span id="channelSubscriberCount">0</span>人 ・ <span id="channelVideoCount">0</span> 本の動画</p>
           <div class="channel-actions-row" style="display: flex; gap: 8px;">
             <button id="customizeBtn" class="rate-btn" style="display: none;">チャンネルをカスタマイズ</button>
-            <button class="rate-btn">動画を管理</button>
+            <button id="manageVideoBtn" class="rate-btn" style="display: none;">≡ 動画を管理</button>
           </div>
         </div>
       </div>
@@ -523,6 +540,44 @@
     </div>
   </div>
 
+  <div id="editVideoModal" class="modal-overlay">
+    <div class="modal-content auth-modal-content" style="max-width: 500px; height: auto;">
+      <div class="modal-header">
+        <h2>動画の詳細を編集</h2>
+        <button id="closeEditModalBtn" class="close-btn">✕</button>
+      </div>
+      <div class="auth-body">
+        <div class="input-group">
+          <label>タイトル (必須)</label>
+          <input type="text" id="editTitleInput">
+        </div>
+        <div class="input-group">
+          <label>説明</label>
+          <textarea id="editDescInput" rows="3" placeholder="動画の説明"></textarea>
+        </div>
+        <div class="input-group">
+          <label>カテゴリー</label>
+          <select id="editCategoryInput">
+            <option value="エンタメ">エンタメ</option>
+            <option value="漫画">漫画</option>
+            <option value="アニメ">アニメ</option>
+            <option value="映画">映画</option>
+            <option value="音楽">音楽</option>
+            <option value="ゲーム">ゲーム</option>
+            <option value="学問・教養">学問・教養</option>
+            <option value="3D・技術">3D・技術</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>新しいサムネイル画像 (変更する場合のみ)</label>
+          <input type="file" id="editThumbInput" accept="image/*">
+        </div>
+        <button id="saveEditBtn" class="save-btn" style="margin-top: 12px;">変更を保存</button>
+      </div>
+    </div>
+  </div>
+
   <div id="customizeModal" class="modal-overlay">
     <div class="modal-content auth-modal-content" style="max-width: 450px; height: auto;">
       <div class="modal-header">
@@ -551,7 +606,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject, updateMetadata } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -725,8 +780,8 @@
       } else {
         channelAvatarHeader.style.backgroundImage = 'none'; channelAvatarHeader.textContent = userData.channelName.charAt(0).toUpperCase();
       }
-
       document.getElementById('customizeBtn').style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
+      document.getElementById('manageVideoBtn').style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
       const userVideos = allVideos.filter(v => v.uploaderUid === uid);
       document.getElementById('channelVideoCount').textContent = userVideos.length;
       renderGrid(userVideos, channelGrid);
@@ -825,24 +880,29 @@
     });
 
     let allVideos = []; let currentSort = 'newest';
-    async function loadVideoList() {
-      videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
-      const listRef = ref(storage, 'videos/');
-      try {
-        const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
-        for (const itemRef of items) {
-          const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
-          const title = (metadata.customMetadata && metadata.customMetadata.title) || itemRef.name;
-          const uploaderUid = (metadata.customMetadata && metadata.customMetadata.uploaderUid) || null;
-          const uploaderName = (metadata.customMetadata && metadata.customMetadata.uploaderName) || 'ゲスト';
-          const thumbUrl = (metadata.customMetadata && metadata.customMetadata.thumbUrl) || null;
-          const category = (metadata.customMetadata && metadata.customMetadata.category) || 'その他';
-          allVideos.push({ url, title, itemRef, uploaderUid, uploaderName, thumbUrl, category });
-        }
-        applyFilterAndSort();
-      } catch (error) { videoGrid.innerHTML = '<p class="empty-list-msg">失敗しました。</p>'; }
+async function loadVideoList() {
+  videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
+  const listRef = ref(storage, 'videos/');
+  try {
+    const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
+    for (const itemRef of items) {
+      const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
+      const title = (metadata.customMetadata && metadata.customMetadata.title) || itemRef.name;
+      const uploaderUid = (metadata.customMetadata && metadata.customMetadata.uploaderUid) || null;
+      const uploaderName = (metadata.customMetadata && metadata.customMetadata.uploaderName) || 'ゲスト';
+      const thumbUrl = (metadata.customMetadata && metadata.customMetadata.thumbUrl) || null;
+      const category = (metadata.customMetadata && metadata.customMetadata.category) || 'その他';
+      
+      // ▼ 追加した部分（ここはここで正解です）
+      const desc = (metadata.customMetadata && metadata.customMetadata.desc) || '';
+      const originalCustomMetadata = metadata.customMetadata || {};
+      allVideos.push({ url, title, itemRef, uploaderUid, uploaderName, thumbUrl, category, desc, originalCustomMetadata });
     }
-
+    applyFilterAndSort();
+  } catch (error) { 
+    videoGrid.innerHTML = '<p class="empty-list-msg">失敗しました。</p>'; 
+  }
+}
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
       let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid));
@@ -1244,6 +1304,128 @@
         } catch (error) {} finally { subscribeBtn.disabled = false; }
       });
     }
+
+    // ========== 動画管理機能 ==========
+    const manageScreen = document.getElementById('manageScreen');
+    const manageList = document.getElementById('manageList');
+    const manageVideoBtn = document.getElementById('manageVideoBtn');
+    let currentEditVideo = null; // 編集中の動画データを保持
+
+    // 1. 「動画を管理」ボタンを押した時
+    if (manageVideoBtn) {
+      manageVideoBtn.addEventListener('click', () => {
+        document.body.classList.remove('watch-mode');
+        homeScreen.style.display = 'none';
+        channelScreen.style.display = 'none';
+        watchScreen.style.display = 'none';
+        manageScreen.style.display = 'block';
+        renderManageList();
+      });
+    }
+
+    // 2. 管理リストの描画
+    function renderManageList() {
+      manageList.innerHTML = '';
+      const myVideos = allVideos.filter(v => v.uploaderUid === currentUser.uid);
+      
+      if (myVideos.length === 0) {
+        manageList.innerHTML = '<p class="empty-list-msg">アップロードした動画がありません。</p>';
+        return;
+      }
+
+      myVideos.forEach(v => {
+        const item = document.createElement('div');
+        item.className = 'manage-list-item';
+        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumb">` : `<video src="${v.url}" class="thumb" muted preload="metadata"></video>`;
+        
+        item.innerHTML = `
+          ${mediaHtml}
+          <div class="manage-list-info">
+            <div class="manage-list-title">${escapeHtml(v.title)}</div>
+            <div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div>
+            <div class="manage-list-actions">
+              <button class="manage-btn edit-btn">✏️ 編集</button>
+              <button class="manage-btn manage-btn-delete">🗑 削除</button>
+            </div>
+          </div>
+        `;
+
+        // 編集ボタンの処理
+        item.querySelector('.edit-btn').addEventListener('click', () => {
+          currentEditVideo = v;
+          document.getElementById('editTitleInput').value = v.title;
+          document.getElementById('editDescInput').value = v.desc || '';
+          document.getElementById('editCategoryInput').value = v.category || 'エンタメ';
+          document.getElementById('editThumbInput').value = '';
+          document.getElementById('editVideoModal').classList.add('active');
+        });
+
+        // 削除ボタンの処理
+        item.querySelector('.manage-btn-delete').addEventListener('click', async () => {
+          if (!confirm(`「${v.title}」を完全に削除しますか？`)) return;
+          try {
+            await deleteObject(v.itemRef);
+            await loadVideoList();
+            renderManageList(); // リストを再描画
+          } catch (error) { alert('削除に失敗しました'); }
+        });
+
+        manageList.appendChild(item);
+      });
+    }
+
+    // 3. モーダルを閉じる
+    document.getElementById('closeEditModalBtn').addEventListener('click', () => {
+      document.getElementById('editVideoModal').classList.remove('active');
+    });
+
+    // 4. 変更を保存する処理（Storageのメタデータを更新）
+    document.getElementById('saveEditBtn').addEventListener('click', async () => {
+      if (!currentEditVideo) return;
+      const saveBtn = document.getElementById('saveEditBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+
+      try {
+        let newThumbUrl = currentEditVideo.thumbUrl || '';
+        const thumbFile = document.getElementById('editThumbInput').files[0];
+        
+        // 新しいサムネイルが選択された場合はアップロード
+        if (thumbFile) {
+          saveBtn.textContent = '画像アップロード中...';
+          const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name);
+          await uploadBytes(thumbRef, thumbFile);
+          newThumbUrl = await getDownloadURL(thumbRef);
+        }
+
+        saveBtn.textContent = 'データ更新中...';
+        
+        // Storageのカスタムメタデータを更新（上書きされないよう古いデータをマージする）
+        const newCustomMetadata = {
+          ...currentEditVideo.originalCustomMetadata,
+          title: document.getElementById('editTitleInput').value,
+          desc: document.getElementById('editDescInput').value,
+          category: document.getElementById('editCategoryInput').value,
+          thumbUrl: newThumbUrl
+        };
+
+        await updateMetadata(currentEditVideo.itemRef, { customMetadata: newCustomMetadata });
+
+        alert('変更を保存しました！');
+        document.getElementById('editVideoModal').classList.remove('active');
+        
+        // データを再読み込みしてリストを更新
+        await loadVideoList();
+        renderManageList();
+
+      } catch (error) {
+        console.error(error);
+        alert('保存に失敗しました。');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '変更を保存';
+      }
+    });
   </script>
 </body>
 </html>
