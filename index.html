@@ -81,14 +81,15 @@
     #channelNameDisplay { font-weight: bold; font-size: 14px; cursor: pointer; }
     #channelNameDisplay:hover { text-decoration: underline; }
 
-    .side-nav { position: fixed; top: 64px; left: 0; bottom: 0; width: 240px; background-color: white; padding: 12px 0; z-index: 50; overflow-y: auto; }
-    .nav-item { display: flex; align-items: center; padding: 10px 24px; cursor: pointer; gap: 16px; border-radius: 10px; margin: 0 12px 4px; color: #0f0f0f; }
+   /* ▼ YouTube風の細いサイドバーに変更 ▼ */
+    .side-nav { position: fixed; top: 64px; left: 0; bottom: 0; width: 72px; background-color: white; padding: 12px 0; z-index: 50; overflow-y: auto; }
+    .nav-item { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 16px 0; cursor: pointer; gap: 6px; border-radius: 10px; margin: 0 4px 4px; color: #0f0f0f; }
     .nav-item:hover { background-color: #f2f2f2; }
     .nav-item.active { background-color: #f2f2f2; font-weight: bold; }
     .nav-item img { width: 24px; height: 24px; object-fit: contain; }
     .nav-item-icon { font-size: 20px; width: 24px; text-align: center; } 
-    
-    .main-content { margin-left: 240px; padding-top: 24px; min-height: calc(100vh - 64px); box-sizing: border-box; }
+    .nav-item span { font-size: 10px; } /* 文字を小さく */
+    .main-content { margin-left: 72px; padding-top: 24px; min-height: calc(100vh - 64px); box-sizing: border-box; }
     body.watch-mode .side-nav { display: none; }
     body.watch-mode .main-content { margin-left: 0; padding-top: 0; }
 
@@ -133,8 +134,7 @@
     .sort-controls { display: flex; justify-content: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; padding: 0 24px; }
     .sort-btn { background-color: #f2f2f2; border: none; padding: 7px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; color: #606060; cursor: pointer; }
     .sort-btn.active { background-color: #0f0f0f; color: white; }
-
-    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 0 24px; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 0 24px; }
     .grid-item { position: relative; cursor: pointer; }
     .thumbnail-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; background-color: #000; pointer-events: none; }
     .empty-list-msg { color: #606060; font-size: 14px; text-align: center; width: 100%; margin-top: 40px; }
