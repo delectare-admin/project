@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>おにぎり動画 | 世界最大のカルチャー動画共有サイト</title>
+  <title>サブ・カルチャー | 世界最大のカルチャー動画共有サイト</title>
   <meta name="description" content="デレクターレは、誰でも動画をアップロードして弾幕コメントを楽しめる、新しい動画共有プラットフォームです。">
   <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
   <style>
@@ -238,7 +238,8 @@
     .reply-input-area button:disabled { background-color: #ccc; cursor: not-allowed; }
 
     .video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; margin-bottom: 12px; overflow: hidden; background-color: #000; border-radius: 12px; }
-    .video-wrapper.in-pip { margin: 0; border-radius: 0; width: 100vw; height: 100vh; }
+.video-wrapper.in-pip { margin: 0; border-radius: 0; width: 100vw; height: 100vh; }
+    
     .video-wrapper:fullscreen {
       width: 100vw !important;
       height: 100vh !important;
@@ -260,11 +261,28 @@
       justify-content: center;
       align-items: center;
     }
-    /* 全画面時の内部ビデオのサイズ調整 */
+    
+    /* ▼ iPhoneなどAPI非対応端末用の擬似フルスクリーン ▼ */
+    .video-wrapper.pseudo-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      background-color: #000 !important;
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+    }
     .video-wrapper:fullscreen video, 
-    .video-wrapper:-webkit-full-screen video {
+    .video-wrapper:-webkit-full-screen video,
+    .video-wrapper.pseudo-fullscreen video {
       width: 100%;
       height: 100%;
+      object-fit: contain; 
     }
     
     /* ▼ カスタムコントロールバーのスタイル ▼ */
@@ -1329,35 +1347,50 @@
     pipBtn.addEventListener('click', async () => { 
       if ('documentPictureInPicture' in window) { try { if (window.documentPictureInPicture.window) { window.documentPictureInPicture.window.close(); return; } const pipWindow = await window.documentPictureInPicture.requestWindow({ width: mainVideo.clientWidth || 640, height: mainVideo.clientHeight || 360, }); [...document.styleSheets].forEach((styleSheet) => { try { const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join(''); const style = document.createElement('style'); style.textContent = cssRules; pipWindow.document.head.appendChild(style); } catch (e) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href; pipWindow.document.head.appendChild(link); } }); const videoWrapperEl = document.getElementById('videoWrapper'); videoWrapperEl.classList.add('in-pip'); pipWindow.document.body.appendChild(videoWrapperEl); pipWindow.document.body.style.margin = '0'; pipWindow.document.body.style.overflow = 'hidden'; pipWindow.document.body.style.backgroundColor = '#000'; pipWindow.addEventListener('pagehide', () => { videoWrapperEl.classList.remove('in-pip'); const watchMain = document.querySelector('.watch-main'); watchMain.insertBefore(videoWrapperEl, document.querySelector('.video-meta-bar')); }); } catch (error) {} } else if (document.pictureInPictureEnabled) { try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else { alert('動画のみのPiPになります。'); await mainVideo.requestPictureInPicture(); } } catch (error) {} } else { alert('非サポートブラウザです。'); }
     });
-    // ========== 全画面（Fullscreen）で弾幕再生機能 ==========
+  // ========== 全画面（Fullscreen）で弾幕再生機能 ==========
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const videoWrapper = document.getElementById('videoWrapper');
 
     fullscreenBtn.addEventListener('click', async () => {
-      // 既に全画面かどうかを判定
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      // 既に全画面（通常のFullscreen API、または擬似フルスクリーン）かどうかを判定
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen');
+
+      if (!isFullscreen) {
         // 全画面にする処理
         try {
           if (videoWrapper.requestFullscreen) {
             await videoWrapper.requestFullscreen();
-          } else if (videoWrapper.webkitRequestFullscreen) { /* Safari用 */
-            await videoWrapper.webkitRequestFullscreen();
+          } else if (videoWrapper.webkitRequestFullscreen) { /* PC版Safari等用 */
+            videoWrapper.webkitRequestFullscreen(); // SafariではPromiseを返さないためawaitを外す
+          } else {
+            // フルスクリーンAPIが非対応の端末（iPhoneなど）向けの擬似フルスクリーン
+            videoWrapper.classList.add('pseudo-fullscreen');
+            document.body.style.overflow = 'hidden'; // 背面のスクロールを禁止
           }
         } catch (error) {
-          alert('全画面表示に失敗しました。お使いのブラウザが対応していない可能性があります。');
+          console.error('全画面エラー:', error);
+          // エラーが起きた場合も擬似フルスクリーンで強制対応
+          videoWrapper.classList.add('pseudo-fullscreen');
+          document.body.style.overflow = 'hidden';
         }
       } else {
         // 全画面を解除する処理
-        try {
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) { /* Safari用 */
-            await document.webkitExitFullscreen();
+        if (videoWrapper.classList.contains('pseudo-fullscreen')) {
+          videoWrapper.classList.remove('pseudo-fullscreen');
+          document.body.style.overflow = ''; // スクロール禁止を解除
+        } else {
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen();
+            }
+          } catch (error) {
+            console.error("全画面解除エラー:", error);
           }
-        } catch (error) {
-          console.error("全画面解除エラー:", error);
         }
       }
+      updateFullscreenBtn();
     });
 
     // 全画面状態が変わった時にボタンの文字を変更する
@@ -1365,7 +1398,7 @@
     document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
 
     function updateFullscreenBtn() {
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.fullscreenElement || document.webkitFullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen')) {
         fullscreenBtn.textContent = '✖ 全画面を解除';
       } else {
         fullscreenBtn.textContent = '⛶ 全画面';
