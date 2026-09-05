@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>サブ・カルチャー | 世界最大のカルチャー動画共有サイト</title>
+  <title>おにぎり動画 | 世界最大のカルチャー動画共有サイト</title>
   <meta name="description" content="デレクターレは、誰でも動画をアップロードして弾幕コメントを楽しめる、新しい動画共有プラットフォームです。">
   <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
   <style>
@@ -81,7 +81,7 @@
     #channelNameDisplay { font-weight: bold; font-size: 14px; cursor: pointer; }
     #channelNameDisplay:hover { text-decoration: underline; }
 
-   /* ▼ YouTube風の細いサイドバーに変更 ▼ */
+    /* ▼ YouTube風の細いサイドバーに変更 ▼ */
     .side-nav { position: fixed; top: 64px; left: 0; bottom: 0; width: 72px; background-color: white; padding: 12px 0; z-index: 50; overflow-y: auto; }
     .nav-item { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 16px 0; cursor: pointer; gap: 6px; border-radius: 10px; margin: 0 4px 4px; color: #0f0f0f; }
     .nav-item:hover { background-color: #f2f2f2; }
@@ -273,31 +273,36 @@
       .nav-item img { width: 20px; height: 20px; }
       .nav-item-icon { font-size: 18px; }
       .main-content { margin-left: 0; padding-top: 16px; padding-bottom: 60px; }
-
       .home-container, .channel-container { padding: 0; margin-top: 0; }
       .category-filter-bar { padding: 0 16px 12px; }
       .sort-controls, .video-grid { padding: 0 16px; }
       .page-title-heading { margin: 0 16px 16px; }
-      
       .video-grid { grid-template-columns: 1fr; gap: 24px; }
       .grid-item { margin: 0; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
       .thumbnail-img { border-radius: 0; }
       .grid-item .grid-title, .grid-item .grid-author { padding: 0 8px; }
       .grid-item .grid-title { font-size: 16px; margin-top: 12px; }
-
       .logo { font-size: 16px; }
       .header-actions { gap: 8px; }
       .create-btn { padding: 6px 10px; font-size: 12px; }
-      
       .watch-layout { padding: 0; margin: 0; }
       .video-wrapper { border-radius: 0; }
       .video-meta-bar { padding: 12px; flex-direction: column; align-items: stretch; }
       .meta-actions { justify-content: space-between; margin-top: 8px; }
       .danmaku-input-area, .nickname-area, .comment-section { padding: 0 12px; }
       .related-item .thumbnail-img { width: 140px; }
-
       .modal-content { width: 95%; height: 90vh; }
       .video-title { font-size: 16px; }
+      
+      .share-link-box { display: flex; gap: 8px; margin-bottom: 24px; }
+      .share-link-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; outline: none; background-color: #f9f9f9; }
+      .share-btn-copy { background-color: #0f0f0f; color: white; border: none; padding: 0 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap; }
+      .sns-share-btns { display: flex; gap: 12px; justify-content: space-between; }
+      .sns-btn { padding: 12px; border-radius: 24px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; color: white; flex: 1; display: flex; justify-content: center; align-items: center; gap: 6px; }
+      .sns-btn.x { background-color: #000000; }
+      .sns-btn.reddit { background-color: #FF4500; }
+      .sns-btn.youtube { background-color: #FF0000; } 
+      
 
       .channel-header { flex-direction: column; text-align: center; justify-content: center; padding-top: 16px; }
       #channelAvatarHeader { margin: 0 auto; width: 80px; height: 80px; font-size: 32px; }
@@ -321,17 +326,14 @@
 <body>
 
   <header>
-    <!-- ロゴ部分 -->
     <div class="logo" id="logoHome">
       <img src="logo.png" alt="ロゴ" class="logo-img">
       サブ・カルチャー
     </div>
 
-    <!-- 検索バー部分 -->
     <div class="header-search-bar">
       <input type="text" id="searchInput" placeholder="検索...">
       <button id="searchBtn">🔍</button>
-      <!-- サジェストボックス -->
       <div id="searchSuggestions" class="search-suggestions"></div>
     </div>
     
@@ -349,7 +351,6 @@
     </div>
   </header>
 
-  <!-- サイドナビゲーション部分 -->
   <nav class="side-nav" id="sideNav">
     <div class="nav-item active" id="navHomeBtn">
       <img src="icon-home.png" alt="ホーム">
@@ -363,12 +364,15 @@
       <span class="nav-item-icon">🕒</span>
       <span>アーカイブ</span>
     </div>
+    <div class="nav-item" id="navSavedBtn">
+      <span class="nav-item-icon">🔖</span>
+      <span>保存した動画</span>
+    </div>
   </nav>
 
   <div class="main-content" id="mainContent">
     <div id="homeScreen" class="home-container">
       
-      <!-- 履歴ページ用の見出し -->
       <h2 id="pageTitleHeading" class="page-title-heading">履歴</h2>
 
       <div class="category-filter-bar" id="categoryFilterBar">
@@ -437,8 +441,10 @@
               <span id="viewCount">- 回視聴</span>
               <button id="likeBtn" class="rate-btn" disabled>👍 <span id="likeCount">0</span></button>
               <button id="dislikeBtn" class="rate-btn" disabled>👎 <span id="dislikeCount">0</span></button>
+              <button id="shareBtn" class="rate-btn">➡️ 共有</button>
+              <button id="saveVideoBtn" class="rate-btn">🔖 保存</button>
               <button id="reportBtn" class="rate-btn" style="color: #cc0000;">🚨 通報</button>
-              <button id="pipBtn" class="pip-btn">◱ PiPで弾幕再生</button>
+              <button id="pipBtn" class="pip-btn">PIPで弾幕再生</button>
             </div>
           </div>
 
@@ -487,12 +493,10 @@
               <label>タイトル (必須)</label>
               <input type="text" id="videoTitleInput">
             </div>
-            <!-- ▼ 修正箇所：id="uploadDescInput" を追加 ▼ -->
             <div class="input-group">
               <label>説明</label>
               <textarea id="uploadDescInput" placeholder="動画の説明を入力"></textarea>
             </div>
-            <!-- ▲ 修正箇所 ▲ -->
             <div class="input-group">
               <label>サムネイル画像 (任意)</label>
               <input type="file" id="thumbInput" accept="image/*">
@@ -523,6 +527,26 @@
             <button id="saveBtn" class="save-btn" style="width: 100%;">保存して公開</button>
             <button id="backModalBtn" class="back-btn" style="width: 100%; margin-top: 8px; text-align: center;">戻る</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shareModal" class="modal-overlay">
+    <div class="modal-content auth-modal-content" style="max-width: 450px; height: auto;">
+      <div class="modal-header">
+        <h2>共有</h2>
+        <button id="closeShareModalBtn" class="close-btn">✕</button>
+      </div>
+      <div class="auth-body">
+        <div class="share-link-box">
+          <input type="text" id="shareLinkInput" readonly>
+          <button id="copyShareLinkBtn" class="share-btn-copy">コピー</button>
+        </div>
+        <div class="sns-share-btns">
+          <button id="shareXBtn" class="sns-btn x">X</button>
+          <button id="shareRedditBtn" class="sns-btn reddit">Reddit</button>
+          <button id="shareYouTubeBtn" class="sns-btn youtube">YouTube</button>
         </div>
       </div>
     </div>
@@ -716,6 +740,7 @@
     let currentUserBlocks = [];
     let currentUserNotInterested = []; 
     let currentUserSubscriptions = [];
+    let currentUserSaved = [];
     let currentFeed = 'all'; 
     let currentCategory = 'すべて';
 
@@ -724,11 +749,13 @@
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navSubscriptionsBtn = document.getElementById('navSubscriptionsBtn');
     const navHistoryBtn = document.getElementById('navHistoryBtn');
+    const navSavedBtn = document.getElementById('navSavedBtn');
 
     function setActiveNav(feedType) {
       navHomeBtn.classList.toggle('active', feedType === 'all');
       navSubscriptionsBtn.classList.toggle('active', feedType === 'subscriptions');
       navHistoryBtn.classList.toggle('active', feedType === 'history');
+      navSavedBtn.classList.toggle('active', feedType === 'saved');
     }
 
     navHomeBtn.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
@@ -738,6 +765,10 @@
     });
     navHistoryBtn.addEventListener('click', () => {
       currentFeed = 'history'; setActiveNav('history'); goHome();
+    });
+    navSavedBtn.addEventListener('click', () => {
+      if (!currentUser) return alert('保存した動画を見るにはログインしてください。');
+      currentFeed = 'saved'; setActiveNav('saved'); goHome();
     });
 
     const loginOpenBtn = document.getElementById('loginOpenBtn');
@@ -881,6 +912,7 @@
             currentUserBlocks = snap.data().blockedUids || []; 
             currentUserNotInterested = snap.data().notInterestedUids || [];
             currentUserSubscriptions = snap.data().subscribedTo || []; 
+            currentUserSaved = snap.data().savedVideos || [];
           }
         } catch (error) {}
 
@@ -936,12 +968,19 @@
       const sortControlsArea = document.getElementById('sortControlsArea');
       const pageTitleHeading = document.getElementById('pageTitleHeading');
 
-      // 1. ベースとなるリストの準備（ホーム、登録チャンネル、履歴）
+      // 1. ベースとなるリストの準備（ホーム、登録チャンネル、履歴、保存）
       if (currentFeed === 'history') {
         categoryFilterBar.style.display = 'none';
         sortControlsArea.style.display = 'none';
         pageTitleHeading.style.display = 'block';
+        pageTitleHeading.textContent = 'アーカイブ（履歴）';
         list = watchHistory.map(id => list.find(v => v.itemRef.fullPath === id)).filter(v => v);
+      } else if (currentFeed === 'saved') {
+        categoryFilterBar.style.display = 'none';
+        sortControlsArea.style.display = 'none';
+        pageTitleHeading.style.display = 'block';
+        pageTitleHeading.textContent = '保存した動画';
+        list = currentUserSaved.map(id => list.find(v => v.itemRef.fullPath === id)).filter(v => v);
       } else {
         categoryFilterBar.style.display = 'flex';
         sortControlsArea.style.display = 'flex';
@@ -1199,11 +1238,27 @@
       hasLiked = false; hasDisliked = false; likeBtn.disabled = true; dislikeBtn.disabled = true; likeBtn.classList.remove('active-like'); dislikeBtn.classList.remove('active-dislike'); viewCountEl.textContent = '- 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0';
       loadComments(); await loadStats(); renderSidebar(currentVideoId);
       blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
+
+      // URLに動画IDをつけてシェアできるようにする（URLルーティング）
+      window.history.pushState(null, '', '?v=' + encodeURIComponent(currentVideoId));
+
+      // 保存ボタンの状態を更新
+      const saveVideoBtn = document.getElementById('saveVideoBtn');
+      if (currentUserSaved.includes(currentVideoId)) {
+        saveVideoBtn.textContent = '🔖 保存済み';
+        saveVideoBtn.style.color = '#065fd4'; // 青色にする
+      } else {
+        saveVideoBtn.textContent = '🔖 保存';
+        saveVideoBtn.style.color = '';
+      }
     }
 
     logoHome.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
 
     function goHome() {
+      // URLを元の状態に戻す
+      window.history.pushState(null, '', window.location.pathname);
+
       document.body.classList.remove('watch-mode'); uploadModal.classList.remove('active'); createMenu.classList.remove('active'); watchScreen.style.display = 'none'; channelScreen.style.display = 'none'; homeScreen.style.display = 'block';
       const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
       if (!isStandardPiP && !isDocumentPiP) { mainVideo.pause(); mainVideo.src = ""; }
@@ -1528,6 +1583,87 @@
         saveBtn.disabled = false;
         saveBtn.textContent = '変更を保存';
       }
+    });
+
+    // ========== 保存（Save）機能 ==========
+    const saveVideoBtn = document.getElementById('saveVideoBtn');
+    saveVideoBtn.addEventListener('click', async () => {
+      if (!currentUser) return alert('動画を保存するにはログインしてください。');
+      saveVideoBtn.disabled = true;
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        if (currentUserSaved.includes(currentVideoId)) {
+          await setDoc(userRef, { savedVideos: arrayRemove(currentVideoId) }, { merge: true });
+          currentUserSaved = currentUserSaved.filter(id => id !== currentVideoId);
+          saveVideoBtn.textContent = '🔖 保存';
+          saveVideoBtn.style.color = '';
+        } else {
+          await setDoc(userRef, { savedVideos: arrayUnion(currentVideoId) }, { merge: true });
+          currentUserSaved.push(currentVideoId);
+          saveVideoBtn.textContent = '🔖 保存済み';
+          saveVideoBtn.style.color = '#065fd4';
+        }
+      } catch (error) { alert('保存に失敗しました。'); } 
+      finally { saveVideoBtn.disabled = false; }
+    });
+
+    // ========== 共有（Share）機能 ==========
+    const shareModal = document.getElementById('shareModal');
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      // 現在のURL（?v=xxxx が付いた状態）を取得
+      shareLinkInput.value = window.location.href;
+      shareModal.classList.add('active');
+    });
+
+    document.getElementById('closeShareModalBtn').addEventListener('click', () => shareModal.classList.remove('active'));
+
+    // リンクをコピー
+    document.getElementById('copyShareLinkBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+        const btn = document.getElementById('copyShareLinkBtn');
+        btn.textContent = 'コピー完了！';
+        setTimeout(() => btn.textContent = 'コピー', 2000);
+      });
+    });
+
+    // X (Twitter) にシェア
+    document.getElementById('shareXBtn').addEventListener('click', () => {
+      const text = encodeURIComponent(mainTitle.textContent + " | サブ・カルチャー");
+      const url = encodeURIComponent(shareLinkInput.value);
+      window.open(`https://x.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+    });
+
+    // Reddit にシェア
+    document.getElementById('shareRedditBtn').addEventListener('click', () => {
+      const title = encodeURIComponent(mainTitle.textContent);
+      const url = encodeURIComponent(shareLinkInput.value);
+      window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
+    });
+
+    // YouTube にシェア（※注意喚起のうえ開く）
+    document.getElementById('shareYouTubeBtn').addEventListener('click', () => {
+      // ※YouTubeには他サイトのリンクを直接投稿する専用URLがないため、コピーしてYouTubeを開かせます
+      navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+        alert('リンクをコピーしました。YouTubeのコミュニティ等に貼り付けて共有してください。');
+        window.open('https://www.youtube.com/?app=desktop&hl=ja', '_blank');
+      });
+    });
+
+    // ========== サイトアクセス時のURLルーティング（リンクから直接動画を開く） ==========
+    window.addEventListener('load', async () => {
+      // データの読み込み待ちのため、少し遅延させてチェックします
+      setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoIdToPlay = urlParams.get('v');
+        if (videoIdToPlay) {
+          const targetVideo = allVideos.find(v => v.itemRef.fullPath === decodeURIComponent(videoIdToPlay));
+          if (targetVideo) {
+            watchVideo(targetVideo);
+          }
+        }
+      }, 1500); // loadVideoListの完了を待つ
     });
 
   </script>
