@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>おにぎり動画 | 世界最大のカルチャー動画共有サイト</title>
+  <title>サブ・カルチャー | 世界最大のカルチャー動画共有サイト</title>
   <meta name="description" content="デレクターレは、誰でも動画をアップロードして弾幕コメントを楽しめる、新しい動画共有プラットフォームです。">
   <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
   <style>
@@ -137,17 +137,15 @@
     .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 0 24px; }
     .grid-item { position: relative; cursor: pointer; }
     .thumbnail-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; background-color: #000; pointer-events: none; }
-    .grid-item .grid-title { font-size: 15px; font-weight: bold; margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .grid-item .grid-author { font-size: 13px; color: #606060; margin-top: 4px; }
-    .grid-item:hover .thumbnail-img { border-radius: 0; transition: border-radius 0.3s; }
     .empty-list-msg { color: #606060; font-size: 14px; text-align: center; width: 100%; margin-top: 40px; }
     .delete-video-btn { display: none; position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background-color: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; font-size: 14px; cursor: pointer; }
+    .grid-item:hover .thumbnail-img { border-radius: 0; transition: border-radius 0.3s; }
     .grid-item:hover .delete-video-btn { display: block; }
     
-
     .grid-item-info { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; }
     .grid-item-text { flex: 1; min-width: 0; }
     .grid-item .grid-title { font-size: 15px; font-weight: bold; margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .grid-item .grid-author { font-size: 13px; color: #606060; margin-top: 4px; }
     
     .grid-menu-wrapper { position: relative; flex-shrink: 0; margin-left: 8px; }
     .grid-menu-btn-yt { background: none; border: none; font-size: 18px; font-weight: bold; color: #0f0f0f; cursor: pointer; padding: 0 8px; visibility: hidden; }
@@ -351,7 +349,7 @@
     </div>
   </header>
 
-  <!-- サイドナビゲーション部分（重複を削除して整理） -->
+  <!-- サイドナビゲーション部分 -->
   <nav class="side-nav" id="sideNav">
     <div class="nav-item active" id="navHomeBtn">
       <img src="icon-home.png" alt="ホーム">
@@ -489,10 +487,12 @@
               <label>タイトル (必須)</label>
               <input type="text" id="videoTitleInput">
             </div>
+            <!-- ▼ 修正箇所：id="uploadDescInput" を追加 ▼ -->
             <div class="input-group">
               <label>説明</label>
-              <textarea placeholder="動画の説明を入力"></textarea>
+              <textarea id="uploadDescInput" placeholder="動画の説明を入力"></textarea>
             </div>
+            <!-- ▲ 修正箇所 ▲ -->
             <div class="input-group">
               <label>サムネイル画像 (任意)</label>
               <input type="file" id="thumbInput" accept="image/*">
@@ -713,7 +713,7 @@
     const blockUserBtn = document.getElementById('blockUserBtn');
     const reportBtn = document.getElementById('reportBtn');
     
-   let currentUserBlocks = [];
+    let currentUserBlocks = [];
     let currentUserNotInterested = []; 
     let currentUserSubscriptions = [];
     let currentFeed = 'all'; 
@@ -879,7 +879,7 @@
             channelName = snap.data().channelName; 
             avatarUrl = snap.data().avatarUrl || ''; 
             currentUserBlocks = snap.data().blockedUids || []; 
-            currentUserNotInterested = snap.data().notInterestedUids || []; // ← これを追加！
+            currentUserNotInterested = snap.data().notInterestedUids || [];
             currentUserSubscriptions = snap.data().subscribedTo || []; 
           }
         } catch (error) {}
@@ -905,32 +905,32 @@
     });
 
     let allVideos = []; let currentSort = 'newest';
-async function loadVideoList() {
-  videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
-  const listRef = ref(storage, 'videos/');
-  try {
-    const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
-    for (const itemRef of items) {
-      const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
-      const title = (metadata.customMetadata && metadata.customMetadata.title) || itemRef.name;
-      const uploaderUid = (metadata.customMetadata && metadata.customMetadata.uploaderUid) || null;
-      const uploaderName = (metadata.customMetadata && metadata.customMetadata.uploaderName) || 'ゲスト';
-      const thumbUrl = (metadata.customMetadata && metadata.customMetadata.thumbUrl) || null;
-      const category = (metadata.customMetadata && metadata.customMetadata.category) || 'その他';
-      
-      // ▼ 追加した部分（ここはここで正解です）
-      const desc = (metadata.customMetadata && metadata.customMetadata.desc) || '';
-      const originalCustomMetadata = metadata.customMetadata || {};
-      allVideos.push({ url, title, itemRef, uploaderUid, uploaderName, thumbUrl, category, desc, originalCustomMetadata });
+    async function loadVideoList() {
+      videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
+      const listRef = ref(storage, 'videos/');
+      try {
+        const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
+        for (const itemRef of items) {
+          const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
+          const title = (metadata.customMetadata && metadata.customMetadata.title) || itemRef.name;
+          const uploaderUid = (metadata.customMetadata && metadata.customMetadata.uploaderUid) || null;
+          const uploaderName = (metadata.customMetadata && metadata.customMetadata.uploaderName) || 'ゲスト';
+          const thumbUrl = (metadata.customMetadata && metadata.customMetadata.thumbUrl) || null;
+          const category = (metadata.customMetadata && metadata.customMetadata.category) || 'その他';
+          
+          const desc = (metadata.customMetadata && metadata.customMetadata.desc) || '';
+          const originalCustomMetadata = metadata.customMetadata || {};
+          allVideos.push({ url, title, itemRef, uploaderUid, uploaderName, thumbUrl, category, desc, originalCustomMetadata });
+        }
+        applyFilterAndSort();
+      } catch (error) { 
+        videoGrid.innerHTML = '<p class="empty-list-msg">失敗しました。</p>'; 
+      }
     }
-    applyFilterAndSort();
-  } catch (error) { 
-    videoGrid.innerHTML = '<p class="empty-list-msg">失敗しました。</p>'; 
-  }
-}
+
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
-     let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid) && !currentUserNotInterested.includes(v.uploaderUid));
+      let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid) && !currentUserNotInterested.includes(v.uploaderUid));
       
       const categoryFilterBar = document.getElementById('categoryFilterBar');
       const sortControlsArea = document.getElementById('sortControlsArea');
@@ -1038,13 +1038,20 @@ async function loadVideoList() {
       if (!e.target.closest('.header-search-bar')) {
         searchSuggestions.style.display = 'none';
       }
+      
+      // 画面のどこかをクリックしたら、開いている3点メニューを閉じる
+      if (!e.target.closest('.grid-menu-wrapper')) {
+        document.querySelectorAll('.grid-dropdown.active').forEach(menu => {
+          menu.classList.remove('active');
+        });
+      }
     });
 
 
     sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
     sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
 
-  function renderGrid(list, container) {
+    function renderGrid(list, container) {
       if (list.length === 0) {
         if (currentFeed === 'subscriptions') {
           container.innerHTML = '<p class="empty-list-msg" style="grid-column: 1/-1;">登録したチャンネルの動画がありません。</p>';
@@ -1145,17 +1152,6 @@ async function loadVideoList() {
         container.appendChild(gridItem);
       });
     }
-      container.innerHTML = '';
-      list.forEach(v => {
-        const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
-        const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
-        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
-        gridItem.innerHTML = `${mediaHtml}<div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div>${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}`;
-        gridItem.addEventListener('click', () => watchVideo(v));
-        const deleteBtn = gridItem.querySelector('.delete-video-btn');
-        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await deleteObject(v.itemRef); loadVideoList(); } catch (error) {} });
-        container.appendChild(gridItem);
-      });
 
     function triggerChannelNavigation() {
       const uid = uploaderNameEl.dataset.uid; showMyProfile(uid);
@@ -1385,7 +1381,9 @@ async function loadVideoList() {
       if (thumbInput.files && thumbInput.files[0]) { saveBtn.textContent = 'サムネイル送信中...'; try { const thumbFile = thumbInput.files[0]; const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name); await uploadBytes(thumbRef, thumbFile); finalThumbUrl = await getDownloadURL(thumbRef); } catch (error) {} }
       const storageRef = ref(storage, 'videos/' + selectedFile.name);
       
-      const metadata = { customMetadata: { title: videoTitleInput.value, uploaderUid: getAuthorUid() || '', uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
+      const descInputVal = document.getElementById('uploadDescInput') ? document.getElementById('uploadDescInput').value : '';
+      const metadata = { customMetadata: { title: videoTitleInput.value, desc: descInputVal, uploaderUid: getAuthorUid() || '', uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
+      
       const uploadTask = uploadBytesResumable(storageRef, selectedFile, metadata);
 
       uploadTask.on('state_changed',
@@ -1423,9 +1421,8 @@ async function loadVideoList() {
     const manageScreen = document.getElementById('manageScreen');
     const manageList = document.getElementById('manageList');
     const manageVideoBtn = document.getElementById('manageVideoBtn');
-    let currentEditVideo = null; // 編集中の動画データを保持
+    let currentEditVideo = null; 
 
-    // 1. 「動画を管理」ボタンを押した時
     if (manageVideoBtn) {
       manageVideoBtn.addEventListener('click', () => {
         document.body.classList.remove('watch-mode');
@@ -1437,7 +1434,6 @@ async function loadVideoList() {
       });
     }
 
-    // 2. 管理リストの描画
     function renderManageList() {
       manageList.innerHTML = '';
       const myVideos = allVideos.filter(v => v.uploaderUid === currentUser.uid);
@@ -1464,7 +1460,6 @@ async function loadVideoList() {
           </div>
         `;
 
-        // 編集ボタンの処理
         item.querySelector('.edit-btn').addEventListener('click', () => {
           currentEditVideo = v;
           document.getElementById('editTitleInput').value = v.title;
@@ -1474,13 +1469,12 @@ async function loadVideoList() {
           document.getElementById('editVideoModal').classList.add('active');
         });
 
-        // 削除ボタンの処理
         item.querySelector('.manage-btn-delete').addEventListener('click', async () => {
           if (!confirm(`「${v.title}」を完全に削除しますか？`)) return;
           try {
             await deleteObject(v.itemRef);
             await loadVideoList();
-            renderManageList(); // リストを再描画
+            renderManageList(); 
           } catch (error) { alert('削除に失敗しました'); }
         });
 
@@ -1488,12 +1482,10 @@ async function loadVideoList() {
       });
     }
 
-    // 3. モーダルを閉じる
     document.getElementById('closeEditModalBtn').addEventListener('click', () => {
       document.getElementById('editVideoModal').classList.remove('active');
     });
 
-    // 4. 変更を保存する処理（Storageのメタデータを更新）
     document.getElementById('saveEditBtn').addEventListener('click', async () => {
       if (!currentEditVideo) return;
       const saveBtn = document.getElementById('saveEditBtn');
@@ -1504,7 +1496,6 @@ async function loadVideoList() {
         let newThumbUrl = currentEditVideo.thumbUrl || '';
         const thumbFile = document.getElementById('editThumbInput').files[0];
         
-        // 新しいサムネイルが選択された場合はアップロード
         if (thumbFile) {
           saveBtn.textContent = '画像アップロード中...';
           const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name);
@@ -1514,7 +1505,6 @@ async function loadVideoList() {
 
         saveBtn.textContent = 'データ更新中...';
         
-        // Storageのカスタムメタデータを更新（上書きされないよう古いデータをマージする）
         const newCustomMetadata = {
           ...currentEditVideo.originalCustomMetadata,
           title: document.getElementById('editTitleInput').value,
@@ -1528,7 +1518,6 @@ async function loadVideoList() {
         alert('変更を保存しました！');
         document.getElementById('editVideoModal').classList.remove('active');
         
-        // データを再読み込みしてリストを更新
         await loadVideoList();
         renderManageList();
 
@@ -1540,14 +1529,7 @@ async function loadVideoList() {
         saveBtn.textContent = '変更を保存';
       }
     });
-    // 画面のどこかをクリックしたら、開いている3点メニューを閉じる
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.grid-menu-wrapper')) {
-        document.querySelectorAll('.grid-dropdown.active').forEach(menu => {
-          menu.classList.remove('active');
-        });
-      }
-    });
+
   </script>
 </body>
 </html>
