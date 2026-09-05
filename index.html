@@ -267,6 +267,37 @@
       height: 100%;
     }
     
+    /* ▼ カスタムコントロールバーのスタイル ▼ */
+    .custom-controls-bar {
+      position: absolute;
+      bottom: 40px; /* 標準のシークバーの上に被らないように調整 */
+      right: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 20; /* 弾幕より上に表示 */
+      opacity: 0; /* 最初は透明に */
+      transition: opacity 0.3s ease;
+    }
+
+    /* 動画の上にマウスがある時だけ表示 */
+    .video-wrapper:hover .custom-controls-bar {
+      opacity: 1;
+    }
+
+    .custom-control-btn {
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .custom-control-btn:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    /* ▲ ここまで ▲ */
+
     .danmaku-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10; }
     .danmaku-comment {
       position: absolute; white-space: nowrap; font-size: 24px; font-weight: bold; color: white;
@@ -446,9 +477,13 @@
     <div id="watchScreen" style="display: none;">
       <div class="watch-layout">
         <div class="watch-main">
-          <div class="video-wrapper">
-           <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen" playsinline webkit-playsinline></video>
+          <div class="video-wrapper" id="videoWrapper">
+           <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
             <div id="danmakuContainer" class="danmaku-container"></div>
+            <div class="custom-controls-bar">
+              <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
+              <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
+            </div>
           </div>
 
          <div class="video-meta-bar">
@@ -471,8 +506,6 @@
               <button id="shareBtn" class="rate-btn">➡️ 共有</button>
               <button id="saveVideoBtn" class="rate-btn">🔖 保存</button>
               <button id="reportBtn" class="rate-btn" style="color: #cc0000;">🚨 通報</button>
-              <button id="pipBtn" class="pip-btn">PIPで弾幕再生</button>
-              <button id="fullscreenBtn" class="pip-btn">⛶ 全画面で弾幕再生</button>
             </div>
           </div>
 
@@ -1294,11 +1327,11 @@
     }
 
     pipBtn.addEventListener('click', async () => { 
-      if ('documentPictureInPicture' in window) { try { if (window.documentPictureInPicture.window) { window.documentPictureInPicture.window.close(); return; } const pipWindow = await window.documentPictureInPicture.requestWindow({ width: mainVideo.clientWidth || 640, height: mainVideo.clientHeight || 360, }); [...document.styleSheets].forEach((styleSheet) => { try { const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join(''); const style = document.createElement('style'); style.textContent = cssRules; pipWindow.document.head.appendChild(style); } catch (e) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href; pipWindow.document.head.appendChild(link); } }); const videoWrapper = document.querySelector('.video-wrapper'); videoWrapper.classList.add('in-pip'); pipWindow.document.body.appendChild(videoWrapper); pipWindow.document.body.style.margin = '0'; pipWindow.document.body.style.overflow = 'hidden'; pipWindow.document.body.style.backgroundColor = '#000'; pipWindow.addEventListener('pagehide', () => { videoWrapper.classList.remove('in-pip'); const watchMain = document.querySelector('.watch-main'); watchMain.insertBefore(videoWrapper, document.querySelector('.video-meta-bar')); }); } catch (error) {} } else if (document.pictureInPictureEnabled) { try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else { alert('動画のみのPiPになります。'); await mainVideo.requestPictureInPicture(); } } catch (error) {} } else { alert('非サポートブラウザです。'); }
+      if ('documentPictureInPicture' in window) { try { if (window.documentPictureInPicture.window) { window.documentPictureInPicture.window.close(); return; } const pipWindow = await window.documentPictureInPicture.requestWindow({ width: mainVideo.clientWidth || 640, height: mainVideo.clientHeight || 360, }); [...document.styleSheets].forEach((styleSheet) => { try { const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join(''); const style = document.createElement('style'); style.textContent = cssRules; pipWindow.document.head.appendChild(style); } catch (e) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href; pipWindow.document.head.appendChild(link); } }); const videoWrapperEl = document.getElementById('videoWrapper'); videoWrapperEl.classList.add('in-pip'); pipWindow.document.body.appendChild(videoWrapperEl); pipWindow.document.body.style.margin = '0'; pipWindow.document.body.style.overflow = 'hidden'; pipWindow.document.body.style.backgroundColor = '#000'; pipWindow.addEventListener('pagehide', () => { videoWrapperEl.classList.remove('in-pip'); const watchMain = document.querySelector('.watch-main'); watchMain.insertBefore(videoWrapperEl, document.querySelector('.video-meta-bar')); }); } catch (error) {} } else if (document.pictureInPictureEnabled) { try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else { alert('動画のみのPiPになります。'); await mainVideo.requestPictureInPicture(); } } catch (error) {} } else { alert('非サポートブラウザです。'); }
     });
     // ========== 全画面（Fullscreen）で弾幕再生機能 ==========
     const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const videoWrapper = document.querySelector('.video-wrapper');
+    const videoWrapper = document.getElementById('videoWrapper');
 
     fullscreenBtn.addEventListener('click', async () => {
       // 既に全画面かどうかを判定
@@ -1321,7 +1354,9 @@
           } else if (document.webkitExitFullscreen) { /* Safari用 */
             await document.webkitExitFullscreen();
           }
-        } catch (error) {}
+        } catch (error) {
+          console.error("全画面解除エラー:", error);
+        }
       }
     });
 
@@ -1333,7 +1368,7 @@
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         fullscreenBtn.textContent = '✖ 全画面を解除';
       } else {
-        fullscreenBtn.textContent = '⛶ 全画面で弾幕再生';
+        fullscreenBtn.textContent = '⛶ 全画面';
       }
     }
 
