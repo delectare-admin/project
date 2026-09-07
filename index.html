@@ -504,6 +504,7 @@
            <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
             <div id="danmakuContainer" class="danmaku-container"></div>
             <div class="custom-controls-bar">
+              <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
               <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
               <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
             </div>
@@ -1805,6 +1806,23 @@
           }
         }
       }, 1500); // loadVideoListの完了を待つ
+    });
+    // ========== 弾幕オン/オフ切り替え機能 ==========
+    const toggleDanmakuBtn = document.getElementById('toggleDanmakuBtn');
+    let isDanmakuVisible = true; // 初期状態はオン
+
+    toggleDanmakuBtn.addEventListener('click', () => {
+      isDanmakuVisible = !isDanmakuVisible; // 状態を反転
+      
+      if (isDanmakuVisible) {
+        danmakuContainer.style.visibility = 'visible'; // 弾幕を見えるようにする
+        toggleDanmakuBtn.textContent = '💬 弾幕オン';
+        toggleDanmakuBtn.style.opacity = '1'; // ボタンを明るく
+      } else {
+        danmakuContainer.style.visibility = 'hidden'; // 弾幕を見えなくする
+        toggleDanmakuBtn.textContent = '🔕 弾幕オフ';
+        toggleDanmakuBtn.style.opacity = '0.6'; // オフの時は少し暗くする
+      }
     });
 
   </script>
