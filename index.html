@@ -290,8 +290,27 @@
       display: none !important;
     }
 
+    /* ▼ 動画の元の位置と高さを維持するアンカー ▼ */
+.video-anchor {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 12px;
+}
+
+.video-wrapper { 
+  position: relative; 
+  width: 100%; 
+  height: 100%; 
+  overflow: hidden; 
+  background-color: #000; 
+  border-radius: 12px; 
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+.video-wrapper.in-pip { margin: 0; border-radius: 0; width: 100vw; height: 100vh; }
+
     /* ▼ スクロール時に右下に固定表示されるスタイル ▼ */
-.video-wrapper.is-sticky {
+ .video-wrapper.is-sticky {
   position: fixed !important;
   bottom: 20px !important;
   right: 20px !important;
@@ -301,7 +320,6 @@
   z-index: 1000 !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border-radius: 8px !important;
-  transition: all 0.3s ease;
 }
 
 /* 固定表示時のカスタムコントロールバーの調整 */
@@ -309,7 +327,6 @@
   bottom: 10px;
   right: 10px;
 }
-
     /* ▼ カスタムコントロールバーのスタイル（位置を修正） ▼ */
     .custom-controls-bar {
       position: absolute;
@@ -516,19 +533,26 @@
       </div>
       <div id="channelGrid" class="video-grid"></div>
     </div>
-
-    <div id="watchScreen" style="display: none;">
-      <div class="watch-layout">
-        <div class="watch-main">
-          <div class="video-wrapper" id="videoWrapper">
-           <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
-            <div id="danmakuContainer" class="danmaku-container"></div>
-            <div class="custom-controls-bar">
-              <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
-              <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
-              <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
-            </div>
+<div id="watchScreen" style="display: none;">
+  <div class="watch-layout">
+    <div class="watch-main">
+      
+      <!-- ▼ videoAnchor で囲む ▼ -->
+      <div class="video-anchor" id="videoAnchor">
+        <div class="video-wrapper" id="videoWrapper">
+          <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
+          <div id="danmakuContainer" class="danmaku-container"></div>
+          <div class="custom-controls-bar">
+            <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
+            <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
+            <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
           </div>
+        </div>
+      </div>
+      <!-- ▲ videoAnchor 終わり ▲ -->
+
+      <div class="video-meta-bar">
+        <!-- 以下略 -->
 
          <div class="video-meta-bar">
             <div class="title-area">
@@ -1191,12 +1215,39 @@
       }
     });
     
-    // スクロール監視用の IntersectionObserver 設定
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {document.addEventListener('DOMContentLoaded', () => {
+  const videoAnchor = document.getElementById('videoAnchor');
   const videoWrapper = document.getElementById('videoWrapper');
   const mainVideo = document.getElementById('mainVideo');
 
-  if (!videoWrapper || !mainVideo) return;
+  if (!videoAnchor || !videoWrapper || !mainVideo) return;
+
+  // 元の位置（videoAnchor）が画面外に出たかを判定
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        // 元の位置が画面外に出て、かつ動画が再生中の場合のみ右下に固定
+        if (!entry.isIntersecting && !mainVideo.paused) {
+          videoWrapper.classList.add('is-sticky');
+        } else {
+          videoWrapper.classList.remove('is-sticky');
+        }
+      });
+    },
+    {
+      threshold: 0 // 元の枠が少しでも画面外に出たら判定
+    }
+  );
+
+  // 監視するのは Wrapper ではなく Anchor（元の位置）
+  observer.observe(videoAnchor);
+
+  // 動画を一時停止した場合は固定表示を解除する
+  mainVideo.addEventListener('pause', () => {
+    videoWrapper.classList.remove('is-sticky');
+  });
+});
+
 
   // 動画領域が画面から外れたかを判定する Observer
   const observer = new IntersectionObserver(
