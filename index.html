@@ -290,6 +290,26 @@
       display: none !important;
     }
 
+    /* ▼ スクロール時に右下に固定表示されるスタイル ▼ */
+.video-wrapper.is-sticky {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 320px !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  z-index: 1000 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+/* 固定表示時のカスタムコントロールバーの調整 */
+.video-wrapper.is-sticky .custom-controls-bar {
+  bottom: 10px;
+  right: 10px;
+}
+
     /* ▼ カスタムコントロールバーのスタイル（位置を修正） ▼ */
     .custom-controls-bar {
       position: absolute;
@@ -1170,6 +1190,40 @@
         });
       }
     });
+    
+    // スクロール監視用の IntersectionObserver 設定
+document.addEventListener('DOMContentLoaded', () => {
+  const videoWrapper = document.getElementById('videoWrapper');
+  const mainVideo = document.getElementById('mainVideo');
+
+  if (!videoWrapper || !mainVideo) return;
+
+  // 動画領域が画面から外れたかを判定する Observer
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        // 動画が再生中で、かつ画面外（交差率 0 未満）にスクロールされた場合
+        if (!entry.isIntersecting && !mainVideo.paused) {
+          videoWrapper.classList.add('is-sticky');
+        } else {
+          // 画面内に戻った場合、または停止中の場合は固定解除
+          videoWrapper.classList.remove('is-sticky');
+        }
+      });
+    },
+    {
+      threshold: 0.1 // 動画の10%未満しか画面に見えなくなったら発動
+    }
+  );
+
+  // 監視を開始
+  observer.observe(videoWrapper);
+
+  // 動画が一時停止・終了した際は固定解除する処理
+  mainVideo.addEventListener('pause', () => {
+    videoWrapper.classList.remove('is-sticky');
+  });
+});
 
 
     sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
