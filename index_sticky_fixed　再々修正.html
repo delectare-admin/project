@@ -297,29 +297,35 @@
   margin-bottom: 12px;
 }
 
-.video-wrapper { 
+ .video-wrapper { 
   position: relative; 
   width: 100%; 
   height: 100%; 
   overflow: hidden; 
   background-color: #000; 
   border-radius: 12px; 
-  transition: transform 0.3s ease, width 0.3s ease;
+  /* スクロール固定化の瞬間に幅をアニメーションさせない */
+  transition: none;
+  contain: layout paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .video-wrapper.in-pip { margin: 0; border-radius: 0; width: 100vw; height: 100vh; }
 
-    /* ▼ スクロール時に右下に固定表示されるスタイル ▼ */
- .video-wrapper.is-sticky {
+    /* ▼ スクロール時に右下へ固定表示するスタイル ▼ */
+.video-wrapper.is-sticky {
   position: fixed !important;
   bottom: 20px !important;
   right: 20px !important;
   width: 320px !important;
-  height: auto !important;
-  aspect-ratio: 16 / 9;
+  height: 180px !important;
+  aspect-ratio: auto !important;
   z-index: 1000 !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border-radius: 8px !important;
+  contain: layout paint;
+  transform: translateZ(0);
 }
 
 /* 固定表示時のカスタムコントロールバーの調整 */
@@ -1228,27 +1234,55 @@
     });
     
     // ========== スクロール時の追従動画 ==========
+    // IntersectionObserverで境界付近のON/OFFが揺れるとちらつくため、
+    // 動画アンカーの位置をrequestAnimationFrameで直接判定する。
     function setupStickyVideo() {
       const videoAnchor = document.getElementById('videoAnchor');
       const videoWrapper = document.getElementById('videoWrapper');
 
-      if (!videoAnchor || !videoWrapper || !mainVideo || !('IntersectionObserver' in window)) return;
+      if (!videoAnchor || !videoWrapper || !mainVideo) return;
 
-      const stickyObserver = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting && !mainVideo.paused) {
-            videoWrapper.classList.add('is-sticky');
-          } else {
-            videoWrapper.classList.remove('is-sticky');
-          }
+      let stickyRaf = 0;
+
+      const clearSticky = () => {
+        videoWrapper.classList.remove('is-sticky');
+      };
+
+      const updateStickyState = () => {
+        stickyRaf = 0;
+
+        if (
+          mainVideo.paused ||
+          document.fullscreenElement ||
+          videoWrapper.classList.contains('pseudo-fullscreen') ||
+          videoWrapper.classList.contains('in-pip')
+        ) {
+          clearSticky();
+          return;
         }
-      }, { threshold: 0.1 });
 
-      stickyObserver.observe(videoAnchor);
+        const rect = videoAnchor.getBoundingClientRect();
+        const shouldStick = rect.bottom <= 0;
 
-      const clearSticky = () => videoWrapper.classList.remove('is-sticky');
+        videoWrapper.classList.toggle('is-sticky', shouldStick);
+      };
+
+      const requestStickyUpdate = () => {
+        if (stickyRaf) return;
+        stickyRaf = window.requestAnimationFrame(updateStickyState);
+      };
+
+      window.addEventListener('scroll', requestStickyUpdate, { passive: true });
+      window.addEventListener('resize', requestStickyUpdate, { passive: true });
+
+      mainVideo.addEventListener('play', requestStickyUpdate);
       mainVideo.addEventListener('pause', clearSticky);
       mainVideo.addEventListener('ended', clearSticky);
+
+      document.addEventListener('fullscreenchange', requestStickyUpdate);
+      document.addEventListener('webkitfullscreenchange', requestStickyUpdate);
+
+      requestStickyUpdate();
     }
 
     if (document.readyState === 'loading') {
@@ -1256,6 +1290,7 @@
     } else {
       setupStickyVideo();
     }
+    
 
     sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
     sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
