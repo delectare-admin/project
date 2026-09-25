@@ -580,22 +580,39 @@
       <div id="channelGrid" class="video-grid"></div>
     </div>
 <div id="watchScreen" style="display: none;">
-  <div class="watch-layout">
-    <div class="watch-main">
-      
-      <!-- ▼ videoAnchor で囲む ▼ -->
-      <div class="video-anchor" id="videoAnchor">
-        <div class="video-wrapper" id="videoWrapper">
-          <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
-          <div id="danmakuContainer" class="danmaku-container"></div>
-          <div class="custom-controls-bar">
-            <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
-            <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
-            <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
-          </div>
-        </div>
+
+ <div class="watch-layout">
+
+  <!-- 【左カラム】メインエリア（動画 ＋ コメント） -->
+  <div class="watch-main">
+    <div class="video-anchor">
+      <div class="video-wrapper">
+        <video class="main-video-player" src="..." controls></video>
       </div>
-      <!-- ▲ videoAnchor 終わり ▲ -->
+    </div>
+
+    <!-- 動画メタ情報（タイトル・高評価・チャンネル情報など） -->
+    <div class="video-meta-bar">
+      <!-- ... -->
+    </div>
+
+    <!-- 弾幕入力・コメントセクション -->
+    <div class="comment-section">
+      <h3>コメント</h3>
+      <!-- コメント入力欄・一覧 -->
+    </div>
+  </div> <!-- 👈 コメントが終わったら必ず watch-main を閉じる -->
+
+
+  <!-- 【右カラム】サイドバー（関連動画） -->
+  <div class="watch-sidebar">
+    <h3 class="related-heading">関連動画</h3>
+    <div id="relatedVideosList">
+      <!-- 関連動画アイテム (.related-item) -->
+    </div>
+  </div>
+
+</div>
 
       <div class="video-meta-bar">
         <!-- 以下略 -->
