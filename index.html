@@ -6,6 +6,7 @@
   <title>サブ・カルチャー | 世界最大のカルチャー動画共有サイト</title>
   <meta name="description" content="デレクターレは、誰でも動画をアップロードして弾幕コメントを楽しめる、新しい動画共有プラットフォームです。">
   <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #0f0f0f; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; box-sizing: border-box; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
@@ -1018,43 +1019,189 @@
         item.addEventListener('click', open); item.addEventListener('keydown', open); relatedVideosSidebar.appendChild(item);
       });
     }
+   // ==========================================
+// グローバル変数定義（HLSインスタンスの保持用）
+// ==========================================
+let hlsInstance = null;
 
-    async function watchVideo(videoData, options = {}) {
-      const updateUrl = options.updateUrl !== false;
-      if ('documentPictureInPicture' in window && window.documentPictureInPicture.window) window.documentPictureInPicture.window.close();
-      document.body.classList.add('watch-mode'); homeScreen.style.display = 'none'; channelScreen.style.display = 'none'; watchScreen.style.display = 'block';
-      mainVideo.src = videoData.url; mainTitle.textContent = videoData.title; uploaderNameEl.textContent = videoData.uploaderName; uploaderNameEl.dataset.uid = videoData.uploaderUid;
-      currentVideoId = videoData.itemRef.fullPath;
-      watchHistory = watchHistory.filter(id => id !== currentVideoId); watchHistory.unshift(currentVideoId);
-      if (watchHistory.length > 50) watchHistory.pop();
-      localStorage.setItem('delectare_history', JSON.stringify(watchHistory));
-      if (videoData.uploaderUid && videoData.uploaderUid !== "null" && videoData.uploaderUid !== "undefined") {
-        try {
-          const uploaderSnap = await getDoc(doc(db, 'users', videoData.uploaderUid));
-          if (uploaderSnap.exists()) {
-            const uData = uploaderSnap.data();
-            if (uData.avatarUrl) { uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`; uploaderAvatarEl.textContent = ''; } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); }
-            subCountEl.textContent = `チャンネル登録者数 ${uData.subscriberCount || 0}人`;
-          } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); subCountEl.textContent = 'チャンネル登録者数 0人'; }
-        } catch (e) { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); subCountEl.textContent = 'チャンネル登録者数 0人'; }
-      } else { uploaderAvatarEl.style.backgroundImage = 'none'; uploaderAvatarEl.textContent = 'ゲ'; subCountEl.textContent = ''; }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+// ==========================================
+// 1. 動画再生処理（HLS対応・最適化済み）
+// ==========================================
+async function watchVideo(videoData, options = {}) {
+  const updateUrl = options.updateUrl !== false;
+  
+  if ('documentPictureInPicture' in window && window.documentPictureInPicture.window) {
+    window.documentPictureInPicture.window.close();
+  }
+  
+  document.body.classList.add('watch-mode'); 
+  homeScreen.style.display = 'none'; 
+  channelScreen.style.display = 'none'; 
+  watchScreen.style.display = 'block';
+
+  // --- HLS / 動画読み込み処理（統合・変更箇所） ---
+  if (hlsInstance) {
+    hlsInstance.destroy(); // 前の動画のストリーミングインスタンスを破棄
+    hlsInstance = null;
+  }
+
+  const videoUrl = videoData.url;
+
+  if (videoUrl.includes('.m3u8') && Hls.isSupported()) {
+    // HLS.js が使用可能なブラウザの場合
+    hlsInstance = new Hls({ maxBufferLength: 30 });
+    hlsInstance.loadSource(videoUrl);
+    hlsInstance.attachMedia(mainVideo);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
       mainVideo.play().catch(() => {});
-      commentInput.value = ""; commentInput.style.height = '38px'; commentSubmitBtn.disabled = true;
-      danmakuContainer.innerHTML = ''; videoComments = []; lastTime = 0; danmakuInput.value = ""; danmakuSubmitBtn.disabled = true;
-      hasLiked = false; hasDisliked = false; likeBtn.disabled = true; dislikeBtn.disabled = true; likeBtn.classList.remove('active-like'); dislikeBtn.classList.remove('active-dislike');
-      viewCountEl.textContent = '- 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0';
-      loadComments(); await loadStats(); renderSidebar(currentVideoId);
-      blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
-      if (updateUrl) {
-        const nextUrl = window.location.pathname + '?v=' + encodeURIComponent(currentVideoId);
-        if (window.location.pathname + window.location.search !== nextUrl) window.history.pushState(null, '', nextUrl);
-      }
-      const saveVideoBtn = document.getElementById('saveVideoBtn');
-      if (currentUserSaved.includes(currentVideoId)) { saveVideoBtn.textContent = '🔖 保存済み'; saveVideoBtn.style.color = '#065fd4'; }
-      else { saveVideoBtn.textContent = '🔖 保存'; saveVideoBtn.style.color = ''; }
-    }
+    });
+  } else if (mainVideo.canPlayType('application/vnd.apple.mpegurl') && videoUrl.includes('.m3u8')) {
+    // Safari などの Native HLS サポート環境
+    mainVideo.src = videoUrl;
+    mainVideo.addEventListener('loadedmetadata', () => {
+      mainVideo.play().catch(() => {});
+    }, { once: true });
+  } else {
+    // 通常の MP4 動画等の再生（既存動作）
+    mainVideo.src = videoUrl;
+    mainVideo.play().catch(() => {});
+  }
+  // ----------------------------------------------
 
+  mainTitle.textContent = videoData.title; 
+  uploaderNameEl.textContent = videoData.uploaderName; 
+  uploaderNameEl.dataset.uid = videoData.uploaderUid;
+  
+  currentVideoId = videoData.itemRef.fullPath;
+  
+  watchHistory = watchHistory.filter(id => id !== currentVideoId); 
+  watchHistory.unshift(currentVideoId);
+  if (watchHistory.length > 50) watchHistory.pop();
+  localStorage.setItem('delectare_history', JSON.stringify(watchHistory));
+
+  if (videoData.uploaderUid && videoData.uploaderUid !== "null" && videoData.uploaderUid !== "undefined") {
+    try {
+      const uploaderSnap = await getDoc(doc(db, 'users', videoData.uploaderUid));
+      if (uploaderSnap.exists()) {
+        const uData = uploaderSnap.data();
+        if (uData.avatarUrl) { 
+          uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`; 
+          uploaderAvatarEl.textContent = ''; 
+        } else { 
+          uploaderAvatarEl.style.backgroundImage = 'none'; 
+          uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
+        }
+        subCountEl.textContent = `チャンネル登録者数 ${uData.subscriberCount || 0}人`;
+      } else { 
+        uploaderAvatarEl.style.backgroundImage = 'none'; 
+        uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
+        subCountEl.textContent = 'チャンネル登録者数 0人'; 
+      }
+    } catch (e) { 
+      uploaderAvatarEl.style.backgroundImage = 'none'; 
+      uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
+      subCountEl.textContent = 'チャンネル登録者数 0人'; 
+    }
+  } else { 
+    uploaderAvatarEl.style.backgroundImage = 'none'; 
+    uploaderAvatarEl.textContent = 'ゲ'; 
+    subCountEl.textContent = ''; 
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  commentInput.value = ""; 
+  commentInput.style.height = '38px'; 
+  commentSubmitBtn.disabled = true;
+  
+  danmakuContainer.innerHTML = ''; 
+  videoComments = []; 
+  lastTime = 0; 
+  danmakuInput.value = ""; 
+  danmakuSubmitBtn.disabled = true;
+  
+  hasLiked = false; 
+  hasDisliked = false; 
+  likeBtn.disabled = true; 
+  dislikeBtn.disabled = true; 
+  likeBtn.classList.remove('active-like'); 
+  dislikeBtn.classList.remove('active-dislike');
+  
+  viewCountEl.textContent = '- 回視聴'; 
+  likeCountEl.textContent = '0'; 
+  dislikeCountEl.textContent = '0';
+
+  loadComments(); 
+  await loadStats(); 
+  renderSidebar(currentVideoId);
+
+  blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
+
+  if (updateUrl) {
+    const nextUrl = window.location.pathname + '?v=' + encodeURIComponent(currentVideoId);
+    if (window.location.pathname + window.location.search !== nextUrl) {
+      window.history.pushState(null, '', nextUrl);
+    }
+  }
+
+  const saveVideoBtn = document.getElementById('saveVideoBtn');
+  if (currentUserSaved.includes(currentVideoId)) { 
+    saveVideoBtn.textContent = '🔖 保存済み'; 
+    saveVideoBtn.style.color = '#065fd4'; 
+  } else { 
+    saveVideoBtn.textContent = '🔖 保存'; 
+    saveVideoBtn.style.color = ''; 
+  }
+}
+
+
+// ==========================================
+// 2. 動画管理リスト描画（preload="none"対応）
+// ==========================================
+function renderManageList() {
+  manageList.innerHTML = '';
+  const myVideos = allVideos.filter(v => v.uploaderUid === currentUser.uid);
+  
+  if (myVideos.length === 0) { 
+    manageList.innerHTML = '<p class="empty-list-msg">アップロードした動画がありません。</p>'; 
+    return; 
+  }
+
+  myVideos.forEach(v => {
+    const item = document.createElement('div'); 
+    item.className = 'manage-list-item';
+
+    // preload="none" に変更して初期読み込み通信を防止
+    const mediaHtml = v.thumbUrl 
+      ? `<img src="${v.thumbUrl}" class="thumb">` 
+      : `<video src="${v.url}" class="thumb" muted preload="none"></video>`;
+
+    item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">✏️ 編集</button><button class="manage-btn manage-btn-delete">🗑 削除</button></div></div>`;
+
+    item.querySelector('.edit-btn').addEventListener('click', () => { 
+      currentEditVideo = v; 
+      document.getElementById('editTitleInput').value = v.title; 
+      document.getElementById('editDescInput').value = v.desc || ''; 
+      document.getElementById('editCategoryInput').value = v.category || 'エンタメ'; 
+      document.getElementById('editThumbInput').value = ''; 
+      document.getElementById('editVideoModal').classList.add('active'); 
+    });
+
+    item.querySelector('.manage-btn-delete').addEventListener('click', async () => { 
+      if (!confirm(`「${v.title}」を完全に削除しますか？`)) return; 
+      try { 
+        await deleteObject(v.itemRef); 
+        await loadVideoList(); 
+        renderManageList(); 
+      } catch { 
+        alert('削除に失敗しました'); 
+      } 
+    });
+
+    manageList.appendChild(item);
+  });
+}
     logoHome.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
 
     function goHome() {
