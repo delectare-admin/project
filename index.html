@@ -853,8 +853,26 @@
         for (const itemRef of items) {
           const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
           const cm = metadata.customMetadata || {};
-          allVideos.push({ url, title: cm.title || itemRef.name, itemRef, uploaderUid: cm.uploaderUid || null, uploaderName: cm.uploaderName || 'ゲスト', thumbUrl: cm.thumbUrl || null, category: cm.category || 'その他', desc: cm.desc || '', originalCustomMetadata: cm });
-        }
+
+         allVideos.push({
+  url,
+
+  hlsUrl:
+    cm.hlsSourceGeneration === String(metadata.generation)
+      ? (cm.hlsUrl || '')
+      : '',
+
+  title: cm.title || itemRef.name,
+  itemRef,
+  uploaderUid: cm.uploaderUid || null,
+  uploaderName: cm.uploaderName || 'ゲスト',
+  thumbUrl: cm.thumbUrl || null,
+  category: cm.category || 'その他',
+  desc: cm.desc || '',
+   originalCustomMetadata: cm
+});
+        } // for の繰り返しをここで閉じる
+
         await applyFilterAndSort();
         openVideoFromUrl();
       } catch (error) {
@@ -1040,34 +1058,83 @@ async function watchVideo(videoData, options = {}) {
   channelScreen.style.display = 'none'; 
   watchScreen.style.display = 'block';
 
-  // --- HLS / 動画読み込み処理（統合・変更箇所） ---
+ // --- HLS / 動画読み込み処理 ---
+mainVideo.onerror = null;
+
+if (hlsInstance) {
+  hlsInstance.destroy();
+  hlsInstance = null;
+}
+
+mainVideo.pause();
+mainVideo.removeAttribute('src');
+mainVideo.load();
+
+const hlsUrl = videoData.hlsUrl || '';
+let originalStarted = false;
+
+const play = () => {
+  mainVideo.play().catch(() => {
+    // 自動再生が拒否された場合は再生ボタンで開始
+  });
+};
+
+const playOriginal = () => {
+  if (originalStarted) return;
+  originalStarted = true;
+
+  mainVideo.onerror = null;
+
   if (hlsInstance) {
-    hlsInstance.destroy(); // 前の動画のストリーミングインスタンスを破棄
+    hlsInstance.destroy();
     hlsInstance = null;
   }
 
-  const videoUrl = videoData.url;
+  mainVideo.src = videoData.url;
+  mainVideo.load();
+  play();
+};
 
-  if (videoUrl.includes('.m3u8') && Hls.isSupported()) {
-    // HLS.js が使用可能なブラウザの場合
-    hlsInstance = new Hls({ maxBufferLength: 30 });
-    hlsInstance.loadSource(videoUrl);
-    hlsInstance.attachMedia(mainVideo);
-    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-      mainVideo.play().catch(() => {});
-    });
-  } else if (mainVideo.canPlayType('application/vnd.apple.mpegurl') && videoUrl.includes('.m3u8')) {
-    // Safari などの Native HLS サポート環境
-    mainVideo.src = videoUrl;
-    mainVideo.addEventListener('loadedmetadata', () => {
-      mainVideo.play().catch(() => {});
-    }, { once: true });
-  } else {
-    // 通常の MP4 動画等の再生（既存動作）
-    mainVideo.src = videoUrl;
-    mainVideo.play().catch(() => {});
-  }
-  // ----------------------------------------------
+if (!hlsUrl) {
+  // 未変換の動画は元の動画で再生
+  playOriginal();
+
+} else if (
+  mainVideo.canPlayType('application/vnd.apple.mpegurl')
+) {
+  // SafariなどのネイティブHLS
+  mainVideo.onerror = () => {
+    console.warn('HLS再生に失敗したため、元の動画を再生します。');
+    playOriginal();
+  };
+
+  mainVideo.src = hlsUrl;
+  mainVideo.load();
+  play();
+
+} else if (window.Hls && window.Hls.isSupported()) {
+  const player = new window.Hls({
+    maxBufferLength: 30
+  });
+
+  hlsInstance = player;
+
+  player.on(window.Hls.Events.MANIFEST_PARSED, play);
+
+  player.on(window.Hls.Events.ERROR, (_event, data) => {
+    if (data.fatal) {
+      console.warn('HLS再生に失敗したため、元の動画を再生します。');
+      playOriginal();
+    }
+  });
+
+  player.loadSource(hlsUrl);
+  player.attachMedia(mainVideo);
+
+} else {
+  playOriginal();
+}
+// --- 動画読み込み処理ここまで ---
 
   mainTitle.textContent = videoData.title; 
   uploaderNameEl.textContent = videoData.uploaderName; 
