@@ -1155,53 +1155,6 @@ async function watchVideo(videoData, options = {}) {
   }
 }
 
-
-// ==========================================
-// 2. 動画管理リスト描画（preload="none"対応）
-// ==========================================
-function renderManageList() {
-  manageList.innerHTML = '';
-  const myVideos = allVideos.filter(v => v.uploaderUid === currentUser.uid);
-  
-  if (myVideos.length === 0) { 
-    manageList.innerHTML = '<p class="empty-list-msg">アップロードした動画がありません。</p>'; 
-    return; 
-  }
-
-  myVideos.forEach(v => {
-    const item = document.createElement('div'); 
-    item.className = 'manage-list-item';
-
-    // preload="none" に変更して初期読み込み通信を防止
-    const mediaHtml = v.thumbUrl 
-      ? `<img src="${v.thumbUrl}" class="thumb">` 
-      : `<video src="${v.url}" class="thumb" muted preload="none"></video>`;
-
-    item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">✏️ 編集</button><button class="manage-btn manage-btn-delete">🗑 削除</button></div></div>`;
-
-    item.querySelector('.edit-btn').addEventListener('click', () => { 
-      currentEditVideo = v; 
-      document.getElementById('editTitleInput').value = v.title; 
-      document.getElementById('editDescInput').value = v.desc || ''; 
-      document.getElementById('editCategoryInput').value = v.category || 'エンタメ'; 
-      document.getElementById('editThumbInput').value = ''; 
-      document.getElementById('editVideoModal').classList.add('active'); 
-    });
-
-    item.querySelector('.manage-btn-delete').addEventListener('click', async () => { 
-      if (!confirm(`「${v.title}」を完全に削除しますか？`)) return; 
-      try { 
-        await deleteObject(v.itemRef); 
-        await loadVideoList(); 
-        renderManageList(); 
-      } catch { 
-        alert('削除に失敗しました'); 
-      } 
-    });
-
-    manageList.appendChild(item);
-  });
-}
     logoHome.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
 
     function goHome() {
