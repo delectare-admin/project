@@ -920,7 +920,7 @@
       if (!e.target.closest('.grid-menu-wrapper')) document.querySelectorAll('.grid-dropdown.active').forEach(m => m.classList.remove('active'));
     });
 
-    // ========== スクロール追従ミニプレーヤー ==========
+   // ========== スクロール追従ミニプレーヤー ==========
     function setupStickyVideo() {
       const videoAnchor = document.getElementById('videoAnchor');
       const videoWrapper = document.getElementById('videoWrapper');
@@ -929,16 +929,27 @@
       const clearSticky = () => videoWrapper.classList.remove('is-sticky');
       const updateStickyState = () => {
         stickyRaf = 0;
-        if (mainVideo.paused || document.fullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen') || videoWrapper.classList.contains('in-pip')) { clearSticky(); return; }
+        // 動画ソースがない場合、全画面表示時、またはDocument PiP表示中はPIP（is-sticky）を解除
+        if (!mainVideo.src || document.fullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen') || videoWrapper.classList.contains('in-pip')) { 
+          clearSticky(); 
+          return; 
+        }
+        
+        // 視聴画面が表示されており、動画アンカーが画面外上にスクロールされた場合PIP化（動画停止中も維持）
         const rect = videoAnchor.getBoundingClientRect();
-        videoWrapper.classList.toggle('is-sticky', rect.bottom <= 0);
+        const isWatchVisible = watchScreen && watchScreen.style.display !== 'none';
+        videoWrapper.classList.toggle('is-sticky', isWatchVisible && rect.bottom <= 0);
       };
       const requestStickyUpdate = () => { if (stickyRaf) return; stickyRaf = window.requestAnimationFrame(updateStickyState); };
+      
       window.addEventListener('scroll', requestStickyUpdate, { passive: true });
       window.addEventListener('resize', requestStickyUpdate, { passive: true });
+      
+      // 動画の再生・一時停止・終了状態のいずれでもPIP表示判定を保持/更新
       mainVideo.addEventListener('play', requestStickyUpdate);
-      mainVideo.addEventListener('pause', clearSticky);
-      mainVideo.addEventListener('ended', clearSticky);
+      mainVideo.addEventListener('pause', requestStickyUpdate);
+      mainVideo.addEventListener('ended', requestStickyUpdate);
+      
       document.addEventListener('fullscreenchange', requestStickyUpdate);
       document.addEventListener('webkitfullscreenchange', requestStickyUpdate);
       requestStickyUpdate();
