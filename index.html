@@ -1019,6 +1019,29 @@
     sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
     sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
 
+    function thumbnailHtml(v, className = 'thumbnail-img') {
+  if (v.thumbUrl) {
+    const img = document.createElement('img');
+
+    img.src = v.thumbUrl;
+    img.className = className;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+
+    return img.outerHTML;
+  }
+
+  // 生成前でも動画本体を読み込まない
+  return `
+    <div
+      class="${className}"
+      style="display:grid;place-items:center;background:#eee;color:#666"
+      aria-label="サムネイル準備中"
+    >▶</div>
+  `;
+}
+
     function renderGrid(list, container) {
       if (list.length === 0) {
         const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
@@ -1028,7 +1051,7 @@
       list.forEach(v => {
         const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
         const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
-        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata"></video>`;
+        const mediaHtml = thumbnailHtml(v); 
         gridItem.innerHTML = `${mediaHtml}${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}
           <div class="grid-item-info"><div class="grid-item-text"><div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div></div>
           <div class="grid-menu-wrapper"><button class="grid-menu-btn-yt">⋮</button><div class="grid-dropdown">
@@ -1072,7 +1095,7 @@
       const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath).sort((a, b) => Number(b.category === (current && current.category)) - Number(a.category === (current && current.category)));
       others.slice(0, 12).forEach(v => {
         const item = document.createElement('div'); item.className = 'related-item'; item.setAttribute('role', 'button'); item.tabIndex = 0;
-        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumbnail-img" alt="">` : `<video src="${v.url}" class="thumbnail-img" muted preload="metadata" playsinline></video>`;
+       const mediaHtml = thumbnailHtml(v);
         item.innerHTML = `${mediaHtml}<div class="info"><div class="info-title">${escapeHtml(v.title)}</div><div class="info-author">${escapeHtml(v.uploaderName)}</div><div class="info-author">${escapeHtml(v.category || 'その他')}</div></div>`;
         const open = e => { if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); watchVideo(v); };
         item.addEventListener('click', open); item.addEventListener('keydown', open); relatedVideosSidebar.appendChild(item);
@@ -1519,7 +1542,7 @@ if (!hlsUrl) {
       if (myVideos.length === 0) { manageList.innerHTML = '<p class="empty-list-msg">アップロードした動画がありません。</p>'; return; }
       myVideos.forEach(v => {
         const item = document.createElement('div'); item.className = 'manage-list-item';
-        const mediaHtml = v.thumbUrl ? `<img src="${v.thumbUrl}" class="thumb">` : `<video src="${v.url}" class="thumb" muted preload="metadata"></video>`;
+      const mediaHtml = thumbnailHtml(v, 'thumb');
         item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">✏️ 編集</button><button class="manage-btn manage-btn-delete">🗑 削除</button></div></div>`;
         item.querySelector('.edit-btn').addEventListener('click', () => { currentEditVideo = v; document.getElementById('editTitleInput').value = v.title; document.getElementById('editDescInput').value = v.desc || ''; document.getElementById('editCategoryInput').value = v.category || 'エンタメ'; document.getElementById('editThumbInput').value = ''; document.getElementById('editVideoModal').classList.add('active'); });
         item.querySelector('.manage-btn-delete').addEventListener('click', async () => { if (!confirm(`「${v.title}」を完全に削除しますか？`)) return; try { await deleteObject(v.itemRef); await loadVideoList(); renderManageList(); } catch { alert('削除に失敗しました'); } });
