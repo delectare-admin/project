@@ -845,41 +845,82 @@
     });
 
     let allVideos = []; let currentSort = 'newest';
-    async function loadVideoList() {
-      videoGrid.innerHTML = '<p class="empty-list-msg">読み込み中...</p>';
-      const listRef = ref(storage, 'videos/');
-      try {
-        const res = await listAll(listRef); const items = res.items.slice().reverse(); allVideos = [];
-        for (const itemRef of items) {
-          const [url, metadata] = await Promise.all([getDownloadURL(itemRef), getMetadata(itemRef)]);
-          const cm = metadata.customMetadata || {};
 
-         allVideos.push({
-  url,
+   async function loadVideoList() {
+  const requestId = (loadVideoList.requestId || 0) + 1;
+  loadVideoList.requestId = requestId;
 
-  hlsUrl:
-    cm.hlsSourceGeneration === String(metadata.generation)
-      ? (cm.hlsUrl || '')
-      : '',
+  videoGrid.innerHTML =
+    '<p class="empty-list-msg">読み込み中...</p>';
 
-  title: cm.title || itemRef.name,
-  itemRef,
-  uploaderUid: cm.uploaderUid || null,
-  uploaderName: cm.uploaderName || 'ゲスト',
-  thumbUrl: cm.thumbUrl || null,
-  category: cm.category || 'その他',
-  desc: cm.desc || '',
-   originalCustomMetadata: cm
-});
-        } // for の繰り返しをここで閉じる
+  try {
+    const res = await listAll(ref(storage, 'videos/'));
+    const items = res.items.slice().reverse();
+    const results = new Array(items.length);
+    let nextIndex = 0;
 
-        await applyFilterAndSort();
-        openVideoFromUrl();
-      } catch (error) {
-        console.error('動画一覧の読み込みに失敗しました:', error);
-        videoGrid.innerHTML = '<p class="empty-list-msg">動画一覧の読み込みに失敗しました。ページを再読み込みしてください。</p>';
+    async function loadNext() {
+      while (nextIndex < items.length) {
+        if (loadVideoList.requestId !== requestId) return;
+
+        const index = nextIndex++;
+        const itemRef = items[index];
+
+        const [url, metadata] = await Promise.all([
+          getDownloadURL(itemRef),
+          getMetadata(itemRef)
+        ]);
+
+        const cm = metadata.customMetadata || {};
+
+        results[index] = {
+          url,
+
+          hlsUrl:
+            cm.hlsSourceGeneration === String(metadata.generation)
+              ? (cm.hlsUrl || '')
+              : '',
+
+          title: cm.title || itemRef.name,
+          itemRef,
+          uploaderUid: cm.uploaderUid || null,
+          uploaderName: cm.uploaderName || 'ゲスト',
+          thumbUrl: cm.thumbUrl || null,
+          category: cm.category || 'その他',
+          desc: cm.desc || '',
+          originalCustomMetadata: cm
+        };
       }
     }
+
+    // 最大4本分の情報を同時に取得
+    await Promise.all(
+      Array.from(
+        { length: Math.min(4, items.length) },
+        () => loadNext()
+      )
+    );
+
+    // 古い読み込み結果で上書きしない
+    if (loadVideoList.requestId !== requestId) return;
+
+    allVideos = results;
+    await applyFilterAndSort();
+
+    if (loadVideoList.requestId !== requestId) return;
+
+    openVideoFromUrl();
+  } catch (error) {
+    if (loadVideoList.requestId !== requestId) return;
+
+    console.error('動画一覧の読み込みに失敗しました:', error);
+
+    videoGrid.innerHTML =
+      '<p class="empty-list-msg">' +
+      '動画一覧の読み込みに失敗しました。ページを再読み込みしてください。' +
+      '</p>';
+  }
+}
 
     async function applyFilterAndSort() {
       const keyword = searchInput.value.trim().toLowerCase();
