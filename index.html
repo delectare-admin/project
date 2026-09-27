@@ -1061,7 +1061,7 @@
     function triggerChannelNavigation() {
       const uid = uploaderNameEl.dataset.uid; showMyProfile(uid);
       const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-      if (!isStandardPiP && !isDocumentPiP) { mainVideo.pause(); mainVideo.src = ""; }
+     if (!isStandardPiP && !isDocumentPiP) {stopMainPlayback();}
     }
     uploaderDetailsEl.addEventListener('click', triggerChannelNavigation); uploaderAvatarEl.addEventListener('click', triggerChannelNavigation);
 
@@ -1082,6 +1082,26 @@
 // グローバル変数定義（HLSインスタンスの保持用）
 // ==========================================
 let hlsInstance = null;
+let playbackGeneration = 0;
+
+function stopMainPlayback() {
+  // 古い動画の再生処理を無効にする
+  playbackGeneration++;
+
+  // エラー時に元の動画へ戻す処理を解除
+  mainVideo.onerror = null;
+
+  // HLSの通信とイベント処理を終了
+  if (hlsInstance) {
+    const oldPlayer = hlsInstance;
+    hlsInstance = null;
+    oldPlayer.destroy();
+  }
+
+  mainVideo.pause();
+  mainVideo.removeAttribute('src');
+  mainVideo.load();
+}
 
 
 // ==========================================
@@ -1100,27 +1120,22 @@ async function watchVideo(videoData, options = {}) {
   watchScreen.style.display = 'block';
 
  // --- HLS / 動画読み込み処理 ---
-mainVideo.onerror = null;
-
-if (hlsInstance) {
-  hlsInstance.destroy();
-  hlsInstance = null;
-}
-
-mainVideo.pause();
-mainVideo.removeAttribute('src');
-mainVideo.load();
+stopMainPlayback();
+const thisPlayback = playbackGeneration;
 
 const hlsUrl = videoData.hlsUrl || '';
 let originalStarted = false;
 
 const play = () => {
+  if (thisPlayback !== playbackGeneration) return;
+
   mainVideo.play().catch(() => {
     // 自動再生が拒否された場合は再生ボタンで開始
   });
 };
 
 const playOriginal = () => {
+  if (thisPlayback !== playbackGeneration) return;
   if (originalStarted) return;
   originalStarted = true;
 
@@ -1270,7 +1285,9 @@ if (!hlsUrl) {
       document.body.classList.remove('watch-mode'); uploadModal.classList.remove('active'); createMenu.classList.remove('active');
       watchScreen.style.display = 'none'; channelScreen.style.display = 'none'; homeScreen.style.display = 'block';
       const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-      if (!isStandardPiP && !isDocumentPiP) { mainVideo.pause(); mainVideo.src = ""; }
+      if (!isStandardPiP && !isDocumentPiP) {
+  stopMainPlayback();
+}
       window.scrollTo({ top: 0, behavior: 'smooth' }); applyFilterAndSort();
     }
 
