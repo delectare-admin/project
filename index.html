@@ -810,6 +810,10 @@
     logoutBtn.addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, async (user) => {
+    const videoEntriesRequest = fetchVideoEntries().then(
+  videos => ({ videos }),
+  error => ({ error })
+);
       if (user) {
         let channelName = 'ゲストチャンネル'; let avatarUrl = ''; currentUserBlocks = []; currentUserSubscriptions = [];
         try {
@@ -831,8 +835,8 @@
       } else {
         currentUser = null; loginOpenBtn.style.display = 'inline-flex'; userInfo.style.display = 'none'; nicknameArea.style.display = 'block'; channelBadge.style.display = 'none';
       }
-      updateAvatarLetter(); loadVideoList();
-    });
+          updateAvatarLetter();
+          loadVideoList(videoEntriesRequest);});
 
     const categoryBtns = document.querySelectorAll('.category-btn');
     categoryBtns.forEach(btn => {
@@ -846,7 +850,55 @@
 
     let allVideos = []; let currentSort = 'newest';
 
-   async function loadVideoList() {
+  async function fetchVideoEntries() {
+  const res = await listAll(ref(storage, 'videos/'));
+  const items = res.items.slice().reverse();
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      const itemRef = items[index];
+
+      const [url, metadata] = await Promise.all([
+        getDownloadURL(itemRef),
+        getMetadata(itemRef)
+      ]);
+
+      const cm = metadata.customMetadata || {};
+
+      results[index] = {
+        url,
+
+        hlsUrl:
+          cm.hlsSourceGeneration === String(metadata.generation)
+            ? (cm.hlsUrl || '')
+            : '',
+
+        title: cm.title || itemRef.name,
+        itemRef,
+        uploaderUid: cm.uploaderUid || null,
+        uploaderName: cm.uploaderName || 'ゲスト',
+        thumbUrl: cm.thumbUrl || null,
+        category: cm.category || 'その他',
+        desc: cm.desc || '',
+        originalCustomMetadata: cm
+      };
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(4, items.length) },
+      () => worker()
+    )
+  );
+
+  return results;
+}
+
+async function loadVideoList(prefetched = null) {
   const requestId = (loadVideoList.requestId || 0) + 1;
   loadVideoList.requestId = requestId;
 
@@ -854,70 +906,34 @@
     '<p class="empty-list-msg">読み込み中...</p>';
 
   try {
-    const res = await listAll(ref(storage, 'videos/'));
-    const items = res.items.slice().reverse();
-    const results = new Array(items.length);
-    let nextIndex = 0;
+    let videos;
 
-    async function loadNext() {
-      while (nextIndex < items.length) {
-        if (loadVideoList.requestId !== requestId) return;
+    if (prefetched) {
+      const result = await prefetched;
 
-        const index = nextIndex++;
-        const itemRef = items[index];
+      if (result.error) throw result.error;
 
-        const [url, metadata] = await Promise.all([
-          getDownloadURL(itemRef),
-          getMetadata(itemRef)
-        ]);
-
-        const cm = metadata.customMetadata || {};
-
-        results[index] = {
-          url,
-
-          hlsUrl:
-            cm.hlsSourceGeneration === String(metadata.generation)
-              ? (cm.hlsUrl || '')
-              : '',
-
-          title: cm.title || itemRef.name,
-          itemRef,
-          uploaderUid: cm.uploaderUid || null,
-          uploaderName: cm.uploaderName || 'ゲスト',
-          thumbUrl: cm.thumbUrl || null,
-          category: cm.category || 'その他',
-          desc: cm.desc || '',
-          originalCustomMetadata: cm
-        };
-      }
+      videos = result.videos;
+    } else {
+      videos = await fetchVideoEntries();
     }
 
-    // 最大4本分の情報を同時に取得
-    await Promise.all(
-      Array.from(
-        { length: Math.min(4, items.length) },
-        () => loadNext()
-      )
-    );
+    if (requestId !== loadVideoList.requestId) return;
 
-    // 古い読み込み結果で上書きしない
-    if (loadVideoList.requestId !== requestId) return;
-
-    allVideos = results;
+    allVideos = videos;
     await applyFilterAndSort();
 
-    if (loadVideoList.requestId !== requestId) return;
+    if (requestId !== loadVideoList.requestId) return;
 
     openVideoFromUrl();
   } catch (error) {
-    if (loadVideoList.requestId !== requestId) return;
+    if (requestId !== loadVideoList.requestId) return;
 
     console.error('動画一覧の読み込みに失敗しました:', error);
 
     videoGrid.innerHTML =
       '<p class="empty-list-msg">' +
-      '動画一覧の読み込みに失敗しました。ページを再読み込みしてください。' +
+      '動画一覧の読み込みに失敗しました。再読み込みしてください。' +
       '</p>';
   }
 }
@@ -1175,25 +1191,14 @@ const playOriginal = () => {
 };
 
 if (!hlsUrl) {
-  // 未変換の動画は元の動画で再生
   playOriginal();
-
-} else if (
-  mainVideo.canPlayType('application/vnd.apple.mpegurl')
-) {
-  // SafariなどのネイティブHLS
-  mainVideo.onerror = () => {
-    console.warn('HLS再生に失敗したため、元の動画を再生します。');
-    playOriginal();
-  };
-
-  mainVideo.src = hlsUrl;
-  mainVideo.load();
-  play();
 
 } else if (window.Hls && window.Hls.isSupported()) {
   const player = new window.Hls({
-    maxBufferLength: 30
+    maxBufferLength: 30,
+    maxMaxBufferLength: 60,
+    backBufferLength: 30,
+    startFragPrefetch: true
   });
 
   hlsInstance = player;
@@ -1201,14 +1206,31 @@ if (!hlsUrl) {
   player.on(window.Hls.Events.MANIFEST_PARSED, play);
 
   player.on(window.Hls.Events.ERROR, (_event, data) => {
+    if (thisPlayback !== playbackGeneration) return;
+
     if (data.fatal) {
-      console.warn('HLS再生に失敗したため、元の動画を再生します。');
+      console.warn(
+        'HLS再生失敗。元の動画に戻します:',
+        data.details
+      );
       playOriginal();
     }
   });
 
   player.loadSource(hlsUrl);
   player.attachMedia(mainVideo);
+
+} else if (
+  mainVideo.canPlayType('application/vnd.apple.mpegurl')
+) {
+  mainVideo.onerror = () => {
+    if (thisPlayback !== playbackGeneration) return;
+    playOriginal();
+  };
+
+  mainVideo.src = hlsUrl;
+  mainVideo.load();
+  play();
 
 } else {
   playOriginal();
