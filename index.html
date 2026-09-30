@@ -861,20 +861,24 @@
       const index = nextIndex++;
       const itemRef = items[index];
 
-      const [url, metadata] = await Promise.all([
-        getDownloadURL(itemRef),
-        getMetadata(itemRef)
-      ]);
+     
 
+      const metadata = await getMetadata(itemRef);
       const cm = metadata.customMetadata || {};
+
+      const hlsUrl =
+        cm.hlsSourceGeneration === String(metadata.generation)
+          ? (cm.hlsUrl || '')
+          : '';
+
+      // HLS動画では、元MP4のURL取得を後回しにする
+      const url = hlsUrl
+        ? ''
+        : await getDownloadURL(itemRef);
 
       results[index] = {
         url,
-
-        hlsUrl:
-          cm.hlsSourceGeneration === String(metadata.generation)
-            ? (cm.hlsUrl || '')
-            : '',
+        hlsUrl,
 
         title: cm.title || itemRef.name,
         itemRef,
@@ -1173,21 +1177,37 @@ const play = () => {
   });
 };
 
-const playOriginal = () => {
-  if (thisPlayback !== playbackGeneration) return;
-  if (originalStarted) return;
-  originalStarted = true;
+const playOriginal = async () => {
+  if (thisPlayback !== playbackGeneration || originalStarted) return;
 
+  originalStarted = true;
   mainVideo.onerror = null;
 
   if (hlsInstance) {
-    hlsInstance.destroy();
+    const oldPlayer = hlsInstance;
     hlsInstance = null;
+    oldPlayer.destroy();
   }
 
-  mainVideo.src = videoData.url;
-  mainVideo.load();
-  play();
+  try {
+    // HLSに失敗した場合だけ、元MP4のURLを取得
+    const originalUrl =
+      videoData.url || await getDownloadURL(videoData.itemRef);
+
+    // 待っている間にホームや別の動画へ移動した場合は再生しない
+    if (thisPlayback !== playbackGeneration) return;
+
+    videoData.url = originalUrl;
+    mainVideo.src = originalUrl;
+    mainVideo.load();
+    play();
+  } catch (error) {
+    if (thisPlayback !== playbackGeneration) return;
+
+    originalStarted = false;
+    console.error('元の動画を読み込めませんでした:', error);
+    alert('動画を読み込めませんでした。もう一度動画を開いてください。');
+  }
 };
 
 if (!hlsUrl) {
