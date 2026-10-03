@@ -809,11 +809,23 @@
 
     logoutBtn.addEventListener('click', () => signOut(auth));
 
-    onAuthStateChanged(auth, async (user) => {
-    const videoEntriesRequest = fetchVideoEntries().then(
+   // サイトを開いた直後から、認証と並行して一覧を取得する
+let initialVideoEntriesRequest = fetchVideoEntries().then(
   videos => ({ videos }),
   error => ({ error })
 );
+
+onAuthStateChanged(auth, async (user) => {
+  // 初回は先に開始した通信を使い、二重取得を防ぐ
+  const videoEntriesRequest =
+    initialVideoEntriesRequest ||
+    fetchVideoEntries().then(
+      videos => ({ videos }),
+      error => ({ error })
+    );
+
+  initialVideoEntriesRequest = null;
+
       if (user) {
         let channelName = 'ゲストチャンネル'; let avatarUrl = ''; currentUserBlocks = []; currentUserSubscriptions = [];
         try {
