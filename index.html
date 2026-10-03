@@ -902,21 +902,93 @@
   return results;
 }
 
+function readVideoListCache() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem('delectare_video_list_v1')
+    );
+
+    const age = Date.now() - saved.savedAt;
+
+    // 保存から24時間以内の一覧を使う
+    if (
+      !Number.isFinite(age) ||
+      age < 0 ||
+      age > 24 * 60 * 60 * 1000 ||
+      !Array.isArray(saved.videos)
+    ) {
+      return null;
+    }
+
+    return saved.videos.map(({ fullPath, ...data }) => {
+      if (
+        typeof fullPath !== 'string' ||
+        !fullPath.startsWith('videos/')
+      ) {
+        throw new Error('Invalid cached path');
+      }
+
+      return {
+        ...data,
+        itemRef: ref(storage, fullPath)
+      };
+    });
+  } catch {
+    return null;
+  }
+}
+
+function saveVideoListCache(videos) {
+  try {
+    const data = videos.map(({ itemRef, ...rest }) => ({
+      ...rest,
+      fullPath: itemRef.fullPath
+    }));
+
+    localStorage.setItem(
+      'delectare_video_list_v1',
+      JSON.stringify({
+        savedAt: Date.now(),
+        videos: data
+      })
+    );
+  } catch (error) {
+    console.warn(
+      '動画一覧のキャッシュを保存できませんでした:',
+      error
+    );
+  }
+}
+
 async function loadVideoList(prefetched = null) {
   const requestId = (loadVideoList.requestId || 0) + 1;
   loadVideoList.requestId = requestId;
+
+  const startPlayback = playbackGeneration;
+  const startUrl = window.location.href;
+  let showedCache = false;
 
   videoGrid.innerHTML =
     '<p class="empty-list-msg">読み込み中...</p>';
 
   try {
+    // 起動時は前回の一覧を先に表示する。
+    // 投稿・編集・削除後の呼び出しでは最新情報を取得する。
+    const cached = prefetched ? readVideoListCache() : null;
+
+    if (cached && cached.length) {
+      allVideos = cached;
+      await applyFilterAndSort();
+      showedCache = true;
+    }
+
+    if (requestId !== loadVideoList.requestId) return;
+
     let videos;
 
     if (prefetched) {
       const result = await prefetched;
-
       if (result.error) throw result.error;
-
       videos = result.videos;
     } else {
       videos = await fetchVideoEntries();
@@ -924,21 +996,36 @@ async function loadVideoList(prefetched = null) {
 
     if (requestId !== loadVideoList.requestId) return;
 
+    // 最新情報へ更新し、次回のために保存
     allVideos = videos;
+    saveVideoListCache(videos);
     await applyFilterAndSort();
 
     if (requestId !== loadVideoList.requestId) return;
 
-    openVideoFromUrl();
+    // 更新中に別の動画を開いたりホームへ戻った場合は、
+    // 動画を開き直さない。
+    if (
+      playbackGeneration === startPlayback &&
+      window.location.href === startUrl
+    ) {
+      openVideoFromUrl();
+    }
   } catch (error) {
     if (requestId !== loadVideoList.requestId) return;
 
-    console.error('動画一覧の読み込みに失敗しました:', error);
+    console.error(
+      '動画一覧の読み込みに失敗しました:',
+      error
+    );
 
-    videoGrid.innerHTML =
-      '<p class="empty-list-msg">' +
-      '動画一覧の読み込みに失敗しました。再読み込みしてください。' +
-      '</p>';
+    // 保存済みの一覧があれば、通信失敗時も表示を残す
+    if (!showedCache) {
+      videoGrid.innerHTML =
+        '<p class="empty-list-msg">' +
+        '動画一覧の読み込みに失敗しました。再読み込みしてください。' +
+        '</p>';
+    }
   }
 }
 
