@@ -1407,7 +1407,11 @@ async function fillHomeCard(card, v) {
 }
 
 
-    function renderGrid(list, container) {
+        function renderGrid(list, container) {
+      if (container === videoGrid) {
+        homeCardObserver.disconnect();
+      }
+      
       if (list.length === 0) {
         const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
         container.innerHTML = `<p class="empty-list-msg" style="grid-column:1/-1;">${msg}</p>`; return;
@@ -1442,11 +1446,12 @@ async function fillHomeCard(card, v) {
           if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは一切表示されなくなります。')) return;
           try { await setDoc(doc(db, 'users', currentUser.uid), { blockedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserBlocks.push(v.uploaderUid); alert('ブロックしました。'); applyFilterAndSort(); } catch { alert('ブロック処理に失敗しました。'); }
         });
-        container.appendChild(gridItem);
+               container.appendChild(gridItem);
+
+        if (container === videoGrid) {
+          decorateHomeCard(gridItem, v);
+        }
       });
-     if (container === videoGrid) {
-  decorateHomeCard(gridItem, v);
-     }
     }
 
     function triggerChannelNavigation() {
