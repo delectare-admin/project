@@ -478,8 +478,44 @@
   text-overflow: ellipsis;
 }
 
+.comment-heading-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.comment-section .comment-heading-row h3 {
+  margin: 0;
+}
+
+.comment-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+#commentSortSelect {
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  cursor: pointer;
+}
+
+#commentSortSelect:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
   </style>
+
 </head>
 <body>
 
@@ -641,7 +677,18 @@
 
           <!-- コメント -->
           <div class="comment-section">
-            <h3>コメント</h3>
+           <div class="comment-heading-row">
+  <h3>コメント</h3>
+
+  <label class="comment-sort-control">
+    <span>☰ 並べ替え</span>
+    <select id="commentSortSelect" disabled>
+      <option value="popular">人気順</option>
+      <option value="newest">新しい順</option>
+      <option value="oldest">古い順</option>
+    </select>
+  </label>
+</div>
             <div class="comment-input-area">
               <div class="comment-avatar" id="commentAvatar">U</div>
               <textarea id="commentInput" rows="1" placeholder="コメントを追加..."></textarea>
@@ -1992,19 +2039,112 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
       return div;
     }
 
-    function loadComments() {
-      if (unsubscribeComments) unsubscribeComments(); commentList.innerHTML = "<p>読み込み中...</p>";
-      const q = query(collection(db, "comments"), where("videoId", "==", currentVideoId));
-      unsubscribeComments = onSnapshot(q, (snapshot) => {
-        videoComments = []; const allComments = [];
-        snapshot.forEach((docSnap) => { const data = { id: docSnap.id, ...docSnap.data() }; if (currentUserBlocks.includes(data.authorUid)) return; if (data.type === "danmaku") { videoComments.push(data); } else { allComments.push(data); } });
-        const topComments = allComments.filter(c => !c.parentId).sort((a, b) => (b.createdAt?.toMillis() || Date.now()) - (a.createdAt?.toMillis() || Date.now()));
-        const replies = allComments.filter(c => c.parentId).sort((a, b) => (a.createdAt?.toMillis() || Date.now()) - (b.createdAt?.toMillis() || Date.now()));
-        commentList.innerHTML = "";
-        if (topComments.length === 0) { commentList.innerHTML = "<p style='color:#606060; font-size:14px;'>最初のコメントを書き込みましょう！</p>"; return; }
-        topComments.forEach(comment => commentList.appendChild(renderCommentNode(comment, replies.filter(r => r.parentId === comment.id))));
-      });
-    }
+   const commentSortSelect = document.getElementById('commentSortSelect');
+let sortableCommentRows = [];
+
+// 選択した並び順で比較する
+function compareCommentRows(a, b) {
+  const timeA = a.comment.createdAt?.toMillis?.() || 0;
+  const timeB = b.comment.createdAt?.toMillis?.() || 0;
+  const newest = timeB - timeA;
+  const tie = a.comment.id.localeCompare(b.comment.id);
+
+  if (commentSortSelect.value === 'oldest') {
+    return timeA - timeB || tie;
+  }
+
+  if (commentSortSelect.value === 'newest') {
+    return newest || tie;
+  }
+
+  const likesA = Math.max(0, Number(a.comment.likes) || 0);
+  const likesB = Math.max(0, Number(b.comment.likes) || 0);
+
+  return likesB - likesA || newest || tie;
+}
+
+// 取得済みのコメントを並べ替える
+function renderSortedComments() {
+  if (!sortableCommentRows.length) {
+    commentList.innerHTML =
+      "<p style='color:#606060;font-size:14px;'>最初のコメントを書き込みましょう！</p>";
+    return;
+  }
+
+  const rows = [...sortableCommentRows].sort(compareCommentRows);
+
+  // 要素自体を移動するため、並べ替えだけでは返信入力を消さない
+  commentList.replaceChildren(...rows.map(row => row.node));
+}
+
+commentSortSelect.addEventListener('change', renderSortedComments);
+
+function loadComments() {
+  if (unsubscribeComments) unsubscribeComments();
+
+  sortableCommentRows = [];
+  videoComments = [];
+  commentSortSelect.disabled = true;
+  commentList.innerHTML = '<p>読み込み中...</p>';
+
+  const targetVideoId = currentVideoId;
+
+  const q = query(
+    collection(db, 'comments'),
+    where('videoId', '==', targetVideoId)
+  );
+
+  unsubscribeComments = onSnapshot(q, snapshot => {
+    // 別の動画へ移動済みなら更新しない
+    if (currentVideoId !== targetVideoId) return;
+
+    const allComments = [];
+    videoComments = [];
+
+    snapshot.forEach(docSnap => {
+      const data = {
+        ...docSnap.data({ serverTimestamps: 'estimate' }),
+        id: docSnap.id
+      };
+
+      if (currentUserBlocks.includes(data.authorUid)) return;
+
+      if (data.type === 'danmaku') {
+        videoComments.push(data);
+      } else {
+        allComments.push(data);
+      }
+    });
+
+    // 返信は親コメントの下で古い順に表示
+    const replies = allComments
+      .filter(c => c.parentId)
+      .sort((a, b) =>
+        (a.createdAt?.toMillis?.() || 0) -
+          (b.createdAt?.toMillis?.() || 0) ||
+        a.id.localeCompare(b.id)
+      );
+
+    sortableCommentRows = allComments
+      .filter(c => !c.parentId)
+      .map(comment => ({
+        comment,
+        node: renderCommentNode(
+          comment,
+          replies.filter(r => r.parentId === comment.id)
+        )
+      }));
+
+    commentSortSelect.disabled = false;
+    renderSortedComments();
+  }, error => {
+    if (currentVideoId !== targetVideoId) return;
+
+    commentSortSelect.disabled = true;
+    commentList.textContent = 'コメントを読み込めませんでした。';
+    console.error('コメント取得エラー:', error);
+  });
+}
 
     commentList.addEventListener('click', async (e) => {
       const target = e.target;
