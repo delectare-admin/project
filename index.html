@@ -271,6 +271,96 @@
       .manage-list-item .thumb { width: 100%; }
       .video-wrapper.is-sticky { width: 200px !important; height: 113px !important; bottom: 66px !important; }
     }
+
+/* ホームのチャンネルアイコン */
+#videoGrid .grid-item-info {
+  gap: 10px;
+}
+
+#videoGrid .home-channel-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e8e8e8;
+  color: #555;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#videoGrid .home-channel-avatar:disabled {
+  cursor: default;
+}
+
+#videoGrid .home-channel-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#videoGrid .home-comment-text {
+  color: #222;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#videoGrid .grid-author {
+  padding: 0;
+}
+
+/* 動画の下に表示する人気コメント */
+#videoGrid .home-top-comment {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f0f2f5;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 66px;
+  box-sizing: border-box;
+}
+
+#videoGrid .home-comment-label {
+  color: #526477;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+#videoGrid .home-comment-text {
+  color: #222;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+#videoGrid .home-comment-author {
+  margin-top: 4px;
+  color: #777;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
   </style>
 </head>
 <body>
@@ -562,7 +652,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, getDocs, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject, updateMetadata } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -1161,6 +1251,162 @@ async function loadVideoList(prefetched = null) {
   `;
 }
 
+// 同じ投稿者の情報を短時間に何度も取得しない
+const homeProfileCache = new Map();
+const homeCardData = new WeakMap();
+
+// 画面に近づいたカードから追加情報を取得
+const homeCardObserver = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+
+    homeCardObserver.unobserve(entry.target);
+
+    const v = homeCardData.get(entry.target);
+    if (v) fillHomeCard(entry.target, v);
+  }
+}, { rootMargin: '100px' });
+
+function getHomeProfile(uid) {
+  const cached = homeProfileCache.get(uid);
+
+  if (cached && Date.now() - cached.time < 60000) {
+    return cached.promise;
+  }
+
+  const promise = getDoc(doc(db, 'users', uid))
+    .then(s => s.exists() ? s.data() : {});
+
+  homeProfileCache.set(uid, {
+    time: Date.now(),
+    promise
+  });
+
+  promise.catch(() => {
+    if (homeProfileCache.get(uid)?.promise === promise) {
+      homeProfileCache.delete(uid);
+    }
+  });
+
+  return promise;
+}
+
+function decorateHomeCard(card, v) {
+  const avatar = document.createElement('button');
+  avatar.type = 'button';
+  avatar.className = 'home-channel-avatar';
+  avatar.textContent = (v.uploaderName || 'ゲスト').slice(0, 1);
+
+  avatar.setAttribute(
+    'aria-label',
+    `${v.uploaderName || 'ゲスト'}のチャンネル`
+  );
+
+  avatar.disabled = !v.uploaderUid;
+
+  avatar.addEventListener('click', e => {
+    e.stopPropagation();
+
+    if (v.uploaderUid) {
+      showMyProfile(v.uploaderUid);
+    }
+  });
+
+  card.querySelector('.grid-item-info').prepend(avatar);
+
+  const comment = document.createElement('div');
+  comment.className = 'home-top-comment';
+  comment.textContent = 'コメントを読み込み中…';
+  card.appendChild(comment);
+
+  homeCardData.set(card, v);
+  homeCardObserver.observe(card);
+}
+
+async function fillHomeCard(card, v) {
+  const avatar = card.querySelector('.home-channel-avatar');
+  const box = card.querySelector('.home-top-comment');
+
+  // 投稿者アイコンの取得
+  if (v.uploaderUid) {
+    getHomeProfile(v.uploaderUid).then(profile => {
+      if (!card.isConnected || !profile.avatarUrl) return;
+
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+
+      img.onload = () => {
+        if (card.isConnected) {
+          avatar.replaceChildren(img);
+        }
+      };
+
+      // GIFも変換せず、そのまま表示
+      img.src = profile.avatarUrl;
+    }).catch(error => {
+      console.warn('アイコン取得失敗', error);
+    });
+  }
+
+  // 人気コメントの取得
+  try {
+    const snapshot = await getDocs(query(
+      collection(db, 'comments'),
+      where('videoId', '==', v.itemRef.fullPath)
+    ));
+
+    if (!card.isConnected) return;
+
+    const likes = c => Math.max(0, Number(c.likes) || 0);
+
+    const comments = snapshot.docs
+      .map(s => ({ ...s.data(), id: s.id }))
+      .filter(c =>
+        c.type !== 'danmaku' &&
+        !c.parentId &&
+        typeof c.text === 'string' &&
+        c.text.trim() &&
+        !currentUserBlocks.includes(c.authorUid)
+      )
+      .sort((a, b) =>
+        likes(b) - likes(a) ||
+        (b.createdAt?.toMillis?.() || 0) -
+          (a.createdAt?.toMillis?.() || 0) ||
+        a.id.localeCompare(b.id)
+      );
+
+    const top = comments[0];
+
+    if (!top) {
+      box.textContent = 'まだ表示できるコメントはありません';
+      return;
+    }
+
+    const label = document.createElement('div');
+    label.className = 'home-comment-label';
+    label.textContent =
+      `💬 ${likes(top) > 0 ? '人気コメント' : '最新コメント'} · 👍 ${likes(top)}`;
+
+    const text = document.createElement('div');
+    text.className = 'home-comment-text';
+    text.textContent = top.text;
+
+    const author = document.createElement('div');
+    author.className = 'home-comment-author';
+    author.textContent = top.author || 'ゲスト';
+
+    box.replaceChildren(label, text, author);
+  } catch (error) {
+    if (card.isConnected) {
+      box.textContent = 'コメントを取得できませんでした';
+    }
+
+    console.warn('人気コメント取得失敗', error);
+  }
+}
+
+
     function renderGrid(list, container) {
       if (list.length === 0) {
         const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
@@ -1198,6 +1444,9 @@ async function loadVideoList(prefetched = null) {
         });
         container.appendChild(gridItem);
       });
+     if (container === videoGrid) {
+  decorateHomeCard(gridItem, v);
+     }
     }
 
     function triggerChannelNavigation() {
