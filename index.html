@@ -514,6 +514,31 @@
   cursor: default;
 }
 
+/* 映像部分をクリックするための透明ボタン */
+#videoClickToggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 64px;
+  left: 0;
+  z-index: 5;
+
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* キーボード操作時の選択表示 */
+#videoClickToggle:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -4px;
+}
+
   </style>
 
 </head>
@@ -621,6 +646,7 @@
           <div class="video-anchor" id="videoAnchor">
             <div class="video-wrapper" id="videoWrapper">
               <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
+              <button="button" id="videoClickToggle" aria-label="動画を再生" aria-controls="mainVideo"></button=>
               <div id="danmakuContainer" class="danmaku-container"></div>
               <div class="custom-controls-bar">
                 <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
@@ -881,6 +907,46 @@
     const sortPopularBtn = document.getElementById('sortPopularBtn');
 
     const mainVideo = document.getElementById('mainVideo');
+    const videoClickToggle = document.getElementById('videoClickToggle');
+
+// 映像部分をクリックして再生・一時停止
+videoClickToggle.addEventListener('click', async event => {
+  event.stopPropagation();
+
+  // 動画がまだ設定されていなければ何もしない
+  if (!mainVideo.currentSrc && !mainVideo.getAttribute('src')) {
+    return;
+  }
+
+  if (mainVideo.paused || mainVideo.ended) {
+    try {
+      await mainVideo.play();
+    } catch (error) {
+      console.warn('動画を再生できませんでした:', error);
+    }
+  } else {
+    mainVideo.pause();
+  }
+});
+
+// 読み上げ用のボタン名も再生状態に合わせる
+function updateVideoClickLabel() {
+  videoClickToggle.setAttribute(
+    'aria-label',
+    mainVideo.paused || mainVideo.ended
+      ? '動画を再生'
+      : '動画を一時停止'
+  );
+}
+
+mainVideo.addEventListener('play', updateVideoClickLabel);
+mainVideo.addEventListener('pause', updateVideoClickLabel);
+mainVideo.addEventListener('ended', updateVideoClickLabel);
+mainVideo.addEventListener('emptied', updateVideoClickLabel);
+
+updateVideoClickLabel();
+
+
     const mainTitle = document.getElementById('mainTitle');
     const uploaderNameEl = document.getElementById('uploaderName');
     const uploaderAvatarEl = document.getElementById('uploaderAvatar');
