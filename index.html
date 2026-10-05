@@ -391,6 +391,48 @@
   overflow-wrap: anywhere;
 }
 
+/* 投稿者名と人気コメントを1行に並べる */
+#videoGrid .home-author-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+/* 投稿者名が長い場合もコメント用の幅を残す */
+#videoGrid .home-author-row .grid-author {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 灰色の枠をなくし、残り幅にコメントを表示 */
+#videoGrid .home-author-row .home-top-comment {
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #606060;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.5;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
   </style>
 </head>
 <body>
@@ -1353,10 +1395,19 @@ function decorateHomeCard(card, v) {
 
   card.querySelector('.grid-item-info').prepend(avatar);
 
+    // 投稿者名とコメントを横並びにする
+  const authorEl = card.querySelector('.grid-author');
+  const authorRow = document.createElement('div');
+  authorRow.className = 'home-author-row';
+
+  authorEl.replaceWith(authorRow);
+  authorRow.appendChild(authorEl);
+
   const comment = document.createElement('div');
   comment.className = 'home-top-comment';
   comment.textContent = 'コメントを読み込み中…';
-  card.appendChild(comment);
+
+  authorRow.appendChild(comment);
 
   homeCardData.set(card, v);
   homeCardObserver.observe(card);
@@ -1422,20 +1473,14 @@ async function fillHomeCard(card, v) {
       return;
     }
 
-    const label = document.createElement('div');
-    label.className = 'home-comment-label';
-    label.textContent =
-      `💬 ${likes(top) > 0 ? '人気コメント' : '最新コメント'} · 👍 ${likes(top)}`;
+        // 改行を空白にして、投稿者名の横に表示
+    const commentText = top.text.replace(/\s+/g, ' ').trim();
 
-    const text = document.createElement('div');
-    text.className = 'home-comment-text';
-    text.textContent = top.text;
+    box.textContent = `· ${commentText}`;
 
-    const author = document.createElement('div');
-    author.className = 'home-comment-author';
-    author.textContent = top.author || 'ゲスト';
+    // マウスを重ねたときに全文といいね数を確認できる
+    box.title = `${top.text}\n👍 ${likes(top)}`;
 
-    box.replaceChildren(label, text, author);
   } catch (error) {
     if (card.isConnected) {
       box.textContent = 'コメントを取得できませんでした';
