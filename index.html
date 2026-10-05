@@ -433,6 +433,52 @@
   text-overflow: ellipsis;
 }
 
+/* 投稿者名・コメントアイコン・コメントを横並びに */
+#videoGrid .home-author-row {
+  align-items: center;
+  gap: 6px;
+}
+
+/* 吹き出しアイコン */
+#videoGrid .home-comment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: #606060;
+}
+
+#videoGrid .home-comment-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 人気コメントを小さな枠で囲む */
+#videoGrid .home-author-row .home-top-comment {
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 8px;
+  box-sizing: border-box;
+
+  border: 1px solid #d8dde3;
+  border-radius: 6px;
+  background: #f5f6f8;
+  color: #505050;
+  font-size: 12px;
+  line-height: 1.5;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
   </style>
 </head>
 <body>
@@ -1407,7 +1453,27 @@ function decorateHomeCard(card, v) {
   comment.className = 'home-top-comment';
   comment.textContent = 'コメントを読み込み中…';
 
-  authorRow.appendChild(comment);
+ // 投稿者名の隣に吹き出しアイコンを表示
+const commentIcon = document.createElement('span');
+commentIcon.className = 'home-comment-icon';
+commentIcon.title = '人気コメント';
+commentIcon.setAttribute('role', 'img');
+commentIcon.setAttribute('aria-label', '人気コメント');
+
+commentIcon.innerHTML = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M20 4H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4v4l5-4h7a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linejoin="round"
+    />
+  </svg>
+`;
+
+authorRow.appendChild(commentIcon);
+authorRow.appendChild(comment);
 
   homeCardData.set(card, v);
   homeCardObserver.observe(card);
@@ -1476,7 +1542,7 @@ async function fillHomeCard(card, v) {
         // 改行を空白にして、投稿者名の横に表示
     const commentText = top.text.replace(/\s+/g, ' ').trim();
 
-    box.textContent = `· ${commentText}`;
+    box.textContent = commentText;
 
     // マウスを重ねたときに全文といいね数を確認できる
     box.title = `${top.text}\n👍 ${likes(top)}`;
