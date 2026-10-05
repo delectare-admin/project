@@ -549,7 +549,7 @@
           <label style="text-align:left; display:block;">プロフィール写真</label>
           <div style="display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:10px;">
             <div id="customizeAvatarPreview" style="width:100px; height:100px; border-radius:50%; background-color:#ccc; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:36px;"></div>
-            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+          <input type="file" id="avatarFileInput" accept="image/*,.gif" style="display:none;">
             <button class="create-btn" onclick="document.getElementById('avatarFileInput').click()">写真を変更</button>
           </div>
         </div>
@@ -1653,7 +1653,23 @@ if (!hlsUrl) {
     customizeBtn.addEventListener('click', () => { customizeNameInput.value = currentUser.channelName; if (currentUser.avatarUrl) { customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`; customizeAvatarPreview.textContent = ''; } else { customizeAvatarPreview.style.backgroundImage = 'none'; customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase(); } customizeModal.classList.add('active'); });
     closeCustomizeModalBtn.addEventListener('click', () => customizeModal.classList.remove('active'));
     avatarFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { customizeAvatarPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`; customizeAvatarPreview.textContent = ''; } });
-    saveCustomizeBtn.addEventListener('click', async () => { if (!currentUser) return; saveCustomizeBtn.disabled = true; const newName = customizeNameInput.value.trim(); if (!newName) { alert('チャンネル名を入力してください。'); saveCustomizeBtn.disabled = false; return; } let avatarUrl = currentUser.avatarUrl || ""; try { if (avatarFileInput.files[0]) { const file = avatarFileInput.files[0]; const storageRef = ref(storage, `avatars/${currentUser.uid}`); await uploadBytes(storageRef, file); avatarUrl = await getDownloadURL(storageRef); } await setDoc(doc(db, 'users', currentUser.uid), { channelName: newName, avatarUrl }, { merge: true }); alert('プロフィールを更新しました！'); location.reload(); } catch { alert('保存に失敗しました。'); } finally { saveCustomizeBtn.disabled = false; } });
+    saveCustomizeBtn.addEventListener('click', async () => { if (!currentUser) return; saveCustomizeBtn.disabled = true; const newName = customizeNameInput.value.trim(); if (!newName) { alert('チャンネル名を入力してください。'); saveCustomizeBtn.disabled = false; return; } let avatarUrl = currentUser.avatarUrl || ""; try { if (avatarFileInput.files[0]) { const file = avatarFileInput.files[0]; const storageRef = ref(storage, `avatars/${currentUser.uid}`); // ファイルの先頭を確認してGIFかどうか判定
+const signature = new TextDecoder().decode(
+  await file.slice(0, 6).arrayBuffer()
+);
+
+const isGif =
+  signature === 'GIF87a' ||
+  signature === 'GIF89a';
+
+const contentType = isGif ? 'image/gif' : file.type;
+
+// GIFのアニメーションを保持したまま保存
+await uploadBytes(storageRef, file, {
+  ...(contentType ? { contentType } : {}),
+  cacheControl: 'no-cache'
+});
+ avatarUrl = await getDownloadURL(storageRef); } await setDoc(doc(db, 'users', currentUser.uid), { channelName: newName, avatarUrl }, { merge: true }); alert('プロフィールを更新しました！'); location.reload(); } catch { alert('保存に失敗しました。'); } finally { saveCustomizeBtn.disabled = false; } });
 
     const subscribeBtn = document.getElementById('subscribeBtn');
     const observer = new MutationObserver(() => { const targetUid = uploaderNameEl.dataset.uid; if (currentUser && targetUid && targetUid !== "undefined" && targetUid !== "null" && currentUser.uid !== targetUid) { subscribeBtn.style.display = 'block'; subscribeBtn.dataset.targetUid = targetUid; if (currentUserSubscriptions.includes(targetUid)) { subscribeBtn.textContent = '登録済み'; subscribeBtn.classList.add('subscribed'); } else { subscribeBtn.textContent = 'チャンネル登録'; subscribeBtn.classList.remove('subscribed'); } } else { subscribeBtn.style.display = 'none'; } });
