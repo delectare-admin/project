@@ -361,6 +361,36 @@
   white-space: nowrap;
 }
 
+/* 視聴回数・投稿日・説明文 */
+#videoDescriptionBox {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f2f2f2;
+  color: #0f0f0f;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+#videoDescriptionBox .video-description-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-weight: bold;
+}
+
+#videoDescriptionBox #viewCount {
+  color: inherit;
+  font-size: inherit;
+}
+
+#videoDescriptionText {
+  margin-top: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
   </style>
 </head>
 <body>
@@ -491,7 +521,6 @@
               </div>
             </div>
             <div class="meta-actions">
-              <span id="viewCount">- 回視聴</span>
               <button id="likeBtn" class="rate-btn" disabled>👍 <span id="likeCount">0</span></button>
               <button id="dislikeBtn" class="rate-btn" disabled>👎 <span id="dislikeCount">0</span></button>
               <button id="shareBtn" class="rate-btn">➡️ 共有</button>
@@ -499,6 +528,15 @@
               <button id="reportBtn" class="rate-btn" style="color:#cc0000;">🚨 通報</button>
             </div>
           </div>
+
+          <!-- 動画の説明欄 -->
+           <section id="videoDescriptionBox" aria-label="動画の説明">
+            <div class="video-description-meta">
+            <span id="viewCount">- 回視聴</span>
+            <span id="videoUploadDate">投稿日を確認中…</span>
+             </div>
+             <div id="videoDescriptionText" hidden></div>
+           </section>
 
           <!-- 弾幕入力 -->
           <div class="danmaku-input-area">
@@ -988,8 +1026,9 @@ onAuthStateChanged(auth, async (user) => {
         uploaderName: cm.uploaderName || 'ゲスト',
         thumbUrl: cm.thumbUrl || null,
         category: cm.category || 'その他',
-        desc: cm.desc || '',
-        originalCustomMetadata: cm
+       desc: cm.desc || '',
+          uploadedAt: metadata.timeCreated || '',
+          originalCustomMetadata: cm
       };
     }
   }
@@ -1007,7 +1046,7 @@ onAuthStateChanged(auth, async (user) => {
 function readVideoListCache() {
   try {
     const saved = JSON.parse(
-      localStorage.getItem('delectare_video_list_v1')
+      localStorage.getItem('delectare_video_list_v2')
     );
 
     const age = Date.now() - saved.savedAt;
@@ -1048,7 +1087,7 @@ function saveVideoListCache(videos) {
     }));
 
     localStorage.setItem(
-      'delectare_video_list_v1',
+      'delectare_video_list_v2',
       JSON.stringify({
         savedAt: Date.now(),
         videos: data
@@ -1610,7 +1649,28 @@ if (!hlsUrl) {
 }
 // --- 動画読み込み処理ここまで ---
 
-  mainTitle.textContent = videoData.title; 
+  mainTitle.textContent = videoData.title;
+
+// 説明文が空なら本文だけ隠す
+const descriptionText = document.getElementById('videoDescriptionText');
+const description = String(videoData.desc || '').trim();
+
+descriptionText.textContent = description;
+descriptionText.hidden = !description;
+
+// 投稿日を日本時間で表示する
+const uploadDateEl = document.getElementById('videoUploadDate');
+const uploadDate = new Date(videoData.uploadedAt || '');
+
+uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
+  ? '投稿日不明'
+  : new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(uploadDate) + ' 投稿';
+
   uploaderNameEl.textContent = videoData.uploaderName; 
   uploaderNameEl.dataset.uid = videoData.uploaderUid;
   
