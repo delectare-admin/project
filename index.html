@@ -682,6 +682,42 @@
   }
 }
 
+/* 小窓ではシークバー・音量スライダー・時刻・PiP・全画面を隠す */
+#videoWrapper:is(.is-sticky, .in-pip) .player-seek,
+#videoWrapper:is(.is-sticky, .in-pip) .player-volume,
+#videoWrapper:is(.is-sticky, .in-pip) .player-time,
+#videoWrapper:is(.is-sticky, .in-pip) #pipBtn,
+#videoWrapper:is(.is-sticky, .in-pip) #fullscreenBtn {
+  display: none;
+}
+
+/* 小窓の操作バーをコンパクトに */
+#videoWrapper:is(.is-sticky, .in-pip) .site-player-controls {
+  height: 48px;
+  padding: 4px 8px;
+}
+
+#videoWrapper:is(.is-sticky, .in-pip) .player-row {
+  height: 40px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+#videoWrapper:is(.is-sticky, .in-pip) .player-right {
+  margin-left: auto;
+}
+
+#videoWrapper:is(.is-sticky, .in-pip) .site-player-controls button {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* 映像クリック用ボタンが操作バーを覆わないようにする */
+#videoWrapper:is(.is-sticky, .in-pip) #videoClickToggle {
+  bottom: 48px;
+}
+
+
   </style>
 
 </head>
@@ -789,7 +825,7 @@
           <div class="video-anchor" id="videoAnchor">
             <div class="video-wrapper" id="videoWrapper">
               <video id="mainVideo" class="main-video-player" controls controlsList="nofullscreen nodownload noremoteplayback" disablePictureInPicture playsinline webkit-playsinline></video>
-              <button="button" id="videoClickToggle" aria-label="動画を再生" aria-controls="mainVideo"></button=>
+              <button type="button" id="videoClickToggle" aria-label="動画を再生" aria-controls="mainVideo"></button>
               <div id="danmakuContainer" class="danmaku-container"></div>
               <div class="custom-controls-bar">
                 <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
@@ -2142,21 +2178,153 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
       window.scrollTo({ top: 0, behavior: 'smooth' }); applyFilterAndSort();
     }
 
-    pipBtn.addEventListener('click', async () => {
-      if ('documentPictureInPicture' in window) {
-        try {
-          if (window.documentPictureInPicture.window) { window.documentPictureInPicture.window.close(); return; }
-          const pipWindow = await window.documentPictureInPicture.requestWindow({ width: mainVideo.clientWidth || 640, height: mainVideo.clientHeight || 360 });
-          [...document.styleSheets].forEach((styleSheet) => { try { const cssRules = [...styleSheet.cssRules].map(r => r.cssText).join(''); const style = document.createElement('style'); style.textContent = cssRules; pipWindow.document.head.appendChild(style); } catch (e) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.type = styleSheet.type; link.media = styleSheet.media; link.href = styleSheet.href; pipWindow.document.head.appendChild(link); } });
-          const videoWrapperEl = document.getElementById('videoWrapper'); videoWrapperEl.classList.add('in-pip'); pipWindow.document.body.appendChild(videoWrapperEl);
-          pipWindow.document.body.style.margin = '0'; pipWindow.document.body.style.overflow = 'hidden'; pipWindow.document.body.style.backgroundColor = '#000';
-          pipWindow.addEventListener('pagehide', () => { videoWrapperEl.classList.remove('in-pip'); const watchMain = document.querySelector('.watch-main'); watchMain.insertBefore(videoWrapperEl, document.querySelector('.video-meta-bar')); });
-        } catch {}
-      } else if (document.pictureInPictureEnabled) {
-        try { if (document.pictureInPictureElement) { await document.exitPictureInPicture(); } else { await mainVideo.requestPictureInPicture(); } } catch {}
-      } else { alert('非サポートブラウザです。'); }
-    });
+    let pipOpening = false;
 
+const pipPlayer = document.getElementById('videoWrapper');
+const pipHome = document.getElementById('videoAnchor');
+
+pipBtn.addEventListener('click', async () => {
+  if (pipOpening) return;
+
+  // すでに開いていれば閉じる
+  if (window.documentPictureInPicture?.window) {
+    window.documentPictureInPicture.window.close();
+    return;
+  }
+
+  if (!mainVideo.currentSrc && !mainVideo.getAttribute('src')) {
+    return;
+  }
+
+  pipOpening = true;
+  let pipWindow = null;
+
+  // 動画を必ず元のvideoAnchorの中へ戻す
+  const restorePlayer = () => {
+    if (
+      pipPlayer.ownerDocument === document &&
+      !pipPlayer.classList.contains('in-pip')
+    ) {
+      return;
+    }
+
+    const resume = !mainVideo.paused;
+
+    pipHome.appendChild(pipPlayer);
+    pipPlayer.classList.remove('in-pip', 'is-sticky');
+
+    // スクロール位置に合わせて自動小窓を再判定
+    window.dispatchEvent(new Event('resize'));
+
+    if (watchScreen.style.display === 'none') {
+      mainVideo.pause();
+    } else if (resume) {
+      mainVideo.play().catch(console.warn);
+    }
+  };
+
+  try {
+    if ('documentPictureInPicture' in window) {
+      pipWindow =
+        await window.documentPictureInPicture.requestWindow({
+          width: 480,
+          height: 270
+        });
+
+      pipWindow.addEventListener(
+        'pagehide',
+        restorePlayer,
+        { once: true }
+      );
+
+      // 小窓にサイトのスタイルを引き継ぐ
+      document.querySelectorAll(
+        'style, link[rel="stylesheet"]'
+      ).forEach(source => {
+        const copy = source.cloneNode(true);
+
+        if (source.tagName === 'LINK') {
+          copy.href = source.href;
+        }
+
+        pipWindow.document.head.appendChild(copy);
+      });
+
+      // 自動小窓用の位置・サイズ指定との干渉を防ぐ
+      const style = pipWindow.document.createElement('style');
+
+      style.textContent = `
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100%;
+          height: 100%;
+          overflow: hidden !important;
+          background: #000 !important;
+        }
+
+        #videoWrapper.in-pip {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+          transform: none !important;
+        }
+
+        #mainVideo {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      `;
+
+      pipWindow.document.head.appendChild(style);
+
+      const resume = !mainVideo.paused;
+
+      pipPlayer.classList.remove('is-sticky');
+      pipPlayer.classList.add('in-pip');
+
+      pipWindow.document.body.appendChild(pipPlayer);
+
+      if (resume) {
+        mainVideo.play().catch(console.warn);
+      }
+    } else if (document.pictureInPictureEnabled) {
+      // Document PiP非対応の場合はブラウザ標準PiP
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        const wasDisabled = mainVideo.disablePictureInPicture;
+        mainVideo.disablePictureInPicture = false;
+
+        try {
+          await mainVideo.requestPictureInPicture();
+        } finally {
+          mainVideo.disablePictureInPicture = wasDisabled;
+        }
+      }
+    } else {
+      alert('このブラウザはPiPに対応していません。');
+    }
+  } catch (error) {
+    if (pipWindow && !pipWindow.closed) {
+      pipWindow.close();
+    }
+
+    restorePlayer();
+
+    console.error('PiPエラー:', error);
+    alert(
+      'PiPを開けませんでした。動画の再生後にもう一度お試しください。'
+    );
+  } finally {
+    pipOpening = false;
+  }
+});
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const videoWrapper = document.getElementById('videoWrapper');
     fullscreenBtn.addEventListener('click', async () => {
