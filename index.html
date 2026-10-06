@@ -539,6 +539,149 @@
   outline-offset: -4px;
 }
 
+/* シークバーと操作ボタンをまとめたバー */
+#videoWrapper .site-player-controls {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 30;
+  height: 84px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  color: white;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+}
+
+.site-player-controls .player-seek {
+  display: block;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  accent-color: #ff4242;
+  cursor: pointer;
+}
+
+.site-player-controls .player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  overflow-x: auto;
+}
+
+.site-player-controls button {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.site-player-controls button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.site-player-controls .player-volume {
+  flex: 0 0 65px;
+  width: 65px;
+  min-width: 0;
+  margin: 0;
+  accent-color: white;
+}
+
+.site-player-controls .player-time {
+  flex-shrink: 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.site-player-controls .player-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 映像クリック用。操作バーには重ねない */
+#videoWrapper #videoClickToggle {
+  position: absolute;
+  inset: 0 0 84px;
+  z-index: 5;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* タイトル → 弾幕入力 → チャンネル情報 */
+.video-meta-bar.updated-video-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px 16px;
+}
+
+.updated-video-meta #mainTitle {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+
+.updated-video-meta .meta-actions {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.updated-video-meta .danmaku-input-area {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.updated-video-meta #danmakuInput {
+  min-width: 0;
+}
+
+.updated-video-meta .uploader-info-container {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .video-meta-bar.updated-video-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .updated-video-meta .meta-actions {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .updated-video-meta .danmaku-input-area {
+    grid-row: 3;
+  }
+
+  .updated-video-meta .uploader-info-container {
+    grid-row: 4;
+  }
+}
+
   </style>
 
 </head>
@@ -2397,6 +2540,233 @@ await uploadBytes(storageRef, file, {
       if (isDanmakuVisible) { danmakuContainer.style.visibility = 'visible'; toggleDanmakuBtn.textContent = '💬 弾幕オン'; toggleDanmakuBtn.style.opacity = '1'; }
       else { danmakuContainer.style.visibility = 'hidden'; toggleDanmakuBtn.textContent = '🔕 弾幕オフ'; toggleDanmakuBtn.style.opacity = '0.6'; }
     });
+
+
+    // ===== プレイヤー操作バーと弾幕入力位置の変更 =====
+(() => {
+  const video = document.getElementById('mainVideo');
+  const wrapper = document.getElementById('videoWrapper');
+
+  if (!video || !wrapper ||
+      wrapper.querySelector('.site-player-controls')) return;
+
+  const panel = document.createElement('div');
+  panel.className = 'site-player-controls';
+
+  panel.innerHTML = `
+    <input
+      class="player-seek"
+      type="range"
+      min="0" max="1" step="0.1" value="0"
+      aria-label="再生位置"
+      disabled
+    >
+
+    <div class="player-row">
+      <button type="button" class="player-play"
+        aria-label="再生">▶</button>
+
+      <button type="button" class="player-mute"
+        aria-label="ミュート">🔊</button>
+
+      <input
+        class="player-volume"
+        type="range"
+        min="0" max="1" step="0.05" value="1"
+        aria-label="音量"
+      >
+
+      <span class="player-time">0:00 / 0:00</span>
+      <div class="player-right"></div>
+    </div>
+  `;
+
+  wrapper.appendChild(panel);
+
+  // 既存のボタンを移す。登録済みの機能も維持する
+  const right = panel.querySelector('.player-right');
+
+  ['pipBtn', 'toggleDanmakuBtn', 'fullscreenBtn'].forEach(id => {
+    const button = document.getElementById(id);
+
+    if (button) {
+      button.type = 'button';
+      right.appendChild(button);
+    }
+  });
+
+  wrapper.querySelector('.custom-controls-bar')?.remove();
+
+  const play = panel.querySelector('.player-play');
+  const mute = panel.querySelector('.player-mute');
+  const volume = panel.querySelector('.player-volume');
+  const seek = panel.querySelector('.player-seek');
+  const time = panel.querySelector('.player-time');
+
+  let seeking = false;
+  let lastVolume = video.volume || 1;
+
+  function format(value) {
+    const n = Math.max(
+      0,
+      Math.floor(Number.isFinite(value) ? value : 0)
+    );
+
+    const h = Math.floor(n / 3600);
+    const m = Math.floor(n / 60) % 60;
+    const s = String(n % 60).padStart(2, '0');
+
+    return h
+      ? `${h}:${String(m).padStart(2, '0')}:${s}`
+      : `${m}:${s}`;
+  }
+
+  function sync() {
+    play.textContent = video.paused ? '▶' : '⏸';
+    play.setAttribute(
+      'aria-label',
+      video.paused ? '再生' : '一時停止'
+    );
+
+    const silent = video.muted || video.volume === 0;
+
+    mute.textContent = silent ? '🔇' : '🔊';
+    mute.setAttribute(
+      'aria-label',
+      silent ? 'ミュート解除' : 'ミュート'
+    );
+
+    volume.value = video.muted ? 0 : video.volume;
+
+    const duration = video.duration;
+    seek.disabled = !Number.isFinite(duration) || duration <= 0;
+    seek.max = seek.disabled ? 1 : duration;
+
+    if (!seeking) {
+      seek.value = video.currentTime || 0;
+    }
+
+    const position = seeking
+      ? Number(seek.value)
+      : video.currentTime;
+
+    time.textContent =
+      `${format(position)} / ${format(duration)}`;
+
+    seek.setAttribute('aria-valuetext', format(position));
+  }
+
+  async function togglePlayback() {
+    if (!video.currentSrc &&
+        !video.getAttribute('src') &&
+        !video.srcObject) return;
+
+    if (!video.paused && !video.ended) {
+      video.pause();
+      return;
+    }
+
+    try {
+      await video.play();
+    } catch (error) {
+      console.warn('再生できませんでした:', error);
+    }
+  }
+
+  play.addEventListener('click', togglePlayback);
+
+  mute.addEventListener('click', () => {
+    if (video.muted || video.volume === 0) {
+      if (video.volume === 0) video.volume = lastVolume;
+      video.muted = false;
+    } else {
+      lastVolume = video.volume;
+      video.muted = true;
+    }
+  });
+
+  volume.addEventListener('input', () => {
+    video.volume = Number(volume.value);
+    video.muted = video.volume === 0;
+
+    if (video.volume > 0) lastVolume = video.volume;
+  });
+
+  // ドラッグ中は時刻を表示し、確定時に移動する
+  seek.addEventListener('input', () => {
+    seeking = true;
+    sync();
+  });
+
+  seek.addEventListener('change', () => {
+    try {
+      if (!seek.disabled) {
+        video.currentTime = Number(seek.value);
+      }
+    } catch (error) {
+      console.warn('再生位置を変更できませんでした:', error);
+    }
+
+    seeking = false;
+    sync();
+  });
+
+  seek.addEventListener('pointercancel', () => {
+    seeking = false;
+    sync();
+  });
+
+  panel.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+
+  [
+    'play', 'pause', 'ended', 'timeupdate',
+    'loadedmetadata', 'durationchange', 'volumechange'
+  ].forEach(name => video.addEventListener(name, sync));
+
+  video.addEventListener('emptied', () => {
+    seeking = false;
+    sync();
+  });
+
+  // 前回追加した映像クリック用ボタンはそのまま利用
+  let surface = document.getElementById('videoClickToggle');
+
+  if (!surface) {
+    surface = document.createElement('button');
+    surface.id = 'videoClickToggle';
+    surface.type = 'button';
+    surface.setAttribute('aria-label', '再生・一時停止');
+    surface.addEventListener('click', togglePlayback);
+    wrapper.appendChild(surface);
+  }
+
+  // 標準の操作バーを、今回の操作バーに切り替える
+  video.controls = false;
+  sync();
+
+  // タイトル・高評価 → 弾幕入力 → アイコン・名前
+  const meta = document.querySelector('.video-meta-bar');
+  const title = document.getElementById('mainTitle');
+  const actions = meta?.querySelector('.meta-actions');
+  const uploader = meta?.querySelector('.uploader-info-container');
+  const danmaku = document.getElementById('danmakuInput')
+    ?.closest('.danmaku-input-area');
+
+  if (meta && title && actions && uploader && danmaku) {
+    const oldTitleArea = meta.querySelector('.title-area');
+
+    meta.append(title, actions, danmaku, uploader);
+
+    if (oldTitleArea && !oldTitleArea.children.length) {
+      oldTitleArea.remove();
+    }
+
+    meta.classList.add('updated-video-meta');
+  }
+})();
+
   </script>
 </body>
 </html>
