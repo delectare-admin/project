@@ -738,6 +738,250 @@
   bottom: 68px;
 }
 
+
+/* ===== スマホのヘッダー・ホーム画面の修正 ===== */
+@media (max-width: 768px) {
+
+  /* ヘッダーを「ロゴ・アカウント操作・検索」の3段に整理 */
+  body > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+    height: auto;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+  header .logo {
+    grid-row: 1;
+    min-width: 0;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  header .logo-img {
+    width: 32px;
+    height: 28px;
+    object-fit: contain;
+  }
+
+  header .header-actions {
+    grid-row: 2;
+    min-width: 0;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  header #userInfo {
+    min-width: 0;
+    max-width: 100%;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  header #userProfileAvatar {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+  }
+
+  header #channelNameDisplay {
+    min-width: 0;
+    max-width: 100px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  header .create-btn {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  header .dropdown-menu {
+    top: calc(100% + 6px);
+    right: auto;
+    left: 0;
+    max-width: 100%;
+  }
+
+  header .header-search-bar {
+    grid-row: 3;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+  }
+
+  header .header-search-bar input {
+    width: 0;
+    min-width: 0;
+    flex: 1 1 0%;
+    height: 38px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+
+  header .header-search-bar > button {
+    flex: 0 0 44px;
+    padding: 0;
+  }
+
+  header .search-suggestions {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 内容の長さでページ全体が横に広がらないようにする */
+  .main-content {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    box-sizing: border-box;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .home-container,
+  .channel-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .video-grid {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    padding: 0 12px;
+    gap: 20px;
+    box-sizing: border-box;
+  }
+
+  .video-grid .grid-item {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .video-grid .thumbnail-img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* アイコン・タイトル・メニューをカード内に収める */
+  #videoGrid .grid-item-info {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  #videoGrid .home-channel-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+  }
+
+  #videoGrid .grid-item-text {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  #videoGrid .grid-title {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  #videoGrid .grid-menu-wrapper {
+    flex: 0 0 24px;
+    margin-left: 0;
+  }
+
+  #videoGrid .grid-menu-btn-yt {
+    width: 24px;
+    padding: 0;
+    visibility: visible;
+  }
+
+  /* 名前・コメントアイコン・人気コメントを1行に収める */
+  #videoGrid .home-author-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  #videoGrid .home-author-row .grid-author {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 40%;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #videoGrid .home-comment-icon {
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  #videoGrid .home-author-row .home-top-comment {
+    flex: 1 1 0%;
+    min-width: 0;
+    margin: 0;
+    padding: 2px 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 下部ナビが最後の動画に重ならないよう余白を確保 */
+  .side-nav {
+    width: 100%;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+
+  .side-nav .nav-item {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  .side-nav .nav-item span {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
+
+
   </style>
 
 </head>
