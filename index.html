@@ -2850,8 +2850,10 @@ function loadComments() {
         )
       }));
 
-    commentSortSelect.disabled = false;
+       commentSortSelect.disabled = false;
     renderSortedComments();
+    syncDanmakuToTime();
+    
   }, error => {
     if (currentVideoId !== targetVideoId) return;
 
@@ -2881,24 +2883,130 @@ function loadComments() {
     commentList.addEventListener('input', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn) btn.disabled = e.target.value.trim() === ""; autoResizeTextArea(e.target); } });
     commentList.addEventListener('keydown', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn && !btn.disabled) btn.click(); } } });
 
-    function syncDanmakuToTime(currentTime) {
-      danmakuContainer.innerHTML = ''; lastTime = currentTime;
-      videoComments.forEach(comment => { if (comment.videoTime !== undefined && comment.videoTime <= currentTime && comment.videoTime > currentTime - 5) { shootDanmaku(comment.text, currentTime - comment.videoTime); } });
+   // 同じコメントIDの弾幕は、画面内に1つだけ表示する
+const danmakuNodes = new Map();
+const DANMAKU_SECONDS = 5;
+
+let danmakuFrame = 0;
+let danmakuVideoId = null;
+
+function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
+  // 別の動画へ移ったら、前の弾幕を消す
+  if (danmakuVideoId !== currentVideoId) {
+    danmakuContainer.replaceChildren();
+    danmakuNodes.clear();
+    danmakuVideoId = currentVideoId;
+  }
+
+  const visibleIds = new Set();
+
+  for (const comment of videoComments) {
+    const start = comment.videoTime;
+
+    if (
+      !comment.id ||
+      typeof start !== 'number' ||
+      !Number.isFinite(start)
+    ) {
+      continue;
     }
-    mainVideo.addEventListener('timeupdate', () => {
-      const currentTime = mainVideo.currentTime;
-      if (Math.abs(currentTime - lastTime) > 1) { syncDanmakuToTime(currentTime); return; }
-      if (currentTime < lastTime) { lastTime = currentTime; return; }
-      videoComments.forEach(comment => { if (comment.videoTime !== undefined && comment.videoTime >= lastTime && comment.videoTime < currentTime) { shootDanmaku(comment.text, 0); } });
-      lastTime = currentTime;
-    });
-    mainVideo.addEventListener('pause', () => danmakuContainer.classList.add('is-paused'));
-    mainVideo.addEventListener('play', () => danmakuContainer.classList.remove('is-paused'));
-    function shootDanmaku(text, timePassed = 0) {
-      const span = document.createElement('span'); span.className = 'danmaku-comment'; span.textContent = text; span.style.top = (Math.floor(Math.random() * 80) + 5) + '%';
-      if (timePassed > 0) span.style.animationDelay = `-${timePassed}s`;
-      danmakuContainer.appendChild(span); span.addEventListener('animationend', () => span.remove());
+
+    const elapsed = currentTime - start;
+
+    // 現在の再生時刻で表示対象になるコメントだけ使う
+    if (elapsed < 0 || elapsed >= DANMAKU_SECONDS) continue;
+
+    const id = comment.id;
+    visibleIds.add(id);
+
+    let node = danmakuNodes.get(id);
+
+    if (!node || node.parentNode !== danmakuContainer) {
+      node = danmakuContainer.ownerDocument.createElement('span');
+      node.className = 'danmaku-comment';
+
+      // CSSの自動アニメーションではなく、動画時刻で位置を決める
+      node.style.animation = 'none';
+
+      // 同じコメントは、巻き戻しても同じ高さに表示する
+      let hash = 0;
+      for (const char of id) {
+        hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+      }
+
+      node.style.top = `${hash % 70}%`;
+
+      danmakuContainer.appendChild(node);
+      danmakuNodes.set(id, node);
     }
+
+    node.textContent = comment.text || '';
+
+    const progress = elapsed / DANMAKU_SECONDS;
+
+    node.style.left = `${(1 - progress) * 100}%`;
+    node.style.transform = `translateX(${-progress * 100}%)`;
+  }
+
+  // シーク先で不要になった弾幕や、削除されたコメントを消す
+  for (const [id, node] of danmakuNodes) {
+    if (!visibleIds.has(id)) {
+      node.remove();
+      danmakuNodes.delete(id);
+    }
+  }
+}
+
+function stopDanmakuLoop() {
+  cancelAnimationFrame(danmakuFrame);
+  danmakuFrame = 0;
+}
+
+function startDanmakuLoop() {
+  // 表示更新のループが重複しないようにする
+  stopDanmakuLoop();
+
+  const tick = () => {
+    danmakuFrame = 0;
+    syncDanmakuToTime();
+
+    if (
+      !mainVideo.paused &&
+      !mainVideo.ended &&
+      !mainVideo.seeking
+    ) {
+      danmakuFrame = requestAnimationFrame(tick);
+    }
+  };
+
+  tick();
+}
+
+mainVideo.addEventListener('playing', startDanmakuLoop);
+
+mainVideo.addEventListener('pause', () => {
+  stopDanmakuLoop();
+  syncDanmakuToTime();
+});
+
+mainVideo.addEventListener('seeking', () => {
+  stopDanmakuLoop();
+  syncDanmakuToTime();
+});
+
+mainVideo.addEventListener('seeked', startDanmakuLoop);
+
+mainVideo.addEventListener('timeupdate', () => {
+  syncDanmakuToTime();
+});
+
+mainVideo.addEventListener('ended', stopDanmakuLoop);
+
+mainVideo.addEventListener('emptied', () => {
+  stopDanmakuLoop();
+  danmakuContainer.replaceChildren();
+  danmakuNodes.clear();
+});
 
     createBtn.addEventListener('click', () => createMenu.classList.toggle('active'));
     uploadMenuBtn.addEventListener('click', () => {
