@@ -717,6 +717,26 @@
   bottom: 48px;
 }
 
+/* 自動で小窓になったときもシークバーを表示 */
+#videoWrapper.is-sticky:not(.in-pip) .player-seek {
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin: 0 0 4px;
+  box-sizing: border-box;
+}
+
+/* シークバーとボタンが収まる高さにする */
+#videoWrapper.is-sticky:not(.in-pip) .site-player-controls {
+  height: 68px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+
+/* 操作部分をクリックしても映像側の再生切替が反応しないようにする */
+#videoWrapper.is-sticky:not(.in-pip) #videoClickToggle {
+  bottom: 68px;
+}
 
   </style>
 
