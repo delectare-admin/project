@@ -1166,6 +1166,274 @@ body.mobile-search-open {
   height: 24px;
 }
 
+/* スマホでは全画面でコンパクトなヘッダーを使う */
+@media (max-width: 768px) {
+  body > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 8px;
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  body > header .logo {
+    flex: 1;
+    min-width: 0;
+    font-size: 18px;
+    white-space: nowrap;
+  }
+
+  body > header .header-actions,
+  body > header .header-search-bar {
+    display: none;
+  }
+
+  body > header #mobileWatchSearchBtn {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #111;
+    cursor: pointer;
+  }
+}
+
+/* マイページで表示する設定ボタン */
+#mySettingsBtn:not([hidden]) {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 27px;
+  cursor: pointer;
+}
+
+#navSavedBtn .nav-item-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+#navSavedBtn .nav-item-icon img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* マイページ本体 */
+#videoGrid .my-page {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 0 24px;
+  box-sizing: border-box;
+}
+
+.my-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.my-identity > div:last-child {
+  min-width: 0;
+}
+
+.my-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e9eef6;
+  color: #365477;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.my-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-name {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.my-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.my-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.my-actions button,
+.my-section-head button {
+  padding: 9px 15px;
+  border: 1px solid #ddd;
+  border-radius: 22px;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.my-actions button:first-child {
+  background: #f0f0f0;
+  border-color: #f0f0f0;
+}
+
+.my-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 12px;
+}
+
+.my-section-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.my-video-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.my-video-card {
+  display: block;
+  flex: 0 0 190px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.my-video-card .thumbnail-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.my-video-card strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.my-video-card > span {
+  display: block;
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-empty {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 設定画面 */
+#mySettingsDialog {
+  width: min(360px, calc(100% - 32px));
+  max-height: 80dvh;
+  padding: 20px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  color: #111;
+}
+
+#mySettingsDialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.my-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-settings-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+#mySettingsClose {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+#mySettingsAccount {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+#mySettingsAuth {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 22px;
+  background: #065fd4;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#mySettingsAuth:disabled {
+  opacity: 0.5;
+}
+
   </style>
 
 </head>
@@ -1640,10 +1908,7 @@ updateVideoClickLabel();
       currentFeed = 'subscriptions'; setActiveNav('subscriptions'); goHome();
     });
     navHistoryBtn.addEventListener('click', () => { currentFeed = 'history'; setActiveNav('history'); goHome(); });
-    navSavedBtn.addEventListener('click', () => {
-      if (!currentUser) return alert('保存した動画を見るにはログインしてください。');
-      currentFeed = 'saved'; setActiveNav('saved'); goHome();
-    });
+    navSavedBtn.addEventListener('click', openMyPage);
 
     const loginOpenBtn = document.getElementById('loginOpenBtn');
     const userInfo = document.getElementById('userInfo');
@@ -2002,7 +2267,11 @@ async function loadVideoList(prefetched = null) {
   }
 }
 
-    async function applyFilterAndSort() {
+  async function applyFilterAndSort() {
+  if (currentFeed === 'mypage') {
+    renderMyPage();
+    return;
+  }
       const keyword = searchInput.value.trim().toLowerCase();
       let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid) && !currentUserNotInterested.includes(v.uploaderUid));
       const categoryFilterBar = document.getElementById('categoryFilterBar');
@@ -3781,6 +4050,291 @@ await uploadBytes(storageRef, file, {
 
     resumeOnClose = false;
   });
+})();
+
+// マイページを開く
+function openMyPage() {
+  searchInput.value = '';
+  currentFeed = 'mypage';
+  setActiveNav('saved');
+  goHome();
+}
+
+// 既存の履歴・保存動画を使ってマイページを表示
+function renderMyPage() {
+  homeCardObserver.disconnect();
+
+  categoryFilterBar.style.display = 'none';
+  document.getElementById('sortControlsArea').style.display = 'none';
+  document.getElementById('pageTitleHeading').style.display = 'none';
+
+  document.title = 'マイページ｜サブ・ムービー';
+
+  videoGrid.innerHTML = `
+    <section class="my-page">
+      <div class="my-identity">
+        <div class="my-avatar"></div>
+        <div>
+          <h1 class="my-name"></h1>
+          <p class="my-status"></p>
+        </div>
+      </div>
+
+      <div class="my-actions">
+        <button type="button" id="myChannelBtn"></button>
+        <button type="button" id="myUploadBtn">動画を投稿</button>
+      </div>
+
+      <div class="my-section-head">
+        <h2>履歴</h2>
+        <button type="button" id="myHistoryAll">すべて表示</button>
+      </div>
+      <div class="my-video-rail" id="myHistoryRail"></div>
+
+      <div class="my-section-head">
+        <h2>保存した動画</h2>
+        <button type="button" id="mySavedAll">すべて表示</button>
+      </div>
+      <div class="my-video-rail" id="mySavedRail"></div>
+    </section>
+  `;
+
+  const name = currentUser?.channelName || 'ゲスト';
+
+  videoGrid.querySelector('.my-name').textContent = name;
+  videoGrid.querySelector('.my-status').textContent = currentUser
+    ? '自分のチャンネルと動画を管理'
+    : 'ログインすると動画を保存できます';
+
+  const avatar = videoGrid.querySelector('.my-avatar');
+
+  if (currentUser?.avatarUrl) {
+    const img = document.createElement('img');
+    img.src = currentUser.avatarUrl;
+    img.alt = '';
+    avatar.appendChild(img);
+  } else {
+    avatar.textContent = name.slice(0, 1);
+  }
+
+  const channelButton = document.getElementById('myChannelBtn');
+  channelButton.textContent = currentUser
+    ? 'チャンネルを表示'
+    : 'ログイン';
+
+  channelButton.onclick = () => {
+    if (currentUser) {
+      showMyProfile(currentUser.uid);
+    } else {
+      loginOpenBtn.click();
+    }
+  };
+
+  document.getElementById('myUploadBtn').onclick = () => {
+    uploadMenuBtn.click();
+  };
+
+  function openList(feed) {
+    if (feed === 'saved' && !currentUser) {
+      loginOpenBtn.click();
+      return;
+    }
+
+    searchInput.value = '';
+    currentFeed = feed;
+    setActiveNav(feed);
+    goHome();
+  }
+
+  document.getElementById('myHistoryAll').onclick = () => {
+    openList('history');
+  };
+
+  document.getElementById('mySavedAll').onclick = () => {
+    openList('saved');
+  };
+
+  const byId = new Map(
+    allVideos
+      .filter(v => !currentUserBlocks.includes(v.uploaderUid))
+      .map(v => [v.itemRef.fullPath, v])
+  );
+
+  function fillRail(id, ids, emptyText) {
+    const rail = document.getElementById(id);
+
+    const videos = [...new Set(ids)]
+      .map(key => byId.get(key))
+      .filter(Boolean)
+      .slice(0, 10);
+
+    if (!videos.length) {
+      const p = document.createElement('p');
+      p.className = 'my-empty';
+      p.textContent = emptyText;
+      rail.appendChild(p);
+      return;
+    }
+
+    videos.forEach(v => {
+      const link = document.createElement('a');
+      link.className = 'my-video-card';
+
+      const url = new URL(location.pathname, location.origin);
+      url.searchParams.set('v', v.itemRef.fullPath);
+      link.href = url.href;
+
+      link.innerHTML = thumbnailHtml(v);
+
+      const title = document.createElement('strong');
+      title.textContent = v.title;
+
+      const author = document.createElement('span');
+      author.textContent = v.uploaderName || 'ゲスト';
+
+      link.append(title, author);
+
+      link.onclick = event => {
+        if (
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        watchVideo(v);
+      };
+
+      rail.appendChild(link);
+    });
+  }
+
+  fillRail(
+    'myHistoryRail',
+    watchHistory,
+    'まだ視聴履歴がありません。'
+  );
+
+  fillRail(
+    'mySavedRail',
+    currentUser ? currentUserSaved : [],
+    currentUser
+      ? '保存した動画はありません。'
+      : '保存した動画を見るにはログインしてください。'
+  );
+}
+
+// ナビゲーションと設定画面
+(() => {
+  if (document.getElementById('mySettingsBtn')) return;
+
+  navSavedBtn.innerHTML = `
+    <span class="nav-item-icon">👤</span>
+    <span>マイページ</span>
+  `;
+
+  const header = document.querySelector('body > header');
+
+  const settings = document.createElement('button');
+  settings.id = 'mySettingsBtn';
+  settings.type = 'button';
+  settings.setAttribute('aria-label', '設定');
+  settings.textContent = '⚙';
+  settings.hidden = true;
+  header.appendChild(settings);
+
+  const panel = document.createElement('dialog');
+  panel.id = 'mySettingsDialog';
+  panel.setAttribute('aria-label', '設定');
+
+  panel.innerHTML = `
+    <div class="my-settings-head">
+      <h2>設定</h2>
+      <button type="button"
+              id="mySettingsClose"
+              aria-label="設定を閉じる">×</button>
+    </div>
+    <p id="mySettingsAccount"></p>
+    <button type="button" id="mySettingsAuth"></button>
+  `;
+
+  document.body.appendChild(panel);
+
+  const account = panel.querySelector('#mySettingsAccount');
+  const authButton = panel.querySelector('#mySettingsAuth');
+
+  settings.onclick = () => {
+    account.textContent = currentUser
+      ? `${currentUser.channelName}でログイン中`
+      : 'ログインしていません';
+
+    authButton.textContent = currentUser
+      ? 'ログアウト'
+      : 'ログイン／新規登録';
+
+    panel.showModal();
+  };
+
+  panel.querySelector('#mySettingsClose').onclick = () => {
+    panel.close();
+  };
+
+  authButton.onclick = async () => {
+    if (!currentUser) {
+      panel.close();
+      loginOpenBtn.click();
+      return;
+    }
+
+    authButton.disabled = true;
+
+    try {
+      await signOut(auth);
+      panel.close();
+    } catch (error) {
+      account.textContent =
+        'ログアウトできませんでした。もう一度お試しください。';
+      console.error(error);
+    } finally {
+      authButton.disabled = false;
+    }
+  };
+
+  function syncSettingsButton() {
+    // 設定はマイページを開いている間だけ表示
+    settings.hidden = !(
+      currentFeed === 'mypage' &&
+      homeScreen.style.display !== 'none'
+    );
+
+    // 下部ナビにも自分のチャンネルアイコンを表示
+    const icon = navSavedBtn.querySelector('.nav-item-icon');
+    icon.replaceChildren();
+
+    if (currentUser?.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = currentUser.avatarUrl;
+      img.alt = '';
+      icon.appendChild(img);
+    } else {
+      icon.textContent = '👤';
+    }
+  }
+
+  new MutationObserver(syncSettingsButton).observe(homeScreen, {
+    attributes: true,
+    attributeFilter: ['style']
+  });
+
+  new MutationObserver(syncSettingsButton).observe(videoGrid, {
+    childList: true
+  });
+
+  syncSettingsButton();
 })();
 
   </script>
