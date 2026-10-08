@@ -1634,7 +1634,7 @@ updateVideoClickLabel();
       navSavedBtn.classList.toggle('active', feedType === 'saved');
     }
 
-    navHomeBtn.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
+    navHomeBtn.addEventListener('click', returnToHomeList);
     navSubscriptionsBtn.addEventListener('click', () => {
       if (!currentUser) return alert('登録したチャンネルを見るにはログインしてください。');
       currentFeed = 'subscriptions'; setActiveNav('subscriptions'); goHome();
@@ -2659,7 +2659,28 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
   }
 }
 
-    logoHome.addEventListener('click', () => { currentFeed = 'all'; setActiveNav('all'); goHome(); });
+    function returnToHomeList() {
+  // 検索とカテゴリの絞り込みを解除
+  searchInput.value = '';
+  currentFeed = 'all';
+  currentCategory = 'すべて';
+
+  const mobileInput = document.getElementById('mobileSearchText');
+  if (mobileInput) mobileInput.value = '';
+
+  if (searchSuggestions) {
+    searchSuggestions.style.display = 'none';
+  }
+
+  categoryFilterBar.querySelectorAll('.category-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === 'すべて');
+  });
+
+  setActiveNav('all');
+  goHome();
+}
+
+logoHome.addEventListener('click', returnToHomeList);
 
     function goHome(options = {}) {
   document.title =
