@@ -3531,21 +3531,120 @@ pipBtn.addEventListener('click', async () => {
       } catch {} finally { dislikeBtn.disabled = false; }
     });
 
+    function requireCommentLogin() {
+  const user = auth.currentUser;
+
+  if (!user || user.isAnonymous) {
+    alert('コメント・弾幕・評価をするにはログインしてください。');
+    return false;
+  }
+
+  return true;
+}
+
     function autoResizeTextArea(el) { el.style.height = '38px'; const newHeight = el.scrollHeight; if (newHeight > 38) el.style.height = newHeight + 'px'; }
     commentInput.addEventListener('input', function() { commentSubmitBtn.disabled = this.value.trim() === ""; autoResizeTextArea(this); });
     commentInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!commentSubmitBtn.disabled) commentSubmitBtn.click(); } });
     commentSubmitBtn.addEventListener('click', async () => {
-      const text = commentInput.value.trim(); if (!text) return;
-      commentInput.value = ""; commentInput.style.height = '38px'; commentSubmitBtn.disabled = true;
-      try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", createdAt: serverTimestamp(), parentId: null }); } catch {}
+  if (!requireCommentLogin()) return;
+
+  const text = commentInput.value.trim();
+  const videoId = currentVideoId;
+
+  if (!text || !videoId) return;
+
+  if (text.length > 2000) {
+    alert('コメントは2000文字以内で入力してください。');
+    return;
+  }
+
+  commentSubmitBtn.disabled = true;
+
+  try {
+    await addDoc(collection(db, 'comments'), {
+      videoId,
+      text,
+      author: getNickname(),
+      authorUid: auth.currentUser.uid,
+      type: 'normal',
+      createdAt: serverTimestamp(),
+      parentId: null
     });
-    danmakuInput.addEventListener('input', () => danmakuSubmitBtn.disabled = danmakuInput.value.trim() === "");
-    danmakuInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!danmakuSubmitBtn.disabled) danmakuSubmitBtn.click(); } });
-    danmakuSubmitBtn.addEventListener('click', async () => {
-      const text = danmakuInput.value.trim(); if (!text) return;
-      danmakuInput.value = ""; danmakuSubmitBtn.disabled = true;
-      try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "danmaku", videoTime: mainVideo.currentTime, createdAt: serverTimestamp() }); } catch {}
+
+    if (
+      currentVideoId === videoId &&
+      commentInput.value.trim() === text
+    ) {
+      commentInput.value = '';
+      commentInput.style.height = '38px';
+    }
+  } catch (error) {
+    console.error('コメント送信失敗:', error);
+    alert('コメントを送信できませんでした。ログイン状態を確認してください。');
+  } finally {
+    commentSubmitBtn.disabled =
+      commentInput.value.trim() === '';
+  }
+});
+
+danmakuInput.addEventListener('input', () => {
+  danmakuSubmitBtn.disabled =
+    danmakuInput.value.trim() === '';
+});
+
+danmakuInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+
+    if (!danmakuSubmitBtn.disabled) {
+      danmakuSubmitBtn.click();
+    }
+  }
+});
+
+danmakuSubmitBtn.addEventListener('click', async () => {
+  if (!requireCommentLogin()) return;
+
+  const text = danmakuInput.value.trim();
+  const videoId = currentVideoId;
+  const videoTime = mainVideo.currentTime;
+
+  if (!text || !videoId) return;
+
+  if (text.length > 200) {
+    alert('弾幕は200文字以内で入力してください。');
+    return;
+  }
+
+  if (!Number.isFinite(videoTime) || videoTime < 0) return;
+
+  danmakuSubmitBtn.disabled = true;
+
+  try {
+    await addDoc(collection(db, 'comments'), {
+      videoId,
+      text,
+      author: getNickname(),
+      authorUid: auth.currentUser.uid,
+      type: 'danmaku',
+      videoTime,
+      createdAt: serverTimestamp()
     });
+
+    if (
+      currentVideoId === videoId &&
+      danmakuInput.value.trim() === text
+    ) {
+      danmakuInput.value = '';
+    }
+  } catch (error) {
+    console.error('弾幕送信失敗:', error);
+    alert('弾幕を送信できませんでした。ログイン状態を確認してください。');
+  } finally {
+    danmakuSubmitBtn.disabled =
+      danmakuInput.value.trim() === '';
+  }
+});
 
     function renderCommentNode(comment, childReplies = [], isReply = false) {
       const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
@@ -3694,7 +3793,19 @@ function loadComments() {
       if (target.classList.contains('comment-delete-btn')) { if (!confirm('このコメントを削除しますか？')) return; try { await deleteDoc(doc(db, 'comments', target.dataset.id)); } catch {} return; }
       if (target.classList.contains('reply-toggle-btn')) { const area = document.getElementById(`reply-area-${target.dataset.id}`); area.style.display = area.style.display === 'flex' ? 'none' : 'flex'; return; }
       if (target.classList.contains('submit-reply-btn')) {
-        const parentId = target.dataset.id; const input = document.getElementById(`reply-input-${parentId}`); const text = input.value.trim(); if (!text) return; target.disabled = true;
+      if (!requireCommentLogin()) return;
+        const parentId = target.dataset.id;
+        const input = document.getElementById(`reply-input-${parentId}`);
+        const text = input.value.trim();
+
+if (!text) return;
+
+if (text.length > 2000) {
+  alert('返信は2000文字以内で入力してください。');
+  return;
+}
+
+target.disabled = true;
         try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", parentId, createdAt: serverTimestamp() }); input.value = ""; input.style.height = '38px'; document.getElementById(`reply-area-${parentId}`).style.display = 'none'; } catch {} finally { target.disabled = false; } return;
       }
       if (target.closest('.like-comment-btn')) {
