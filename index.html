@@ -999,6 +999,173 @@
   border-radius: 6px;
 }
 
+/* スマホ視聴画面の検索ボタン */
+#mobileWatchSearchBtn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body.watch-mode > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 12px;
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  body.watch-mode > header .logo {
+    min-width: 0;
+    font-size: 18px;
+    white-space: nowrap;
+  }
+
+  body.watch-mode > header .header-actions,
+  body.watch-mode > header .header-search-bar {
+    display: none;
+  }
+
+  body.watch-mode #mobileWatchSearchBtn {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #111;
+    cursor: pointer;
+  }
+}
+
+/* 検索画面 */
+#mobileSearchDialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+}
+
+#mobileSearchDialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+body.mobile-search-open {
+  overflow: hidden;
+}
+
+#mobileSearchDialog .mobile-search-form {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+#mobileSearchDialog button {
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+#mobileSearchDialog .mobile-search-icon-btn {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+}
+
+#mobileSearchDialog .mobile-search-field {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  border-radius: 24px;
+  background: #f2f2f2;
+}
+
+#mobileSearchText {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 44px;
+  padding: 0 0 0 14px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #111;
+  font-size: 16px;
+}
+
+#mobileSearchHistory {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+#mobileSearchHistory .search-history-row {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid #eee;
+}
+
+#mobileSearchHistory .search-history-term {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#mobileSearchHistory .search-history-delete {
+  flex-shrink: 0;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: #065fd4;
+  font-size: 13px;
+}
+
+#mobileSearchHistory .search-history-empty {
+  padding: 24px 16px;
+  color: #777;
+  font-size: 14px;
+}
+
+#mobileWatchSearchBtn svg,
+#mobileSearchDialog svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
   </style>
 
 </head>
@@ -3382,6 +3549,217 @@ await uploadBytes(storageRef, file, {
 
     meta.classList.add('updated-video-meta');
   }
+})();
+
+// スマホの動画視聴画面用・検索画面
+(() => {
+  if (document.getElementById('mobileWatchSearchBtn')) return;
+
+  const header = document.querySelector('body > header');
+  if (!header) return;
+
+  const searchIcon = `
+    <svg viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="7.5"></circle>
+      <path d="m16 16 5 5"></path>
+    </svg>
+  `;
+
+  // ヘッダー右側の検索アイコン
+  const openBtn = document.createElement('button');
+  openBtn.id = 'mobileWatchSearchBtn';
+  openBtn.type = 'button';
+  openBtn.setAttribute('aria-label', '検索を開く');
+  openBtn.setAttribute('aria-haspopup', 'dialog');
+  openBtn.innerHTML = searchIcon;
+  header.appendChild(openBtn);
+
+  // 全画面の検索画面
+  const dialog = document.createElement('dialog');
+  dialog.id = 'mobileSearchDialog';
+  dialog.setAttribute('aria-label', '動画を検索');
+
+  dialog.innerHTML = `
+    <form class="mobile-search-form">
+      <button type="button"
+              class="mobile-search-icon-btn"
+              id="mobileSearchBack"
+              aria-label="動画に戻る">
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <path d="m12 4-8 8 8 8M4 12h16"></path>
+        </svg>
+      </button>
+
+      <div class="mobile-search-field">
+        <input id="mobileSearchText"
+               type="search"
+               placeholder="サブ・ムービーを検索"
+               aria-label="検索キーワード"
+               autocomplete="off"
+               enterkeyhint="search">
+
+        <button type="submit"
+                class="mobile-search-icon-btn"
+                aria-label="検索する">
+          ${searchIcon}
+        </button>
+      </div>
+    </form>
+
+    <div id="mobileSearchHistory"></div>
+  `;
+
+  document.body.appendChild(dialog);
+
+  const form = dialog.querySelector('form');
+  const input = dialog.querySelector('#mobileSearchText');
+  const historyList = dialog.querySelector('#mobileSearchHistory');
+  const backBtn = dialog.querySelector('#mobileSearchBack');
+
+  const HISTORY_KEY = 'submovie-search-history-v1';
+
+  let history = [];
+  let resumeOnClose = false;
+  let openedVideoId = '';
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if (Array.isArray(saved)) {
+      history = [...new Set(
+        saved.filter(value => typeof value === 'string' && value.trim())
+      )].slice(0, 20);
+    }
+  } catch {
+    history = [];
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // 保存できない環境でも検索は使える
+    }
+  }
+
+  function runSearch(value) {
+    const keyword = value.trim();
+    if (!keyword) {
+      input.focus();
+      return;
+    }
+
+    history = [
+      keyword,
+      ...history.filter(item => item !== keyword)
+    ].slice(0, 20);
+
+    saveHistory();
+
+    // 検索結果に移動する場合、元の動画は再開しない
+    resumeOnClose = false;
+    dialog.close();
+
+    stopMainPlayback();
+
+    // 全動画を対象に検索する
+    currentFeed = 'all';
+    currentCategory = 'すべて';
+    setActiveNav('all');
+
+    categoryFilterBar.querySelectorAll('.category-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.cat === 'すべて');
+    });
+
+    searchInput.value = keyword;
+    goHome();
+  }
+
+  function renderHistory() {
+    historyList.replaceChildren();
+
+    const filter = input.value.trim().toLocaleLowerCase();
+    const matches = history.filter(
+      word => word.toLocaleLowerCase().includes(filter)
+    );
+
+    if (!matches.length) {
+      const empty = document.createElement('p');
+      empty.className = 'search-history-empty';
+      empty.textContent = filter
+        ? '検索ボタンを押すと動画を検索できます。'
+        : 'ここに検索履歴が表示されます。';
+      historyList.appendChild(empty);
+      return;
+    }
+
+    for (const word of matches) {
+      const row = document.createElement('div');
+      row.className = 'search-history-row';
+
+      const term = document.createElement('button');
+      term.type = 'button';
+      term.className = 'search-history-term';
+      term.textContent = word;
+      term.addEventListener('click', () => runSearch(word));
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'search-history-delete';
+      remove.textContent = '削除';
+      remove.setAttribute('aria-label', `${word}を検索履歴から削除`);
+      remove.addEventListener('click', () => {
+        history = history.filter(item => item !== word);
+        saveHistory();
+        renderHistory();
+      });
+
+      row.append(term, remove);
+      historyList.appendChild(row);
+    }
+  }
+
+  openBtn.addEventListener('click', () => {
+    if (dialog.open) return;
+
+    openedVideoId = currentVideoId;
+    resumeOnClose = !mainVideo.paused && !mainVideo.ended;
+    mainVideo.pause();
+
+    input.value = '';
+    renderHistory();
+
+    document.body.classList.add('mobile-search-open');
+    dialog.showModal();
+    input.focus();
+  });
+
+  backBtn.addEventListener('click', () => dialog.close());
+
+  input.addEventListener('input', renderHistory);
+
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    runSearch(input.value);
+  });
+
+  dialog.addEventListener('close', () => {
+    document.body.classList.remove('mobile-search-open');
+
+    if (
+      resumeOnClose &&
+      currentVideoId === openedVideoId &&
+      document.body.classList.contains('watch-mode')
+    ) {
+      mainVideo.play().catch(() => {});
+    }
+
+    resumeOnClose = false;
+  });
 })();
 
   </script>
