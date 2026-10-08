@@ -1636,6 +1636,152 @@ body.mobile-comments-open {
   font-size: 16px;
 }
 
+/* タイトルと「もっと詳しく」 */
+.mobile-description-title {
+  display: contents;
+}
+
+#mobileDescriptionSummary {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-description-title {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .mobile-description-title #mainTitle {
+    cursor: pointer;
+    overflow-wrap: anywhere;
+  }
+
+  #mobileDescriptionSummary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px 10px;
+    margin-top: 8px;
+    color: #666;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  #mobileDescriptionOpen {
+    min-height: 32px;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    color: #111;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  /* 元の説明表示を隠す。コメント枠は残す */
+  #videoDescriptionBox .video-description-meta,
+  #videoDescriptionText {
+    display: none !important;
+  }
+
+  #videoDescriptionBox {
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+/* 説明パネル */
+#mobileDescriptionSheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  height: 65vh;
+  height: min(70dvh, calc(100dvh - 56px - 56.25vw));
+  min-height: 180px;
+  max-height: calc(100dvh - 56px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#mobileDescriptionSheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#mobileDescriptionSheet::backdrop {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+body.mobile-description-open {
+  overflow: hidden;
+}
+
+.mobile-description-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.mobile-description-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+#mobileDescriptionClose {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.mobile-description-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+#mobileDescriptionTitle {
+  margin: 0 0 12px;
+  font-size: 17px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#mobileDescriptionMeta {
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#mobileDescriptionBody {
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
   </style>
 
 </head>
@@ -4719,6 +4865,162 @@ function renderMyPage() {
 
   mobileQuery.addEventListener('change', applyLayout);
   applyLayout();
+})();
+
+// スマホ用：タイトルから説明パネルを開く
+(() => {
+  if (document.getElementById('mobileDescriptionSheet')) return;
+
+  const title = document.getElementById('mainTitle');
+  const views = document.getElementById('viewCount');
+  const date = document.getElementById('videoUploadDate');
+  const description = document.getElementById('videoDescriptionText');
+
+  if (!title || !views || !date || !description) return;
+
+  const mobile = window.matchMedia('(max-width: 768px)');
+
+  // タイトルをまとめる枠
+  const titleBlock = document.createElement('div');
+  titleBlock.className = 'mobile-description-title';
+  title.before(titleBlock);
+  titleBlock.appendChild(title);
+
+  const summary = document.createElement('div');
+  summary.id = 'mobileDescriptionSummary';
+  summary.innerHTML = `
+    <span id="mobileDescriptionViews"></span>
+    <span id="mobileDescriptionDate"></span>
+    <button type="button"
+            id="mobileDescriptionOpen"
+            aria-haspopup="dialog"
+            aria-controls="mobileDescriptionSheet">
+      もっと詳しく
+    </button>
+  `;
+  titleBlock.appendChild(summary);
+
+  const openButton = summary.querySelector('#mobileDescriptionOpen');
+  const summaryViews = summary.querySelector('#mobileDescriptionViews');
+  const summaryDate = summary.querySelector('#mobileDescriptionDate');
+
+  // 説明パネル
+  const sheet = document.createElement('dialog');
+  sheet.id = 'mobileDescriptionSheet';
+  sheet.setAttribute('aria-labelledby', 'mobileDescriptionHeading');
+  sheet.innerHTML = `
+    <div class="mobile-description-header">
+      <h2 id="mobileDescriptionHeading">説明</h2>
+      <button type="button"
+              id="mobileDescriptionClose"
+              aria-label="説明を閉じる"
+              autofocus>×</button>
+    </div>
+
+    <div class="mobile-description-body">
+      <h3 id="mobileDescriptionTitle"></h3>
+      <div id="mobileDescriptionMeta"></div>
+      <div id="mobileDescriptionBody"></div>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+
+  const closeButton = sheet.querySelector('#mobileDescriptionClose');
+  const panelTitle = sheet.querySelector('#mobileDescriptionTitle');
+  const panelMeta = sheet.querySelector('#mobileDescriptionMeta');
+  const panelBody = sheet.querySelector('#mobileDescriptionBody');
+  const panelScroll = sheet.querySelector('.mobile-description-body');
+
+  function syncDescription() {
+    summaryViews.textContent = views.textContent;
+    summaryDate.textContent = date.textContent;
+
+    panelTitle.textContent = title.textContent;
+    panelMeta.textContent =
+      `${views.textContent}　${date.textContent}`;
+
+    panelBody.textContent =
+      description.textContent.trim() || '説明はありません。';
+  }
+
+  function closeDescription() {
+    if (sheet.open) sheet.close();
+    document.body.classList.remove('mobile-description-open');
+  }
+
+  function openDescription() {
+    if (!mobile.matches || sheet.open) return;
+
+    syncDescription();
+
+    // 動画が上に見える位置へ戻す
+    const anchor = document.getElementById('videoAnchor');
+
+    if (anchor) {
+      const headerHeight =
+        document.querySelector('body > header')?.offsetHeight || 56;
+
+      window.scrollTo({
+        top: Math.max(
+          0,
+          window.scrollY +
+          anchor.getBoundingClientRect().top -
+          headerHeight
+        ),
+        behavior: 'instant'
+      });
+    }
+
+    sheet.showModal();
+    panelScroll.scrollTop = 0;
+    document.body.classList.add('mobile-description-open');
+    closeButton.focus({ preventScroll: true });
+  }
+
+  title.addEventListener('click', openDescription);
+  openButton.addEventListener('click', openDescription);
+  closeButton.addEventListener('click', closeDescription);
+
+  sheet.addEventListener('close', () => {
+    document.body.classList.remove('mobile-description-open');
+  });
+
+  // 再生回数・投稿日・説明の取得後も表示を更新
+  [views, date, description].forEach(element => {
+    new MutationObserver(syncDescription).observe(element, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  });
+
+  // 別の動画へ切り替えたら説明を閉じる
+  new MutationObserver(() => {
+    closeDescription();
+    syncDescription();
+  }).observe(title, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  // ホームなどへ移動したら閉じる
+  const watch = document.getElementById('watchScreen');
+
+  if (watch) {
+    new MutationObserver(() => {
+      if (watch.style.display === 'none') closeDescription();
+    }).observe(watch, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  }
+
+  mobile.addEventListener('change', () => {
+    if (!mobile.matches) closeDescription();
+  });
+
+  syncDescription();
 })();
 
   </script>
