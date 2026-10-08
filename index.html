@@ -2118,11 +2118,21 @@ body.mobile-description-open {
     const auth = getAuth(app);
     const googleProvider = new GoogleAuthProvider();
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str == null ? '' : String(str);
-      return div.innerHTML;
-    }
+   function escapeHtml(value) {
+  const replacements = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    character => replacements[character]
+  );
+}
+
     function statsDocId(path) { return path.replace(/\//g, '__'); }
 
     const logoHome = document.getElementById('logoHome');
@@ -2346,7 +2356,11 @@ updateVideoClickLabel();
         if (authMode === 'signup') {
           const channelName = authChannelName.value.trim() || 'ゲストチャンネル';
           const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, 'users', cred.user.uid), { channelName, email, createdAt: serverTimestamp(), subscriberCount: 0 });
+         await setDoc(doc(db, 'users', cred.user.uid), {
+  channelName,
+  createdAt: serverTimestamp(),
+  subscriberCount: 0
+});
         } else { await signInWithEmailAndPassword(auth, email, password); }
         authModal.classList.remove('active');
       } catch (error) {
@@ -2373,7 +2387,14 @@ updateVideoClickLabel();
     googleAuthBtn.addEventListener('click', async () => {
       try {
         const result = await signInWithPopup(auth, googleProvider); const user = result.user; const userRef = doc(db, 'users', user.uid); const snap = await getDoc(userRef);
-        if (!snap.exists()) await setDoc(userRef, { channelName: user.displayName || 'Googleユーザー', email: user.email, createdAt: serverTimestamp(), subscriberCount: 0 });
+        if (!snap.exists()) {
+  await setDoc(userRef, {
+    channelName: user.displayName || 'Googleユーザー',
+    createdAt: serverTimestamp(),
+    subscriberCount: 0
+  });
+}
+
         authModal.classList.remove('active');
       } catch (error) {
         authErrorMsg.textContent = translateAuthError(error.code); authErrorMsg.style.display = 'block';
