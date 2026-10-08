@@ -1434,6 +1434,208 @@ body.mobile-search-open {
   opacity: 0.5;
 }
 
+/* スマホ用コメントのプレビュー枠 */
+#mobileCommentsPreview {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #mobileCommentsPreview {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 16px 12px 24px;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: #eeeeee;
+    color: #111;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-comment-preview-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 15px;
+    font-weight: bold;
+  }
+
+  #mobileCommentsCount {
+    color: #666;
+    font-size: 13px;
+    font-weight: normal;
+  }
+
+  .mobile-comment-preview-arrow {
+    margin-left: auto;
+    color: #666;
+  }
+
+  #mobileCommentsExcerpt {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    color: #444;
+  }
+
+  #videoAnchor {
+    scroll-margin-top: 56px;
+  }
+}
+
+/* 下から開くコメントパネル */
+#mobileCommentsSheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  height: 65vh;
+  height: min(70dvh, calc(100dvh - 56px - 56.25vw));
+  min-height: 180px;
+  max-height: calc(100dvh - 56px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 18px 18px 0 0;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+}
+
+#mobileCommentsSheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#mobileCommentsSheet::backdrop {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+body.mobile-comments-open {
+  overflow: hidden;
+}
+
+.mobile-comments-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.mobile-comments-sheet-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+#mobileCommentsClose {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+/* この部分だけ縦にスクロールする */
+#mobileCommentsScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 14px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+#mobileCommentsSheet .nickname-area,
+#mobileCommentsSheet .channel-badge {
+  margin: 12px 0;
+  padding: 0;
+  font-size: 12px;
+}
+
+#mobileCommentsSheet .nickname-area input {
+  font-size: 16px;
+}
+
+#mobileCommentsSheet .comment-section {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+#mobileCommentsSheet .comment-heading-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 12px;
+  padding: 10px 0;
+  background: #fff;
+}
+
+#mobileCommentsSheet .comment-heading-row h3 {
+  display: none;
+}
+
+#mobileCommentsSheet .comment-sort-control {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+#mobileCommentsSheet #commentSortSelect {
+  font-size: 16px;
+  max-width: 55%;
+}
+
+#mobileCommentsSheet .comment-input-area {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+#mobileCommentsSheet .comment-input-area .comment-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+#mobileCommentsSheet .comment-input-area textarea {
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+
+#mobileCommentsSheet .comment-input-area > button {
+  grid-column: 2;
+  justify-self: end;
+  margin: 0;
+  padding: 8px 16px;
+}
+
+#mobileCommentsSheet .comment-text {
+  overflow-wrap: anywhere;
+}
+
+#mobileCommentsSheet .reply-input-area {
+  flex-wrap: wrap;
+}
+
+#mobileCommentsSheet .reply-input-area textarea {
+  min-width: 0;
+  font-size: 16px;
+}
+
   </style>
 
 </head>
@@ -4335,6 +4537,188 @@ function renderMyPage() {
   });
 
   syncSettingsButton();
+})();
+
+// スマホ用：コメントのプレビュー枠と開閉パネル
+(() => {
+  if (document.getElementById('mobileCommentsSheet')) return;
+
+  const section = commentList.closest('.comment-section');
+  if (!section) return;
+
+  const mobileQuery = window.matchMedia('(max-width: 768px)');
+
+  // パソコン表示に戻す際の、元の配置を記録
+  const movingElements = [
+    document.getElementById('nicknameArea'),
+    document.getElementById('channelBadge'),
+    section
+  ].filter(Boolean);
+
+  const originalPlaces = movingElements.map(element => {
+    const marker = document.createComment('comment-original-position');
+    element.before(marker);
+    return { element, marker };
+  });
+
+  // 通常画面に表示する、小さなコメント枠
+  const preview = document.createElement('button');
+  preview.id = 'mobileCommentsPreview';
+  preview.type = 'button';
+  preview.setAttribute('aria-haspopup', 'dialog');
+  preview.setAttribute('aria-controls', 'mobileCommentsSheet');
+  preview.setAttribute('aria-expanded', 'false');
+
+  preview.innerHTML = `
+    <span class="mobile-comment-preview-heading">
+      コメント
+      <span id="mobileCommentsCount"></span>
+      <span class="mobile-comment-preview-arrow" aria-hidden="true">›</span>
+    </span>
+    <span id="mobileCommentsExcerpt">読み込み中...</span>
+  `;
+
+  originalPlaces[0].marker.before(preview);
+
+  // 開いたときのコメントパネル
+  const sheet = document.createElement('dialog');
+  sheet.id = 'mobileCommentsSheet';
+  sheet.setAttribute('aria-labelledby', 'mobileCommentsHeading');
+
+  sheet.innerHTML = `
+    <div class="mobile-comments-sheet-header">
+      <h2 id="mobileCommentsHeading">コメント</h2>
+      <button id="mobileCommentsClose"
+              type="button"
+              aria-label="コメント欄を閉じる"
+              autofocus>×</button>
+    </div>
+    <div id="mobileCommentsScroll"></div>
+  `;
+
+  document.body.appendChild(sheet);
+
+  const scrollArea = sheet.querySelector('#mobileCommentsScroll');
+  const closeButton = sheet.querySelector('#mobileCommentsClose');
+  const heading = sheet.querySelector('#mobileCommentsHeading');
+  const countLabel = preview.querySelector('#mobileCommentsCount');
+  const excerpt = preview.querySelector('#mobileCommentsExcerpt');
+
+  // 表示中のコメントから、件数とプレビューを更新
+  function updatePreview() {
+    const items = commentList.querySelectorAll('.comment-item');
+    const firstComment = commentList.querySelector('.comment-text');
+
+    if (commentSortSelect.disabled) {
+      countLabel.textContent = '';
+      heading.textContent = 'コメント';
+      excerpt.textContent =
+        commentList.textContent.trim() || '読み込み中...';
+      return;
+    }
+
+    // 返信を含めた、現在表示対象になっているコメント数
+    countLabel.textContent = String(items.length);
+    heading.textContent = `コメント ${items.length}`;
+
+    excerpt.textContent = firstComment
+      ? firstComment.textContent.trim()
+      : 'コメントを追加する…';
+  }
+
+  function closeSheet() {
+    if (sheet.open) sheet.close();
+    document.body.classList.remove('mobile-comments-open');
+    preview.setAttribute('aria-expanded', 'false');
+  }
+
+  function applyLayout() {
+    if (mobileQuery.matches) {
+      // コピーせず移動するので、既存のイベント処理も維持される
+      movingElements.forEach(element => {
+        scrollArea.appendChild(element);
+      });
+    } else {
+      closeSheet();
+
+      originalPlaces.forEach(({ element, marker }) => {
+        marker.after(element);
+      });
+    }
+
+    updatePreview();
+  }
+
+  preview.addEventListener('click', () => {
+    if (!mobileQuery.matches || sheet.open) return;
+
+    // コメントを開いたときに、動画を上に見える位置へ戻す
+    const anchor = document.getElementById('videoAnchor');
+
+    if (anchor) {
+      const headerHeight =
+        document.querySelector('body > header')?.offsetHeight || 56;
+
+      const top =
+        window.scrollY +
+        anchor.getBoundingClientRect().top -
+        headerHeight;
+
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: 'instant'
+      });
+    }
+
+    sheet.showModal();
+    document.body.classList.add('mobile-comments-open');
+    preview.setAttribute('aria-expanded', 'true');
+
+    // 開いただけではキーボードを出さない
+    closeButton.focus({ preventScroll: true });
+  });
+
+  closeButton.addEventListener('click', closeSheet);
+
+  sheet.addEventListener('close', () => {
+    document.body.classList.remove('mobile-comments-open');
+    preview.setAttribute('aria-expanded', 'false');
+  });
+
+  // 投稿・削除・並び替え・読み込みの完了をプレビューへ反映
+  new MutationObserver(updatePreview).observe(commentList, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  new MutationObserver(updatePreview).observe(commentSortSelect, {
+    attributes: true,
+    attributeFilter: ['disabled']
+  });
+
+  // ホームやチャンネルへ移動したら閉じる
+  new MutationObserver(() => {
+    if (watchScreen.style.display === 'none') {
+      closeSheet();
+    }
+  }).observe(watchScreen, {
+    attributes: true,
+    attributeFilter: ['style']
+  });
+
+  // 別の動画を開いたときも閉じて、スクロール位置をリセット
+  new MutationObserver(() => {
+    closeSheet();
+    scrollArea.scrollTop = 0;
+  }).observe(mainTitle, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  mobileQuery.addEventListener('change', applyLayout);
+  applyLayout();
 })();
 
   </script>
