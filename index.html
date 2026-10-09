@@ -4109,11 +4109,18 @@ mainVideo.addEventListener('emptied', () => {
     backModalBtn.addEventListener('click', () => { step2Area.style.display = 'none'; step1Area.style.display = 'flex'; fileInput.value = ''; thumbInput.value = ''; selectedFile = null; });
 
     saveBtn.addEventListener('click', async () => {
+      const uploadUser = auth.currentUser;
+
+if (!uploadUser || uploadUser.isAnonymous) {
+  alert('動画を投稿するにはログインしてください。');
+  return;
+}
+
       if (!selectedFile) return; saveBtn.disabled = true; let finalThumbUrl = "";
       if (thumbInput.files && thumbInput.files[0]) { saveBtn.textContent = 'サムネイル送信中...'; try { const thumbFile = thumbInput.files[0]; const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name); await uploadBytes(thumbRef, thumbFile); finalThumbUrl = await getDownloadURL(thumbRef); } catch {} }
-      const storageRef = ref(storage, 'videos/' + selectedFile.name);
+      const storageRef = ref(storage,'videos/' + crypto.randomUUID() + '_' + selectedFile.name);
       const descInputVal = document.getElementById('uploadDescInput') ? document.getElementById('uploadDescInput').value : '';
-      const metadata = { customMetadata: { title: videoTitleInput.value, desc: descInputVal, uploaderUid: getAuthorUid() || '', uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
+      const metadata = { customMetadata: { title: videoTitleInput.value, desc: descInputVal, uploaderUid: uploadUser.uid, uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
       const uploadTask = uploadBytesResumable(storageRef, selectedFile, metadata);
       uploadTask.on('state_changed',
         (snapshot) => { saveBtn.textContent = '動画送信中... ' + Math.floor((snapshot.bytesTransferred / snapshot.totalBytes) * 100) + '%'; },
@@ -4140,8 +4147,7 @@ const isGif =
 
 const contentType = isGif ? 'image/gif' : file.type;
 
-// GIFのアニメーションを保持したまま保存
-await uploadBytes(storageRef, file, {
+await uploadBytes(storageRef,file, {
   ...(contentType ? { contentType } : {}),
   cacheControl: 'no-cache'
 });
@@ -4189,7 +4195,17 @@ await uploadBytes(storageRef, file, {
       try {
         let newThumbUrl = currentEditVideo.thumbUrl || '';
         const thumbFile = document.getElementById('editThumbInput').files[0];
-        if (thumbFile) { saveEditBtn.textContent = '画像アップロード中...'; const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name); await uploadBytes(thumbRef, thumbFile); newThumbUrl = await getDownloadURL(thumbRef); }
+        if (thumbFile) { saveEditBtn.textContent = '画像アップロード中...'; const thumbRef = ref(storage, 'thumbnails/' + crypto.randomUUID() + '_' + thumbFile.name); const thumbUser = auth.currentUser;
+
+if (!thumbUser || thumbUser.isAnonymous) {
+  throw new Error('サムネイルの保存にはログインが必要です。');
+}
+
+await uploadBytes(thumbRef, thumbFile, {
+  customMetadata: {
+    uploaderUid: thumbUser.uid
+  }
+}); newThumbUrl = await getDownloadURL(thumbRef); }
         saveEditBtn.textContent = 'データ更新中...';
         const newCustomMetadata = { ...currentEditVideo.originalCustomMetadata, title: document.getElementById('editTitleInput').value, desc: document.getElementById('editDescInput').value, category: document.getElementById('editCategoryInput').value, thumbUrl: newThumbUrl };
         await updateMetadata(currentEditVideo.itemRef, { customMetadata: newCustomMetadata });
