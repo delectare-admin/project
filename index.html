@@ -5761,6 +5761,384 @@ function renderMyPage() {
   syncDescription();
 })();
 
+// ===== ログイン案内・登録ボタンの表示改善 =====
+(() => {
+  if (document.getElementById('nearLoginNotice')) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #nearLoginNotice {
+      position: fixed;
+      z-index: 2147483647;
+      width: 310px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100dvh - 24px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 22px;
+      border: 1px solid #e5e5e5;
+      border-radius: 20px;
+      background: #fff;
+      color: #111;
+      box-shadow: 0 8px 30px rgba(0,0,0,.22);
+      font-family: inherit;
+    }
+
+    #nearLoginNotice[hidden] {
+      display: none !important;
+    }
+
+    #nearLoginNotice h2 {
+      margin: 0 26px 10px 0;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    #nearLoginNotice p {
+      margin: 0 0 18px;
+      color: #606060;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #nearLoginNotice .notice-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #555;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    #nearLoginNotice .notice-login {
+      width: 100%;
+      min-height: 42px;
+      border: 0;
+      border-radius: 24px;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .uploader-info-container {
+      flex-wrap: wrap;
+    }
+
+    #uploaderDetails {
+      min-width: 0;
+    }
+
+    #subscribeBtn {
+      flex-shrink: 0;
+      padding: 10px 17px;
+      border: 0;
+      border-radius: 24px;
+      background: #111;
+      color: #fff;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    #subscribeBtn.subscribed {
+      background: #e9e9e9;
+      color: #111;
+    }
+
+    #subscribeBtn:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const notice = document.createElement('section');
+  notice.id = 'nearLoginNotice';
+  notice.hidden = true;
+  notice.setAttribute('role', 'dialog');
+  notice.setAttribute('aria-labelledby', 'nearLoginTitle');
+
+  notice.innerHTML = `
+    <button type="button" class="notice-close"
+      aria-label="ログイン案内を閉じる">×</button>
+    <h2 id="nearLoginTitle">ログインが必要です</h2>
+    <p></p>
+    <button type="button" class="notice-login">
+      ログイン
+    </button>
+  `;
+  document.body.appendChild(notice);
+
+  const message = notice.querySelector('p');
+  const closeButton = notice.querySelector('.notice-close');
+  const loginButton = notice.querySelector('.notice-login');
+
+  let anchor = null;
+
+  function loggedIn() {
+    return !!auth.currentUser && !auth.currentUser.isAnonymous;
+  }
+
+  function closeNotice(restoreFocus = false) {
+    const previousAnchor = anchor;
+    notice.hidden = true;
+    anchor = null;
+
+    if (restoreFocus && previousAnchor?.isConnected) {
+      // 入力欄に戻ると案内が再表示されるため、
+      // ボタンに限ってフォーカスを戻す。
+      if (previousAnchor.matches('button')) {
+        previousAnchor.focus({ preventScroll: true });
+      } else {
+        document.activeElement?.blur();
+      }
+    }
+  }
+
+  function positionNotice() {
+    if (!anchor?.isConnected) {
+      closeNotice();
+      return;
+    }
+
+    const rect = anchor.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const leftEdge = viewport?.offsetLeft || 0;
+    const topEdge = viewport?.offsetTop || 0;
+    const width = viewport?.width || window.innerWidth;
+    const height = viewport?.height || window.innerHeight;
+    const gap = 10;
+
+    notice.style.maxWidth = `${Math.max(0, width - 24)}px`;
+    notice.style.maxHeight = `${Math.max(0, height - 24)}px`;
+
+    const box = notice.getBoundingClientRect();
+
+    let left = rect.left + rect.width / 2 - box.width / 2;
+    let top = rect.bottom + gap;
+
+    // 下に収まらない場合は、対象の上側へ表示。
+    if (top + box.height > topEdge + height - 12) {
+      top = rect.top - box.height - gap;
+    }
+
+    left = Math.max(
+      leftEdge + 12,
+      Math.min(left, leftEdge + width - box.width - 12)
+    );
+
+    top = Math.max(
+      topEdge + 12,
+      Math.min(top, topEdge + height - box.height - 12)
+    );
+
+    notice.style.left = `${left}px`;
+    notice.style.top = `${top}px`;
+  }
+
+  function showNotice(target, text) {
+    anchor = target;
+    message.textContent = text;
+    notice.hidden = false;
+    positionNotice();
+    loginButton.focus({ preventScroll: true });
+  }
+
+  closeButton.addEventListener('click', () => closeNotice(true));
+
+  loginButton.addEventListener('click', () => {
+    closeNotice();
+    // サイトに元からあるログイン画面を開く。
+    document.getElementById('loginOpenBtn')?.click();
+  });
+
+  const inputSelector = [
+    '#commentInput',
+    '#danmakuInput',
+    'textarea[id^="reply-input-"]'
+  ].join(',');
+
+  const actionSelector = [
+    '#likeBtn',
+    '#dislikeBtn',
+    '#subscribeBtn',
+    '#saveVideoBtn',
+    '#reportBtn',
+    '#blockUserBtn',
+    '#uploadMenuBtn',
+    '#myUploadBtn',
+    '#commentSubmitBtn',
+    '#danmakuSubmitBtn',
+    '.like-comment-btn',
+    '.dislike-comment-btn',
+    '.reply-toggle-btn',
+    '.submit-reply-btn'
+  ].join(',');
+
+  function explanation(target) {
+    if (target.matches('#subscribeBtn')) {
+      return 'チャンネルを登録するには、ログインしてください。';
+    }
+
+    if (target.matches('#danmakuInput, #danmakuSubmitBtn')) {
+      return '弾幕を投稿するには、ログインしてください。';
+    }
+
+    if (target.matches('#uploadMenuBtn, #myUploadBtn')) {
+      return '動画を投稿するには、ログインしてください。';
+    }
+
+    if (target.matches('#saveVideoBtn')) {
+      return '動画を保存するには、ログインしてください。';
+    }
+
+    if (target.matches(
+      '#likeBtn, #dislikeBtn, .like-comment-btn, .dislike-comment-btn'
+    )) {
+      return '評価するには、ログインしてください。';
+    }
+
+    if (target.matches('#reportBtn, #blockUserBtn')) {
+      return 'この操作を行うには、ログインしてください。';
+    }
+
+    return 'コメントや返信を投稿するには、ログインしてください。';
+  }
+
+  // 入力欄を押した瞬間に案内を表示。
+  document.addEventListener('pointerdown', event => {
+    if (!(event.target instanceof Element)) return;
+    if (notice.contains(event.target)) return;
+
+    const input = event.target.closest(inputSelector);
+
+    if (input && !loggedIn()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showNotice(input, explanation(input));
+      return;
+    }
+
+    closeNotice();
+  }, true);
+
+  // Tabキーなどで入力欄へ移動した場合にも対応。
+  document.addEventListener('focusin', event => {
+    if (!(event.target instanceof Element)) return;
+
+    const input = event.target.closest(inputSelector);
+
+    if (input && !loggedIn()) {
+      event.stopImmediatePropagation();
+      showNotice(input, explanation(input));
+    }
+  }, true);
+
+  // 既存のクリック処理より先に未ログイン操作を受け止める。
+  // ログイン後は、元の保存・評価・登録処理がそのまま動く。
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return;
+    if (notice.contains(event.target) || loggedIn()) return;
+
+    const target = event.target.closest(
+      `${inputSelector},${actionSelector}`
+    );
+
+    if (!target) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showNotice(target, explanation(target));
+  }, true);
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !notice.hidden) {
+      event.preventDefault();
+      closeNotice(true);
+    }
+  });
+
+  window.addEventListener('resize', () => closeNotice());
+  window.addEventListener('scroll', event => {
+    if (event.target instanceof Node &&
+        notice.contains(event.target)) return;
+    closeNotice();
+  }, true);
+
+  window.visualViewport?.addEventListener(
+    'resize', () => closeNotice()
+  );
+
+  // 既存の「未ログインなら登録ボタンを隠す」監視を停止。
+  observer.disconnect();
+
+  let stopSubscriptionWatch = null;
+
+  function refreshSubscriptionButton() {
+    closeNotice();
+
+    if (stopSubscriptionWatch) {
+      stopSubscriptionWatch();
+      stopSubscriptionWatch = null;
+    }
+
+    const uid = uploaderNameEl.dataset.uid;
+    const user = auth.currentUser;
+
+    const validChannel = !!uid &&
+      uid !== 'undefined' &&
+      uid !== 'null' &&
+      !uid.includes('/');
+
+    const ownChannel = loggedIn() && user.uid === uid;
+
+    subscribeBtn.style.display =
+      validChannel && !ownChannel ? 'inline-flex' : 'none';
+
+    subscribeBtn.dataset.targetUid = validChannel ? uid : '';
+    subscribeBtn.textContent = 'チャンネル登録';
+    subscribeBtn.classList.remove('subscribed');
+
+    if (!validChannel || ownChannel || !loggedIn()) return;
+
+    // 自分の登録状態を監視。登録者数の加算は既存処理に任せる。
+    stopSubscriptionWatch = onSnapshot(
+      doc(db, 'userPrivate', user.uid, 'subscriptions', uid),
+      snapshot => {
+        if (auth.currentUser?.uid !== user.uid ||
+            subscribeBtn.dataset.targetUid !== uid) return;
+
+        const active =
+          snapshot.exists() && snapshot.data().active === true;
+
+        subscribeBtn.textContent =
+          active ? '登録済み' : 'チャンネル登録';
+
+        subscribeBtn.classList.toggle('subscribed', active);
+      },
+      error => console.error('登録状態の取得失敗:', error)
+    );
+  }
+
+  const channelObserver = new MutationObserver(
+    refreshSubscriptionButton
+  );
+
+  channelObserver.observe(uploaderNameEl, {
+    attributes: true,
+    attributeFilter: ['data-uid']
+  });
+
+  onAuthStateChanged(auth, refreshSubscriptionButton);
+  refreshSubscriptionButton();
+})();
+
   </script>
 </body>
 </html>
