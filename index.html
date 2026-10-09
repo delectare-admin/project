@@ -3807,7 +3807,7 @@ danmakuSubmitBtn.addEventListener('click', async () => {
       const div = document.createElement('div'); div.className = 'comment-item';
       if (isReply) { div.style.marginTop = "12px"; div.style.marginBottom = "0"; }
       div.innerHTML = `
-        <div class="comment-avatar" style="${comment.authorUid === (currentUser && currentUser.uid) && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}">${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
+        <div class="comment-avatar" style="${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}">${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
         <div class="comment-content">
           <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
           <div class="comment-text">${escapeHtml(comment.text)}</div>
@@ -4117,7 +4117,37 @@ if (!uploadUser || uploadUser.isAnonymous) {
 }
 
       if (!selectedFile) return; saveBtn.disabled = true; let finalThumbUrl = "";
-      if (thumbInput.files && thumbInput.files[0]) { saveBtn.textContent = 'サムネイル送信中...'; try { const thumbFile = thumbInput.files[0]; const thumbRef = ref(storage, 'thumbnails/' + Date.now() + '_' + thumbFile.name); await uploadBytes(thumbRef, thumbFile); finalThumbUrl = await getDownloadURL(thumbRef); } catch {} }
+     if (thumbInput.files && thumbInput.files[0]) {
+  saveBtn.textContent = 'サムネイル送信中...';
+
+  try {
+    const thumbFile = thumbInput.files[0];
+
+    const thumbRef = ref(
+      storage,
+      'thumbnails/' + crypto.randomUUID() + '_' + thumbFile.name
+    );
+
+    await uploadBytes(thumbRef, thumbFile, {
+      customMetadata: {
+        uploaderUid: uploadUser.uid
+      }
+    });
+
+    finalThumbUrl = await getDownloadURL(thumbRef);
+  } catch (error) {
+    console.error('サムネイルの保存に失敗:', error);
+
+    alert(
+      'サムネイルを保存できませんでした。' +
+      'ログイン状態と通信を確認してください。'
+    );
+
+    saveBtn.textContent = '保存して公開';
+    saveBtn.disabled = false;
+    return;
+  }
+}
       const storageRef = ref(storage,'videos/' + crypto.randomUUID() + '_' + selectedFile.name);
       const descInputVal = document.getElementById('uploadDescInput') ? document.getElementById('uploadDescInput').value : '';
       const metadata = { customMetadata: { title: videoTitleInput.value, desc: descInputVal, uploaderUid: uploadUser.uid, uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
