@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2ch風掲示板テスト</title>
+    <style>
+        /* 2ch特有のレトロなスタイルとフォントを設定 */
+        body {
+            background-color: #EFEFEF;
+            color: #000000;
+            font-family: "ＭＳ Ｐゴシック", "MS PGothic", "Mona", sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            font-size: 1.2em;
+            color: #CC0000;
+            border-bottom: 1px solid #CC0000;
+            padding-bottom: 5px;
+        }
+        .thread {
+            background-color: #FAFAFA;
+            border: 1px solid #CCCCCC;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .post {
+            margin-bottom: 15px;
+        }
+        .post-header {
+            color: #008000;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        .post-name {
+            color: #008000;
+        }
+        .post-info {
+            color: #666666;
+            font-weight: normal;
+        }
+        .post-body {
+            margin-top: 5px;
+            margin-left: 2em;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .form-area {
+            background-color: #F0F0F0;
+            border: 1px solid #CCCCCC;
+            padding: 15px;
+        }
+        .form-area input[type="text"] {
+            width: 200px;
+            margin-bottom: 5px;
+        }
+        .form-area textarea {
+            width: 100%;
+            max-width: 500px;
+            height: 120px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        .form-area button {
+            padding: 5px 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>■ 2ch風スレッド掲示板（HTML+JSモックアップ） ■</h1>
+
+    <div id="thread" class="thread">
+        <div class="post">
+            <span class="post-header">1 ：<span class="post-name">名無しさん＠お腹いっぱい。</span> <span class="post-info">：2026/06/15(月) 12:00:00.00 ID:Admin001</span></span>
+            <div class="post-body">
+                2ch風の掲示板を作ってみた。<br>
+                ここはHTMLとJavaScriptだけで動いているテスト環境だ。<br>
+                書き込みテストよろしく！
+            </div>
+        </div>
+    </div>
+
+    <div class="form-area">
+        <form id="postForm">
+            <label>名前：<input type="text" id="nameInput" value="名無しさん＠お腹いっぱい。"></label><br>
+            <label>E-mail：<input type="text" id="emailInput" value="sage"></label><br>
+            <label>内容：</label><br>
+            <textarea id="messageInput" required></textarea><br>
+            <button type="submit">書き込む</button>
+        </form>
+    </div>
+
+    <script>
+        let postCount = 1;
+
+        // 曜日を取得する配列
+        const days = ['日', '月', '火', '水', '木', '金', '土'];
+
+        // ランダムなIDを生成する関数（簡易版）
+        function generateID() {
+            return Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+
+        // フォーム送信時の処理
+        document.getElementById('postForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // 画面の再読み込みを防ぐ
+            
+            postCount++;
+            
+            // 入力値の取得
+            const name = document.getElementById('nameInput').value || '名無しさん';
+            let message = document.getElementById('messageInput').value;
+            
+            // 改行を <br> タグに変換して反映
+            message = message.replace(/\n/g, '<br>');
+
+            // 現在日時の取得とフォーマット
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}(${days[now.getDay()]}) ` +
+                            `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.00`;
+            const uid = generateID();
+
+            // 新しい書き込みのHTMLを生成
+            const postHtml = `
+                <div class="post">
+                    <span class="post-header">${postCount} ：<span class="post-name">${name}</span> <span class="post-info">：${dateStr} ID:${uid}</span></span>
+                    <div class="post-body">${message}</div>
+                </div>
+            `;
+
+            // スレッドの一番下に追加
+            document.getElementById('thread').insertAdjacentHTML('beforeend', postHtml);
+            
+            // 入力欄をクリア
+            document.getElementById('messageInput').value = '';
+        });
+    </script>
+
+</body>
+</html>
