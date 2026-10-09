@@ -2256,7 +2256,7 @@ updateVideoClickLabel();
     function setActiveNav(feedType) {
       navHomeBtn.classList.toggle('active', feedType === 'all');
       navSubscriptionsBtn.classList.toggle('active', feedType === 'subscriptions');
-      navHistoryBtn.classList.toggle('active', feedType === 'history');
+      navHistoryBtn.classList.toggle('active',feedType === 'trending');
       navSavedBtn.classList.toggle('active', feedType === 'saved');
     }
 
@@ -3048,6 +3048,13 @@ async function loadVideoList(prefetched = null) {
 }
 
   async function applyFilterAndSort() {
+    if (currentFeed === 'trending') {
+    await renderTrendingVideos();
+    return;
+  }
+
+  // 他の画面に移動したら、人気画面の操作欄を外す
+  document.getElementById('trendingControls')?.remove();
   if (currentFeed === 'mypage') {
     renderMyPage();
     return;
@@ -3957,9 +3964,68 @@ onAuthStateChanged(auth, () => {
 
 async function loadStats() {
   const videoId = currentVideoId;
-  const statsRef = doc(
-    db, 'videoStats', statsDocId(videoId)
-  );
+  const key = statsDocId(videoId);
+  const statsRef = doc(db, 'videoStats', key);
+
+  try {
+    const data = await runTransaction(db, async transaction => {
+      const dayStart = japanDayStart();
+
+      const dailyRef = doc(
+        db,
+        'videoDaily',
+        String(dayStart),
+        'counts',
+        key
+      );
+
+      // 書き込み前に必要なデータを読む
+      const snapshot = await transaction.get(statsRef);
+      const daily = await transaction.get(dailyRef);
+
+      const old = snapshot.exists()
+        ? snapshot.data()
+        : {
+            views: 0,
+            likes: 0,
+            dislikes: 0,
+            likedUsers: [],
+            dislikedUsers: []
+          };
+
+      const next = {
+        ...old,
+        views: old.views + 1
+      };
+
+      if (snapshot.exists()) {
+        transaction.update(statsRef, {
+          views: next.views
+        });
+      } else {
+        transaction.set(statsRef, next);
+      }
+
+      transaction.set(dailyRef, {
+        count: (daily.exists() ? daily.data().count : 0) + 1,
+        dayStart,
+        updatedAt: serverTimestamp()
+      });
+
+      return next;
+    });
+
+    showVideoStats(videoId, data);
+  } catch (error) {
+    console.error('動画情報の取得失敗:', error);
+
+    if (currentVideoId === videoId) {
+      viewCountEl.textContent = '取得できませんでした';
+      likeBtn.disabled = true;
+      dislikeBtn.disabled = true;
+    }
+  }
+}
 
   try {
     const data = await runTransaction(db, async transaction => {
@@ -3996,7 +4062,7 @@ async function loadStats() {
       dislikeBtn.disabled = true;
     }
   }
-}
+
 
 async function toggleVideoVote(kind) {
   const user = auth.currentUser;
@@ -5965,6 +6031,7 @@ function renderMyPage() {
   ].join(',');
 
   const actionSelector = [
+    '#navSubscriptionsBtn',
     '#likeBtn',
     '#dislikeBtn',
     '#subscribeBtn',
@@ -5982,6 +6049,10 @@ function renderMyPage() {
   ].join(',');
 
   function explanation(target) {
+    if (target.matches('#navSubscriptionsBtn')) {
+      return '登録したチャンネルの動画を見るには、ログインしてください。';
+    }
+
     if (target.matches('#subscribeBtn')) {
       return 'チャンネルを登録するには、ログインしてください。';
     }
@@ -6138,6 +6209,223 @@ function renderMyPage() {
   onAuthStateChanged(auth, refreshSubscriptionButton);
   refreshSubscriptionButton();
 })();
+
+// ===== 人気の動画 =====
+let trendingDays = 1;
+let trendingCategory = 'すべて';
+let trendingRequest = 0;
+
+// 日本時間の今日0時をミリ秒で返す
+function japanDayStart(time = Date.now()) {
+  return Math.floor(
+    (time + 32400000) / 86400000
+  ) * 86400000 - 32400000;
+}
+
+async function renderTrendingVideos() {
+  const request = ++trendingRequest;
+  const days = trendingDays;
+  const genre = trendingCategory;
+  const today = japanDayStart();
+
+  const heading = document.getElementById('pageTitleHeading');
+  heading.textContent = '人気の動画';
+  heading.style.display = 'block';
+
+  document.getElementById('categoryFilterBar').style.display = 'none';
+  document.getElementById('sortControlsArea').style.display = 'none';
+
+  document.getElementById('trendingControls')?.remove();
+
+  const controls = document.createElement('div');
+  controls.id = 'trendingControls';
+  controls.style.cssText = 'padding:0 16px 20px;';
+
+  // 期間・ジャンルの切り替えボタン
+  function addButtons(choices, selected, change) {
+    const row = document.createElement('div');
+    row.style.cssText =
+      'display:flex;gap:8px;overflow-x:auto;padding:6px 0;';
+
+    for (const [value, label] of choices) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+
+      button.setAttribute(
+        'aria-pressed',
+        String(value === selected)
+      );
+
+      button.style.cssText =
+        'flex-shrink:0;border:0;border-radius:18px;' +
+        'padding:10px 16px;cursor:pointer;';
+
+      button.style.background =
+        value === selected ? '#111' : '#eee';
+
+      button.style.color =
+        value === selected ? '#fff' : '#111';
+
+      button.onclick = () => {
+        change(value);
+        renderTrendingVideos();
+      };
+
+      row.appendChild(button);
+    }
+
+    controls.appendChild(row);
+  }
+
+  addButtons(
+    [
+      [1, '1日の急上昇動画'],
+      [7, '1週間の急上昇動画']
+    ],
+    days,
+    value => trendingDays = value
+  );
+
+  const genres = [...new Set([
+    'すべて',
+    'ゲーム',
+    '映画',
+    '音楽',
+    'アニメ',
+    'エンタメ',
+    '漫画',
+    '学問・教養',
+    '3D・技術',
+    'その他',
+    ...allVideos.map(v => v.category || 'その他')
+  ])];
+
+  addButtons(
+    genres.map(value => [value, value]),
+    genre,
+    value => trendingCategory = value
+  );
+
+  const note = document.createElement('p');
+  note.style.cssText =
+    'color:#666;font-size:13px;margin:10px 0 0;';
+
+  note.textContent = days === 1
+    ? '日本時間の今日0時からの再生増加数順。集計開始後のデータです。'
+    : '日本時間の今日を含む7日間の再生増加数順。集計開始後のデータです。';
+
+  controls.appendChild(note);
+  videoGrid.before(controls);
+  videoGrid.textContent = '人気の動画を読み込み中…';
+
+  try {
+    const snapshots = await Promise.all(
+      Array.from({ length: days }, (_, i) =>
+        getDocs(collection(
+          db,
+          'videoDaily',
+          String(today - i * 86400000),
+          'counts'
+        ))
+      )
+    );
+
+    // 読み込み中に画面や条件が変わったら結果を使わない
+    if (
+      request !== trendingRequest ||
+      currentFeed !== 'trending'
+    ) return;
+
+    const counts = new Map();
+
+    for (const snapshot of snapshots) {
+      snapshot.forEach(item => {
+        counts.set(
+          item.id,
+          (counts.get(item.id) || 0) +
+          (item.data().count || 0)
+        );
+      });
+    }
+
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    const ranked = allVideos
+      .filter(v =>
+        !currentUserBlocks.includes(v.uploaderUid) &&
+        !currentUserNotInterested.includes(v.uploaderUid)
+      )
+      .filter(v =>
+        genre === 'すべて' || v.category === genre
+      )
+      .filter(v =>
+        !keyword ||
+        `${v.title} ${v.uploaderName}`
+          .toLowerCase()
+          .includes(keyword)
+      )
+      .map(v => ({
+        ...v,
+        periodViews:
+          counts.get(statsDocId(v.itemRef.fullPath)) || 0
+      }))
+      .filter(v => v.periodViews > 0)
+      .sort((a, b) =>
+        b.periodViews - a.periodViews ||
+        a.itemRef.fullPath.localeCompare(b.itemRef.fullPath)
+      );
+
+    renderGrid(ranked, videoGrid);
+
+    if (!ranked.length) {
+      videoGrid.textContent =
+        'この期間・ジャンルの集計データはまだありません。';
+      return;
+    }
+
+    videoGrid.querySelectorAll('.grid-item').forEach((card, i) => {
+      const label = document.createElement('div');
+      label.style.cssText =
+        'font-size:12px;color:#666;margin-top:6px;';
+
+      label.textContent =
+        `${i + 1}位・期間内 ` +
+        `${ranked[i].periodViews.toLocaleString('ja-JP')}回視聴`;
+
+      const textArea =
+        card.querySelector('.grid-item-text') || card;
+
+      textArea.appendChild(label);
+    });
+  } catch (error) {
+    console.error('人気の動画の取得失敗:', error);
+
+    if (
+      request === trendingRequest &&
+      currentFeed === 'trending'
+    ) {
+      videoGrid.textContent =
+        '集計を読み込めませんでした。通信とFirestoreルールを確認してください。';
+    }
+  }
+}
+
+// アーカイブを「人気の動画」へ変更
+navHistoryBtn.querySelector('.nav-item-icon').textContent = '🔥';
+navHistoryBtn.querySelector('span:last-child').textContent =
+  '人気の動画';
+
+// 従来の履歴表示より先に、人気画面への移動を処理
+navHistoryBtn.addEventListener('click', event => {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  searchInput.value = '';
+  currentFeed = 'trending';
+  setActiveNav('trending');
+  goHome();
+}, true);
 
   </script>
 </body>
