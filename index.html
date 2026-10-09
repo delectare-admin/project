@@ -2098,7 +2098,7 @@ body.mobile-description-open {
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, getDocs, collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+   import {getFirestore, getDocs, collection, addDoc,query, where, onSnapshot, serverTimestamp,doc, getDoc, setDoc, updateDoc, deleteDoc,increment, arrayUnion, arrayRemove,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject, updateMetadata } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -3505,31 +3505,182 @@ pipBtn.addEventListener('click', async () => {
       fullscreenBtn.textContent = (document.fullscreenElement || document.webkitFullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen')) ? '✖ 全画面を解除' : '⛶ 全画面';
     }
 
-    async function loadStats() {
-      const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
-      try {
-        const snap = await getDoc(statsRef);
-        if (!snap.exists()) { await setDoc(statsRef, { views: 1, likes: 0, dislikes: 0 }); viewCountEl.textContent = '1 回視聴'; likeCountEl.textContent = '0'; dislikeCountEl.textContent = '0'; }
-        else { const data = snap.data(); await updateDoc(statsRef, { views: increment(1) }); viewCountEl.textContent = ((data.views || 0) + 1) + ' 回視聴'; likeCountEl.textContent = data.likes || 0; dislikeCountEl.textContent = data.dislikes || 0; }
-      } catch { viewCountEl.textContent = '-'; } finally { likeBtn.disabled = false; dislikeBtn.disabled = false; }
-    }
+let videoVoteBusy = false;
+let displayedVideoStats = null;
 
-    likeBtn.addEventListener('click', async () => {
-      if (!currentVideoId) return; likeBtn.disabled = true;
-      try {
-        const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
-        if (!hasLiked) { await updateDoc(statsRef, { likes: increment(1) }); likeCountEl.textContent = (parseInt(likeCountEl.textContent, 10) || 0) + 1; likeBtn.classList.add('active-like'); hasLiked = true; if (hasDisliked) { await updateDoc(statsRef, { dislikes: increment(-1) }); dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1); dislikeBtn.classList.remove('active-dislike'); hasDisliked = false; } }
-        else { await updateDoc(statsRef, { likes: increment(-1) }); likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1); likeBtn.classList.remove('active-like'); hasLiked = false; }
-      } catch {} finally { likeBtn.disabled = false; }
+function showVideoStats(videoId, data) {
+  if (currentVideoId !== videoId) return;
+
+  displayedVideoStats = { videoId, data };
+
+  const user = auth.currentUser;
+  const uid = user && !user.isAnonymous ? user.uid : null;
+
+  hasLiked =
+    !!uid && (data.likedUsers || []).includes(uid);
+
+  hasDisliked =
+    !!uid && (data.dislikedUsers || []).includes(uid);
+
+  viewCountEl.textContent = `${data.views || 0} 回視聴`;
+  likeCountEl.textContent = String(data.likes || 0);
+  dislikeCountEl.textContent = String(data.dislikes || 0);
+
+  likeBtn.classList.toggle('active-like', hasLiked);
+  dislikeBtn.classList.toggle('active-dislike', hasDisliked);
+
+  likeBtn.disabled = videoVoteBusy;
+  dislikeBtn.disabled = videoVoteBusy;
+}
+
+// ログイン・ログアウトしたときに選択表示を更新
+onAuthStateChanged(auth, () => {
+  if (displayedVideoStats) {
+    showVideoStats(
+      displayedVideoStats.videoId,
+      displayedVideoStats.data
+    );
+  }
+});
+
+async function loadStats() {
+  const videoId = currentVideoId;
+  const statsRef = doc(
+    db, 'videoStats', statsDocId(videoId)
+  );
+
+  try {
+    const data = await runTransaction(db, async transaction => {
+      const snapshot = await transaction.get(statsRef);
+
+      if (!snapshot.exists()) {
+        const initial = {
+          views: 1,
+          likes: 0,
+          dislikes: 0,
+          likedUsers: [],
+          dislikedUsers: []
+        };
+
+        transaction.set(statsRef, initial);
+        return initial;
+      }
+
+      const old = snapshot.data();
+      const views = old.views + 1;
+
+      transaction.update(statsRef, { views });
+
+      return { ...old, views };
     });
-    dislikeBtn.addEventListener('click', async () => {
-      if (!currentVideoId) return; dislikeBtn.disabled = true;
-      try {
-        const statsRef = doc(db, 'videoStats', statsDocId(currentVideoId));
-        if (!hasDisliked) { await updateDoc(statsRef, { dislikes: increment(1) }); dislikeCountEl.textContent = (parseInt(dislikeCountEl.textContent, 10) || 0) + 1; dislikeBtn.classList.add('active-dislike'); hasDisliked = true; if (hasLiked) { await updateDoc(statsRef, { likes: increment(-1) }); likeCountEl.textContent = Math.max(0, (parseInt(likeCountEl.textContent, 10) || 0) - 1); likeBtn.classList.remove('active-like'); hasLiked = false; } }
-        else { await updateDoc(statsRef, { dislikes: increment(-1) }); dislikeCountEl.textContent = Math.max(0, (parseInt(dislikeCountEl.textContent, 10) || 0) - 1); dislikeBtn.classList.remove('active-dislike'); hasDisliked = false; }
-      } catch {} finally { dislikeBtn.disabled = false; }
+
+    showVideoStats(videoId, data);
+  } catch (error) {
+    console.error('動画情報の取得失敗:', error);
+
+    if (currentVideoId === videoId) {
+      viewCountEl.textContent = '取得できませんでした';
+      likeBtn.disabled = true;
+      dislikeBtn.disabled = true;
+    }
+  }
+}
+
+async function toggleVideoVote(kind) {
+  const user = auth.currentUser;
+
+  if (!user || user.isAnonymous) {
+    alert('動画を評価するにはログインしてください。');
+    return;
+  }
+
+  if (!currentVideoId || videoVoteBusy) return;
+
+  const videoId = currentVideoId;
+  const uid = user.uid;
+  const statsRef = doc(
+    db, 'videoStats', statsDocId(videoId)
+  );
+
+  videoVoteBusy = true;
+  likeBtn.disabled = true;
+  dislikeBtn.disabled = true;
+
+  try {
+    const result = await runTransaction(db, async transaction => {
+      const snapshot = await transaction.get(statsRef);
+
+      if (!snapshot.exists()) {
+        throw new Error('動画情報を再読み込みしてください。');
+      }
+
+      const data = snapshot.data();
+      const oldLikes = data.likedUsers || [];
+      const oldDislikes = data.dislikedUsers || [];
+
+      // 選択済みのボタンなら取り消す
+      const cancel = kind === 'like'
+        ? oldLikes.includes(uid)
+        : oldDislikes.includes(uid);
+
+      // 自分の票だけを取り除く
+      const likedUsers =
+        oldLikes.filter(id => id !== uid);
+
+      const dislikedUsers =
+        oldDislikes.filter(id => id !== uid);
+
+      // 取り消しでなければ、選択した側に1票
+      if (!cancel) {
+        (kind === 'like' ? likedUsers : dislikedUsers)
+          .push(uid);
+      }
+
+      const changes = {
+        likedUsers,
+        dislikedUsers,
+        likes:
+          (data.likes || 0) +
+          likedUsers.length - oldLikes.length,
+        dislikes:
+          (data.dislikes || 0) +
+          dislikedUsers.length - oldDislikes.length
+      };
+
+      transaction.update(statsRef, changes);
+
+      return { ...data, ...changes };
     });
+
+    showVideoStats(videoId, result);
+  } catch (error) {
+    console.error('動画の評価失敗:', error);
+
+    alert(
+      '評価を保存できませんでした。' +
+      '通信とログイン状態を確認し、少し待って再度お試しください。'
+    );
+  } finally {
+    videoVoteBusy = false;
+
+    if (displayedVideoStats) {
+      showVideoStats(
+        displayedVideoStats.videoId,
+        displayedVideoStats.data
+      );
+    }
+  }
+}
+
+likeBtn.addEventListener(
+  'click',
+  () => toggleVideoVote('like')
+);
+
+dislikeBtn.addEventListener(
+  'click',
+  () => toggleVideoVote('dislike')
+);
 
     function requireCommentLogin() {
   const user = auth.currentUser;
