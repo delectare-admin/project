@@ -2308,17 +2308,462 @@ updateVideoClickLabel();
     function getNickname() { return currentUser ? currentUser.channelName : (nicknameInput.value.trim() || 'ゲスト'); }
     function getAuthorUid() { return currentUser ? currentUser.uid : null; }
 
+// SECURITY V2: private settings and atomic operations
+const subscriberCountListeners = new Map();
+const commentVotePending = new Set();
+let accountLoadVersion = 0;
+function cleanStringList(value) {
+  return [...new Set(
+    (Array.isArray(value) ? value : []).filter(
+      x => typeof x === 'string' &&
+        x && x !== 'null' && x !== 'undefined'
+    )
+  )];
+}
+
+async function migratePrivateProfile(user) {
+  const publicRef = doc(db, 'users', user.uid);
+  const privateRef = doc(db, 'userPrivate', user.uid);
+
+  return runTransaction(db, async tx => {
+    const publicSnap = await tx.get(publicRef);
+    const privateSnap = await tx.get(privateRef);
+
+    const profile = publicSnap.exists() ? publicSnap.data() : {};
+    const stored = privateSnap.exists() ? privateSnap.data() : {};
+
+    const publicKeys = [
+      'channelName', 'avatarUrl', 'createdAt', 'subscriberCount'
+    ];
+
+    const needsMove = Object.keys(profile).some(
+      key => !publicKeys.includes(key)
+    );
+
+    const privateData = {
+      ...stored,
+      blockedUids: cleanStringList(
+        stored.blockedUids ?? profile.blockedUids
+      ),
+      notInterestedUids: cleanStringList(
+        stored.notInterestedUids ?? profile.notInterestedUids
+      ),
+      savedVideos: cleanStringList(
+        stored.savedVideos ?? profile.savedVideos
+      ),
+      pendingSubscriptions: cleanStringList([
+        ...cleanStringList(stored.pendingSubscriptions),
+        ...cleanStringList(profile.subscribedTo)
+      ]).filter(id => id !== user.uid && !id.includes('/'))
+    };
+
+    if (needsMove) {
+      privateData.legacyProfile = {
+        ...(stored.legacyProfile || {}),
+        ...profile
+      };
+
+      const publicData = {};
+
+      for (const key of publicKeys) {
+        if (Object.prototype.hasOwnProperty.call(profile, key)) {
+          publicData[key] = profile[key];
+        }
+      }
+
+      tx.set(privateRef, privateData);
+      tx.set(publicRef, publicData);
+    } else if (!privateSnap.exists()) {
+      tx.set(privateRef, privateData);
+    }
+
+    return { profile, privateData };
+  });
+}
+
+async function setChannelSubscription(
+  user,
+  channelUid,
+  desired = null,
+  onlyIfMissing = false
+) {
+  if (
+    !user ||
+    user.isAnonymous ||
+    auth.currentUser?.uid !== user.uid
+  ) {
+    throw new Error('ログイン状態を確認してください。');
+  }
+
+  if (
+    !channelUid ||
+    ['null', 'undefined', user.uid].includes(channelUid) ||
+    channelUid.includes('/')
+  ) {
+    throw new Error('登録先が正しくありません。');
+  }
+
+  const relationRef = doc(
+    db, 'userPrivate', user.uid, 'subscriptions', channelUid
+  );
+  const countRef = doc(db, 'channelStats', channelUid);
+
+  return runTransaction(db, async tx => {
+    const relationSnap = await tx.get(relationRef);
+    const countSnap = await tx.get(countRef);
+
+    const before =
+      relationSnap.exists() && relationSnap.data().active === true;
+
+    const count = countSnap.exists() ? countSnap.data().count : 0;
+
+    if (!Number.isInteger(count) || count < 0) {
+      throw new Error('登録者数のデータを確認してください。');
+    }
+
+    const after = desired === null ? !before : desired;
+
+    if (
+      (onlyIfMissing && relationSnap.exists()) ||
+      after === before
+    ) {
+      return { active: before, count };
+    }
+
+    const nextCount = count + (after ? 1 : -1);
+
+    if (nextCount < 0) {
+      throw new Error('登録者数のデータを確認してください。');
+    }
+
+    tx.set(relationRef, {
+      active: after,
+      updatedAt: serverTimestamp()
+    });
+
+    tx.set(countRef, { count: nextCount });
+
+    return { active: after, count: nextCount };
+  });
+}
+
+async function migrateLegacySubscriptions(user, ids) {
+  const remaining = [];
+
+  for (const channelUid of cleanStringList(ids)) {
+    if (auth.currentUser?.uid !== user.uid) return;
+
+    try {
+      await setChannelSubscription(user, channelUid, true, true);
+
+      await updateDoc(doc(db, 'userPrivate', user.uid), {
+        pendingSubscriptions: arrayRemove(channelUid)
+      });
+    } catch (error) {
+      console.error('登録先の移行を保留:', channelUid, error);
+      remaining.push(channelUid);
+    }
+  }
+
+  if (remaining.length && auth.currentUser?.uid === user.uid) {
+    alert(
+      '一部の登録先を移行できませんでした。' +
+      '元の情報は非公開で保持しています。' +
+      '通信状態を確認し、再ログインしてください。'
+    );
+  }
+}
+
+async function readMySubscriptions(uid) {
+  const snap = await getDocs(query(
+    collection(db, 'userPrivate', uid, 'subscriptions'),
+    where('active', '==', true)
+  ));
+
+  return snap.docs.map(item => item.id);
+}
+
+function displaySubscriberCount(uid, element, labeled = true) {
+  subscriberCountListeners.get(element)?.();
+  subscriberCountListeners.delete(element);
+
+  if (!uid || ['null', 'undefined'].includes(uid)) {
+    element.textContent = labeled ? 'チャンネル登録者数 0人' : '0';
+    return;
+  }
+
+  const unsubscribe = onSnapshot(
+    doc(db, 'channelStats', uid),
+    snap => {
+      const count = snap.exists() ? snap.data().count : 0;
+
+      element.textContent = labeled
+        ? `チャンネル登録者数 ${count}人`
+        : String(count);
+    },
+    error => {
+      console.error('登録者数の取得失敗:', error);
+      element.textContent = labeled
+        ? 'チャンネル登録者数を取得できません'
+        : '—';
+    }
+  );
+
+  subscriberCountListeners.set(element, unsubscribe);
+}
+
+async function toggleCommentVote(commentId, kind) {
+  const user = auth.currentUser;
+
+  if (!user || user.isAnonymous) {
+    return alert('評価するにはログインしてください。');
+  }
+
+  if (commentVotePending.has(commentId)) return;
+  commentVotePending.add(commentId);
+
+  try {
+    const reference = doc(db, 'comments', commentId);
+
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(reference);
+
+      if (!snap.exists()) {
+        throw new Error('コメントが削除されています。');
+      }
+
+      const data = snap.data();
+      const oldLikes = data.likedUsers || [];
+      const oldDislikes = data.dislikedUsers || [];
+
+      const cancel = (
+        kind === 'like' ? oldLikes : oldDislikes
+      ).includes(user.uid);
+
+      const likedUsers = oldLikes.filter(uid => uid !== user.uid);
+      const dislikedUsers = oldDislikes.filter(uid => uid !== user.uid);
+
+      if (!cancel) {
+        (kind === 'like' ? likedUsers : dislikedUsers).push(user.uid);
+      }
+
+      tx.update(reference, {
+        likedUsers,
+        dislikedUsers,
+        likes:
+          (data.likes || 0) + likedUsers.length - oldLikes.length,
+        dislikes:
+          (data.dislikes || 0) + dislikedUsers.length - oldDislikes.length
+      });
+    });
+  } catch (error) {
+    console.error('コメント評価失敗:', error);
+    alert(
+      '評価を保存できませんでした。少し待ってから再度お試しください。'
+    );
+  } finally {
+    commentVotePending.delete(commentId);
+  }
+}
+
+async function secureAuthChanged(user) {
+  const version = ++accountLoadVersion;
+
+  const videoEntriesRequest =
+    initialVideoEntriesRequest ||
+    fetchVideoEntries().then(
+      videos => ({ videos }),
+      error => ({ error })
+    );
+
+  initialVideoEntriesRequest = null;
+
+  currentUser = null;
+  currentUserBlocks = [];
+  currentUserNotInterested = [];
+  currentUserSubscriptions = [];
+  currentUserSaved = [];
+
+  if (user && !user.isAnonymous) {
+    let channelName = 'ゲストチャンネル';
+    let avatarUrl = '';
+
+    try {
+      const { profile, privateData } =
+        await migratePrivateProfile(user);
+
+      if (
+        version !== accountLoadVersion ||
+        auth.currentUser?.uid !== user.uid
+      ) return;
+
+      channelName = profile.channelName || user.displayName || channelName;
+      avatarUrl = profile.avatarUrl || '';
+
+      currentUserBlocks = privateData.blockedUids;
+      currentUserNotInterested = privateData.notInterestedUids;
+      currentUserSaved = privateData.savedVideos;
+
+      await migrateLegacySubscriptions(
+        user,
+        privateData.pendingSubscriptions
+      );
+
+      const subscriptions = await readMySubscriptions(user.uid);
+
+      if (
+        version !== accountLoadVersion ||
+        auth.currentUser?.uid !== user.uid
+      ) return;
+
+      currentUserSubscriptions = subscriptions;
+    } catch (error) {
+      if (version !== accountLoadVersion) return;
+
+      console.error('ユーザー情報の読み込み・移行失敗:', error);
+      alert(
+        'ユーザー情報を読み込めませんでした。' +
+        '新しいFirestoreルールが公開済みか確認し、再ログインしてください。'
+      );
+    }
+
+    if (
+      version !== accountLoadVersion ||
+      auth.currentUser?.uid !== user.uid
+    ) return;
+
+    currentUser = { uid: user.uid, channelName, avatarUrl };
+
+    loginOpenBtn.style.display = 'none';
+    userInfo.style.display = 'flex';
+    channelNameDisplay.textContent = channelName;
+
+    if (avatarUrl) {
+      userProfileAvatar.style.backgroundImage = `url(${avatarUrl})`;
+      userProfileAvatar.style.backgroundSize = 'cover';
+      userProfileAvatar.textContent = '';
+    } else {
+      userProfileAvatar.style.backgroundImage = 'none';
+      userProfileAvatar.textContent = channelName.charAt(0).toUpperCase();
+    }
+
+    nicknameArea.style.display = 'none';
+    channelBadge.style.display = 'block';
+    channelBadge.textContent = '「' + channelName + '」としてコメントします';
+  } else {
+    loginOpenBtn.style.display = 'inline-flex';
+    userInfo.style.display = 'none';
+    nicknameArea.style.display = 'block';
+    channelBadge.style.display = 'none';
+  }
+
+  updateAvatarLetter();
+  loadVideoList(videoEntriesRequest);
+}
+
+async function secureReport() {
+  const user = auth.currentUser;
+
+  if (!user || user.isAnonymous) {
+    return alert('通報するにはログインしてください。');
+  }
+
+  const videoId = currentVideoId;
+  if (!videoId) return;
+
+  const reason = prompt(
+    '通報の理由を入力してください（2000文字以内）'
+  )?.trim();
+
+  if (!reason) return;
+
+  if (reason.length > 2000) {
+    return alert('通報理由は2000文字以内で入力してください。');
+  }
+
+  reportBtn.disabled = true;
+
+  try {
+    await addDoc(collection(db, 'reports'), {
+      videoId,
+      videoTitle: mainTitle.textContent.slice(0, 1000),
+      uploaderUid: uploaderNameEl.dataset.uid || '',
+      reportedBy: user.uid,
+      reason,
+      createdAt: serverTimestamp(),
+      status: 'pending'
+    });
+
+    alert('通報を受け付けました。');
+  } catch (error) {
+    console.error('通報の保存失敗:', error);
+    alert(
+      '通報を保存できませんでした。通信とログイン状態を確認してください。'
+    );
+  } finally {
+    reportBtn.disabled = false;
+  }
+}
+
+async function secureSubscribe() {
+  const user = auth.currentUser;
+
+  if (!user || user.isAnonymous) {
+    return alert('チャンネル登録するにはログインしてください。');
+  }
+
+  const channelUid = subscribeBtn.dataset.targetUid;
+  subscribeBtn.disabled = true;
+
+  try {
+    const result = await setChannelSubscription(user, channelUid);
+
+    if (auth.currentUser?.uid !== user.uid) return;
+
+    currentUserSubscriptions =
+      currentUserSubscriptions.filter(uid => uid !== channelUid);
+
+    if (result.active) {
+      currentUserSubscriptions.push(channelUid);
+    }
+
+    if (subscribeBtn.dataset.targetUid === channelUid) {
+      subscribeBtn.textContent =
+        result.active ? '登録済み' : 'チャンネル登録';
+
+      subscribeBtn.classList.toggle('subscribed', result.active);
+    }
+  } catch (error) {
+    console.error('チャンネル登録の保存失敗:', error);
+    alert(
+      'チャンネル登録を変更できませんでした。少し待って再度お試しください。'
+    );
+  } finally {
+    subscribeBtn.disabled = false;
+  }
+}
     async function showMyProfile(targetUid = null) {
       const uid = targetUid || (currentUser ? currentUser.uid : null);
       if (!uid || uid === "undefined" || uid === "null") return;
       document.body.classList.remove('watch-mode');
       homeScreen.style.display = 'none'; watchScreen.style.display = 'none'; channelScreen.style.display = 'block';
-      const userSnap = await getDoc(doc(db, 'users', uid));
-      const userData = userSnap.exists() ? userSnap.data() : { channelName: 'ゲスト', subscriberCount: 0 };
+      let userData = {
+        channelName:
+          allVideos.find(v => v.uploaderUid === uid)?.uploaderName ||
+          'チャンネル',
+        avatarUrl: ''
+      };
+
+      try {
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (userSnap.exists()) userData = userSnap.data();
+      } catch (error) {
+        console.warn('公開プロフィールの取得を保留:', error);
+      }
       const channelAvatarHeader = document.getElementById('channelAvatarHeader');
       channelPageTitle.textContent = userData.channelName;
       document.getElementById('channelHandle').textContent = userData.channelName.toLowerCase().replace(/\s/g, '');
-      document.getElementById('channelSubscriberCount').textContent = userData.subscriberCount || 0;
+      displaySubscriberCount(uid, document.getElementById('channelSubscriberCount'), false);
       if (userData.avatarUrl) {
         channelAvatarHeader.style.backgroundImage = `url(${userData.avatarUrl})`; channelAvatarHeader.textContent = '';
       } else {
@@ -2409,41 +2854,7 @@ let initialVideoEntriesRequest = fetchVideoEntries().then(
   error => ({ error })
 );
 
-onAuthStateChanged(auth, async (user) => {
-  // 初回は先に開始した通信を使い、二重取得を防ぐ
-  const videoEntriesRequest =
-    initialVideoEntriesRequest ||
-    fetchVideoEntries().then(
-      videos => ({ videos }),
-      error => ({ error })
-    );
-
-  initialVideoEntriesRequest = null;
-
-      if (user) {
-        let channelName = 'ゲストチャンネル'; let avatarUrl = ''; currentUserBlocks = []; currentUserSubscriptions = [];
-        try {
-          const snap = await getDoc(doc(db, 'users', user.uid));
-          if (snap.exists()) {
-            channelName = snap.data().channelName;
-            avatarUrl = snap.data().avatarUrl || '';
-            currentUserBlocks = snap.data().blockedUids || [];
-            currentUserNotInterested = snap.data().notInterestedUids || [];
-            currentUserSubscriptions = snap.data().subscribedTo || [];
-            currentUserSaved = snap.data().savedVideos || [];
-          }
-        } catch (error) { console.error('ユーザー情報読み込み失敗:', error); }
-        currentUser = { uid: user.uid, channelName, avatarUrl };
-        loginOpenBtn.style.display = 'none'; userInfo.style.display = 'flex'; channelNameDisplay.textContent = channelName;
-        if (avatarUrl) { userProfileAvatar.style.backgroundImage = `url(${avatarUrl})`; userProfileAvatar.style.backgroundSize = 'cover'; userProfileAvatar.textContent = ''; }
-        else { userProfileAvatar.style.backgroundImage = 'none'; userProfileAvatar.textContent = channelName.charAt(0).toUpperCase(); }
-        nicknameArea.style.display = 'none'; channelBadge.style.display = 'block'; channelBadge.textContent = '「' + channelName + '」としてコメントします';
-      } else {
-        currentUser = null; loginOpenBtn.style.display = 'inline-flex'; userInfo.style.display = 'none'; nicknameArea.style.display = 'block'; channelBadge.style.display = 'none';
-      }
-          updateAvatarLetter();
-          loadVideoList(videoEntriesRequest);});
-
+onAuthStateChanged(auth, secureAuthChanged);
     const categoryBtns = document.querySelectorAll('.category-btn');
     categoryBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3014,14 +3425,14 @@ gridItem.addEventListener('click', event => {
           e.stopPropagation(); dropdown.classList.remove('active');
           if (!currentUser) return alert('この機能を使うにはログインしてください。');
           if (v.uploaderUid === currentUser.uid) return alert('自分のチャンネルは非表示にできません。');
-          try { await setDoc(doc(db, 'users', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserNotInterested.push(v.uploaderUid); alert('このチャンネルの動画を今後おすすめに表示しません。'); applyFilterAndSort(); } catch { alert('設定に失敗しました。'); }
+          try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserNotInterested.push(v.uploaderUid); alert('このチャンネルの動画を今後おすすめに表示しません。'); applyFilterAndSort(); } catch { alert('設定に失敗しました。'); }
         });
         gridItem.querySelector('.block-channel-btn').addEventListener('click', async (e) => {
           e.stopPropagation(); dropdown.classList.remove('active');
           if (!currentUser) return alert('この機能を使うにはログインしてください。');
           if (v.uploaderUid === currentUser.uid) return alert('自分自身はブロックできません。');
           if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは一切表示されなくなります。')) return;
-          try { await setDoc(doc(db, 'users', currentUser.uid), { blockedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserBlocks.push(v.uploaderUid); alert('ブロックしました。'); applyFilterAndSort(); } catch { alert('ブロック処理に失敗しました。'); }
+          try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { blockedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserBlocks.push(v.uploaderUid); alert('ブロックしました。'); applyFilterAndSort(); } catch { alert('ブロック処理に失敗しました。'); }
         });
                container.appendChild(gridItem);
 
@@ -3234,7 +3645,7 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
           uploaderAvatarEl.style.backgroundImage = 'none'; 
           uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
         }
-        subCountEl.textContent = `チャンネル登録者数 ${uData.subscriberCount || 0}人`;
+        // 登録者数はchannelStatsから取得する。
       } else { 
         uploaderAvatarEl.style.backgroundImage = 'none'; 
         uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
@@ -3263,6 +3674,7 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
   danmakuInput.value = ""; 
   danmakuSubmitBtn.disabled = true;
   
+  displaySubscriberCount(videoData.uploaderUid, subCountEl);
   hasLiked = false; 
   hasDisliked = false; 
   likeBtn.disabled = true; 
@@ -3959,14 +4371,20 @@ if (text.length > 2000) {
 target.disabled = true;
         try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", parentId, createdAt: serverTimestamp() }); input.value = ""; input.style.height = '38px'; document.getElementById(`reply-area-${parentId}`).style.display = 'none'; } catch {} finally { target.disabled = false; } return;
       }
-      if (target.closest('.like-comment-btn')) {
-        if (!currentUser) return alert('評価するにはログインしてください。'); const btn = target.closest('.like-comment-btn'); const cid = btn.dataset.id; const commentRef = doc(db, 'comments', cid); const snap = await getDoc(commentRef);
-        if(snap.exists()) { const data = snap.data(); const likedUsers = data.likedUsers || []; const dislikedUsers = data.dislikedUsers || []; if(likedUsers.includes(currentUser.uid)) { await setDoc(commentRef, { likedUsers: arrayRemove(currentUser.uid), likes: increment(-1) }, { merge: true }); } else { await setDoc(commentRef, { likedUsers: arrayUnion(currentUser.uid), likes: increment(1) }, { merge: true }); if(dislikedUsers.includes(currentUser.uid)) await setDoc(commentRef, { dislikedUsers: arrayRemove(currentUser.uid), dislikes: increment(-1) }, { merge: true }); } } return;
+
+      const voteButton =
+        target.closest('.like-comment-btn, .dislike-comment-btn');
+
+      if (voteButton) {
+        await toggleCommentVote(
+          voteButton.dataset.id,
+          voteButton.classList.contains('like-comment-btn')
+            ? 'like'
+            : 'dislike'
+        );
+        return;
       }
-      if (target.closest('.dislike-comment-btn')) {
-        if (!currentUser) return alert('評価するにはログインしてください。'); const btn = target.closest('.dislike-comment-btn'); const cid = btn.dataset.id; const commentRef = doc(db, 'comments', cid); const snap = await getDoc(commentRef);
-        if(snap.exists()) { const data = snap.data(); const likedUsers = data.likedUsers || []; const dislikedUsers = data.dislikedUsers || []; if(dislikedUsers.includes(currentUser.uid)) { await setDoc(commentRef, { dislikedUsers: arrayRemove(currentUser.uid), dislikes: increment(-1) }, { merge: true }); } else { await setDoc(commentRef, { dislikedUsers: arrayUnion(currentUser.uid), dislikes: increment(1) }, { merge: true }); if(likedUsers.includes(currentUser.uid)) await setDoc(commentRef, { likedUsers: arrayRemove(currentUser.uid), likes: increment(-1) }, { merge: true }); } } return;
-      }
+
     });
     commentList.addEventListener('input', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn) btn.disabled = e.target.value.trim() === ""; autoResizeTextArea(e.target); } });
     commentList.addEventListener('keydown', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn && !btn.disabled) btn.click(); } } });
@@ -4159,8 +4577,8 @@ if (!uploadUser || uploadUser.isAnonymous) {
       );
     });
 
-    reportBtn.addEventListener('click', async () => { if (!currentUser) return alert('通報するにはログインしてください。'); const reason = prompt('通報の理由を入力してください'); if (!reason) return; try { await addDoc(collection(db, 'reports'), { videoId: currentVideoId, videoTitle: mainTitle.textContent, uploaderUid: uploaderNameEl.dataset.uid, reportedBy: currentUser.uid, reason, createdAt: serverTimestamp(), status: 'pending' }); alert('通報が完了しました。ご協力ありがとうございます。'); } catch { alert('通報に失敗しました。'); } });
-    blockUserBtn.addEventListener('click', async () => { if (!currentUser) return alert('ブロックするにはログインしてください。'); const targetUid = uploaderNameEl.dataset.uid; if (targetUid === currentUser.uid) return alert('自分自身はブロックできません。'); if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは表示されなくなります。')) return; try { await setDoc(doc(db, 'users', currentUser.uid), { blockedUids: arrayUnion(targetUid) }, { merge: true }); currentUserBlocks.push(targetUid); alert('ブロックしました。ホーム画面に戻ります。'); goHome(); } catch { alert('ブロック処理に失敗しました。'); } });
+    reportBtn.addEventListener('click', secureReport);
+    blockUserBtn.addEventListener('click', async () => { if (!currentUser) return alert('ブロックするにはログインしてください。'); const targetUid = uploaderNameEl.dataset.uid; if (targetUid === currentUser.uid) return alert('自分自身はブロックできません。'); if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは表示されなくなります。')) return; try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { blockedUids: arrayUnion(targetUid) }, { merge: true }); currentUserBlocks.push(targetUid); alert('ブロックしました。ホーム画面に戻ります。'); goHome(); } catch { alert('ブロック処理に失敗しました。'); } });
 
     const customizeBtn = document.getElementById('customizeBtn'); const customizeModal = document.getElementById('customizeModal'); const closeCustomizeModalBtn = document.getElementById('closeCustomizeModalBtn'); const customizeAvatarPreview = document.getElementById('customizeAvatarPreview'); const avatarFileInput = document.getElementById('avatarFileInput'); const customizeNameInput = document.getElementById('customizeNameInput'); const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
     customizeBtn.addEventListener('click', () => { customizeNameInput.value = currentUser.channelName; if (currentUser.avatarUrl) { customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`; customizeAvatarPreview.textContent = ''; } else { customizeAvatarPreview.style.backgroundImage = 'none'; customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase(); } customizeModal.classList.add('active'); });
@@ -4187,17 +4605,7 @@ await uploadBytes(storageRef,file, {
     const observer = new MutationObserver(() => { const targetUid = uploaderNameEl.dataset.uid; if (currentUser && targetUid && targetUid !== "undefined" && targetUid !== "null" && currentUser.uid !== targetUid) { subscribeBtn.style.display = 'block'; subscribeBtn.dataset.targetUid = targetUid; if (currentUserSubscriptions.includes(targetUid)) { subscribeBtn.textContent = '登録済み'; subscribeBtn.classList.add('subscribed'); } else { subscribeBtn.textContent = 'チャンネル登録'; subscribeBtn.classList.remove('subscribed'); } } else { subscribeBtn.style.display = 'none'; } });
     observer.observe(uploaderNameEl, { attributes: true, childList: true, characterData: true });
 
-    if (subscribeBtn) {
-      subscribeBtn.addEventListener('click', async () => {
-        if (!currentUser) return alert('チャンネル登録するにはログインしてください。'); const targetUid = subscribeBtn.dataset.targetUid; if (!targetUid || targetUid === "undefined" || targetUid === "null") return alert('このユーザーは登録できません。'); subscribeBtn.disabled = true;
-        const userRef = doc(db, 'users', currentUser.uid); const targetRef = doc(db, 'users', targetUid); const isSubscribed = currentUserSubscriptions.includes(targetUid); let currentCount = parseInt(subCountEl.textContent.replace(/[^0-9]/g, '')) || 0;
-        try {
-          if (isSubscribed) { subscribeBtn.textContent = 'チャンネル登録'; subscribeBtn.classList.remove('subscribed'); currentUserSubscriptions = currentUserSubscriptions.filter(id => id !== targetUid); subCountEl.textContent = `チャンネル登録者数 ${Math.max(0, currentCount - 1)}人`; await setDoc(userRef, { subscribedTo: arrayRemove(targetUid) }, { merge: true }); try { await setDoc(targetRef, { subscriberCount: increment(-1) }, { merge: true }); } catch {} }
-          else { subscribeBtn.textContent = '登録済み'; subscribeBtn.classList.add('subscribed'); currentUserSubscriptions.push(targetUid); subCountEl.textContent = `チャンネル登録者数 ${currentCount + 1}人`; await setDoc(userRef, { subscribedTo: arrayUnion(targetUid) }, { merge: true }); try { await setDoc(targetRef, { subscriberCount: increment(1) }, { merge: true }); } catch {} }
-        } catch {} finally { subscribeBtn.disabled = false; }
-      });
-    }
-
+    if (subscribeBtn) subscribeBtn.addEventListener('click', secureSubscribe);
     const manageScreen = document.getElementById('manageScreen');
     const manageList = document.getElementById('manageList');
     const manageVideoBtn = document.getElementById('manageVideoBtn');
@@ -4237,7 +4645,8 @@ await uploadBytes(thumbRef, thumbFile, {
   }
 }); newThumbUrl = await getDownloadURL(thumbRef); }
         saveEditBtn.textContent = 'データ更新中...';
-        const newCustomMetadata = { ...currentEditVideo.originalCustomMetadata, title: document.getElementById('editTitleInput').value, desc: document.getElementById('editDescInput').value, category: document.getElementById('editCategoryInput').value, thumbUrl: newThumbUrl };
+        const latestVideoMetadata = await getMetadata(currentEditVideo.itemRef);
+        const newCustomMetadata = { ...latestVideoMetadata.customMetadata, title: document.getElementById('editTitleInput').value, desc: document.getElementById('editDescInput').value, category: document.getElementById('editCategoryInput').value, thumbUrl: newThumbUrl };
         await updateMetadata(currentEditVideo.itemRef, { customMetadata: newCustomMetadata });
         alert('変更を保存しました！'); document.getElementById('editVideoModal').classList.remove('active');
         await loadVideoList(); renderManageList();
@@ -4249,7 +4658,7 @@ await uploadBytes(thumbRef, thumbFile, {
       if (!currentUser) return alert('動画を保存するにはログインしてください。');
       saveVideoBtn.disabled = true;
       try {
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(db, 'userPrivate', currentUser.uid);
         if (currentUserSaved.includes(currentVideoId)) { await setDoc(userRef, { savedVideos: arrayRemove(currentVideoId) }, { merge: true }); currentUserSaved = currentUserSaved.filter(id => id !== currentVideoId); saveVideoBtn.textContent = '🔖 保存'; saveVideoBtn.style.color = ''; }
         else { await setDoc(userRef, { savedVideos: arrayUnion(currentVideoId) }, { merge: true }); currentUserSaved.push(currentVideoId); saveVideoBtn.textContent = '🔖 保存済み'; saveVideoBtn.style.color = '#065fd4'; }
       } catch { alert('保存に失敗しました。'); } finally { saveVideoBtn.disabled = false; }

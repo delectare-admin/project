@@ -1,0 +1,245 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validVoteChange(usersField, countField) {
+      let beforeUsers = resource.data.get(usersField, []);
+      let afterUsers = request.resource.data.get(usersField, []);
+      let beforeCount = resource.data.get(countField, 0);
+      let afterCount = request.resource.data.get(countField, 0);
+
+      return beforeUsers is list && afterUsers is list
+        && beforeCount is int && afterCount is int && afterCount >= 0
+        && afterUsers.size() == afterUsers.toSet().size()
+        && afterUsers.toSet().difference(beforeUsers.toSet())
+          .hasOnly([request.auth.uid])
+        && beforeUsers.toSet().difference(afterUsers.toSet())
+          .hasOnly([request.auth.uid])
+        && afterCount == beforeCount
+          + afterUsers.size() - beforeUsers.size();
+    }
+
+    function validVoteUpdate() {
+      return signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['likes', 'dislikes', 'likedUsers', 'dislikedUsers'])
+        && validVoteChange('likedUsers', 'likes')
+        && validVoteChange('dislikedUsers', 'dislikes')
+        && !(request.auth.uid in request.resource.data.get('likedUsers', [])
+          && request.auth.uid in request.resource.data.get('dislikedUsers', []));
+    }
+
+    match /comments/{commentId} {
+      function validNewComment() {
+        let d = request.resource.data;
+
+        return d.keys().hasAll([
+            'videoId', 'text', 'author', 'authorUid', 'type', 'createdAt'
+          ])
+          && d.keys().hasOnly([
+            'videoId', 'text', 'author', 'authorUid', 'type',
+            'createdAt', 'parentId', 'videoTime'
+          ])
+          && d.authorUid == request.auth.uid
+          && d.videoId is string
+          && d.videoId.size() > 0 && d.videoId.size() <= 1024
+          && d.author is string
+          && d.author.size() > 0 && d.author.size() <= 200
+          && d.text is string && d.text.size() > 0
+          && d.createdAt == request.time
+          && (
+            (
+              d.type == 'normal'
+              && d.text.size() <= 2000
+              && !('videoTime' in d)
+              && (
+                d.get('parentId', null) == null
+                || (
+                  d.parentId is string
+                  && d.parentId.size() > 0
+                  && d.parentId.size() <= 128
+                )
+              )
+            )
+            || (
+              d.type == 'danmaku'
+              && d.text.size() <= 200
+              && d.videoTime is number && d.videoTime >= 0
+              && d.get('parentId', null) == null
+            )
+          );
+      }
+
+      allow read: if true;
+      allow create: if signedIn() && validNewComment();
+      allow update: if validVoteUpdate();
+      allow delete: if signedIn()
+        && resource.data.authorUid == request.auth.uid;
+    }
+
+    match /videoStats/{videoId} {
+      allow read: if true;
+
+      allow create:
+        if request.resource.data.keys().hasAll(['views', 'likes', 'dislikes'])
+        && request.resource.data.keys().hasOnly([
+          'views', 'likes', 'dislikes', 'likedUsers', 'dislikedUsers'
+        ])
+        && request.resource.data.views is int
+        && request.resource.data.views == 1
+        && request.resource.data.likes is int
+        && request.resource.data.likes == 0
+        && request.resource.data.dislikes is int
+        && request.resource.data.dislikes == 0
+        && request.resource.data.get('likedUsers', []) == []
+        && request.resource.data.get('dislikedUsers', []) == [];
+
+      allow update: if (
+        request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['views'])
+        && request.resource.data.views is int
+        && request.resource.data.views == resource.data.views + 1
+      ) || validVoteUpdate();
+
+      allow delete: if false;
+    }
+
+    function publicProfileKeys(d) {
+      return d.keys().hasOnly([
+        'channelName', 'avatarUrl', 'createdAt', 'subscriberCount'
+      ]);
+    }
+
+    function validPublicProfile(d) {
+      return publicProfileKeys(d)
+        && d.channelName is string
+        && d.channelName.size() > 0 && d.channelName.size() <= 200
+        && d.get('avatarUrl', '') is string
+        && d.get('avatarUrl', '').size() <= 4096
+        && d.get('subscriberCount', 0) is int
+        && d.get('subscriberCount', 0) >= 0;
+    }
+
+    match /users/{userId} {
+      allow get: if isMe(userId)
+        || resource == null
+        || publicProfileKeys(resource.data);
+
+      allow list: if false;
+
+      allow create: if isMe(userId)
+        && validPublicProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('subscriberCount', 0) == 0;
+
+      allow update: if isMe(userId)
+        && validPublicProfile(request.resource.data)
+        && request.resource.data.get('subscriberCount', 0)
+          == resource.data.get('subscriberCount', 0)
+        && request.resource.data.get('createdAt', null)
+          == resource.data.get('createdAt', null);
+
+      allow delete: if false;
+    }
+
+    function validPrivateSettings(d) {
+      return d.keys().hasOnly([
+          'blockedUids', 'notInterestedUids', 'savedVideos',
+          'pendingSubscriptions', 'legacyProfile'
+        ])
+        && d.get('blockedUids', []) is list
+        && d.get('notInterestedUids', []) is list
+        && d.get('savedVideos', []) is list
+        && d.get('pendingSubscriptions', []) is list
+        && d.get('legacyProfile', {}) is map;
+    }
+
+    match /userPrivate/{userId} {
+      allow read: if isMe(userId);
+
+      allow create, update: if isMe(userId)
+        && validPrivateSettings(request.resource.data);
+
+      allow delete: if false;
+
+      match /subscriptions/{channelId} {
+        allow read: if isMe(userId);
+
+        allow create, update: if isMe(userId)
+          && request.resource.data.keys().hasAll(['active', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['active', 'updatedAt'])
+          && request.resource.data.active is bool
+          && request.resource.data.updatedAt == request.time
+          && validSubscriptionPair(userId, channelId);
+
+        allow delete: if false;
+      }
+    }
+
+    function validSubscriptionPair(uid, channelId) {
+      let relationPath =
+        /databases/$(database)/documents/userPrivate/$(uid)/subscriptions/$(channelId);
+      let countPath =
+        /databases/$(database)/documents/channelStats/$(channelId);
+
+      let before = exists(relationPath)
+        ? get(relationPath).data.active : false;
+      let after = getAfter(relationPath).data.active;
+      let oldCount = exists(countPath) ? get(countPath).data.count : 0;
+      let next = getAfter(countPath).data;
+
+      return isMe(uid) && uid != channelId
+        && exists(/databases/$(database)/documents/users/$(channelId))
+        && before is bool && after is bool && after != before
+        && oldCount is int && oldCount >= 0
+        && next.keys().hasOnly(['count'])
+        && next.count is int && next.count >= 0
+        && next.count == oldCount + (after ? 1 : -1);
+    }
+
+    match /channelStats/{channelId} {
+      allow read: if true;
+
+      allow create, update: if signedIn()
+        && validSubscriptionPair(request.auth.uid, channelId);
+
+      allow delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'videoId', 'videoTitle', 'uploaderUid',
+          'reportedBy', 'reason', 'createdAt', 'status'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'videoId', 'videoTitle', 'uploaderUid',
+          'reportedBy', 'reason', 'createdAt', 'status'
+        ])
+        && request.resource.data.reportedBy == request.auth.uid
+        && request.resource.data.videoId is string
+        && request.resource.data.videoId.size() > 0
+        && request.resource.data.videoId.size() <= 1024
+        && request.resource.data.videoTitle is string
+        && request.resource.data.videoTitle.size() <= 1000
+        && request.resource.data.uploaderUid is string
+        && request.resource.data.uploaderUid.size() <= 128
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 2000
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'pending';
+
+      allow read, update, delete: if false;
+    }
+  }
+}
