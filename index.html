@@ -2305,7 +2305,7 @@ updateVideoClickLabel();
         commentAvatar.style.backgroundImage = 'none'; commentAvatar.textContent = name.charAt(0).toUpperCase();
       }
     }
-    function getNickname() { return currentUser ? currentUser.channelName : (nicknameInput.value.trim() || 'ゲスト'); }
+    function getNickname() {return currentUser?.channelName || 'ゲスト';}
     function getAuthorUid() { return currentUser ? currentUser.uid : null; }
 
 // SECURITY V2: private settings and atomic operations
@@ -5717,7 +5717,7 @@ function renderMyPage() {
   }
 
   function openDescription() {
-    if (!mobile.matches || sheet.open) return;
+    if (sheet.open) return;
 
     syncDescription();
 
@@ -6390,6 +6390,359 @@ navHistoryBtn.addEventListener('click', event => {
   setActiveNav('trending');
   goHome();
 }, true);
+
+// ===== 動画タイトル・評価ボタン・その他メニューの配置 =====
+(() => {
+  if (document.getElementById('watchMoreButton')) return;
+
+  const meta = document.querySelector('.video-meta-bar');
+  const title = document.getElementById('mainTitle');
+  const titleBlock = title?.closest('.mobile-description-title');
+  const uploader = meta?.querySelector('.uploader-info-container');
+  const danmaku = document.getElementById('danmakuInput')
+    ?.closest('.danmaku-input-area');
+
+  const like = document.getElementById('likeBtn');
+  const dislike = document.getElementById('dislikeBtn');
+  const share = document.getElementById('shareBtn');
+  const save = document.getElementById('saveVideoBtn');
+  const report = document.getElementById('reportBtn');
+
+  if (
+    !meta || !titleBlock || !uploader || !danmaku ||
+    !like || !dislike || !share || !save || !report
+  ) {
+    console.error('動画画面の配置変更：必要な要素が見つかりません。');
+    return;
+  }
+
+  const style = document.createElement('style');
+
+  style.textContent = `
+    /* 入力欄は既存処理との互換性のため残し、画面から隠す */
+    #nicknameArea {
+      display: none !important;
+    }
+
+    /* タイトル → 弾幕 → チャンネル・評価 */
+    .video-meta-bar.watch-layout-v3 {
+      display: flex !important;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .watch-layout-v3 .mobile-description-title {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      min-width: 0;
+    }
+
+    .watch-layout-v3 #mainTitle {
+      margin: 0;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+    }
+
+    .watch-layout-v3 #mobileDescriptionSummary {
+      display: flex !important;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px 10px;
+      margin: 0;
+      color: #606060;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .watch-layout-v3 #mobileDescriptionOpen {
+      min-height: 36px;
+      padding: 4px 0;
+      border: 0;
+      background: transparent;
+      color: #111;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .watch-layout-v3 .danmaku-input-area {
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .watch-layout-v3 .uploader-info-container {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0;
+      min-width: 0;
+    }
+
+    .watch-layout-v3 #uploaderDetails {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .watch-layout-v3 .watch-rating-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .watch-layout-v3 .watch-rating-actions > button {
+      min-height: 42px;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    #watchMoreButton {
+      width: 42px;
+      min-width: 42px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: #f0f0f0;
+      color: #111;
+      font-size: 27px;
+      cursor: pointer;
+    }
+
+    #watchMoreMenu {
+      position: fixed;
+      z-index: 10000;
+      width: 180px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100dvh - 24px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 6px;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    }
+
+    #watchMoreMenu[hidden] {
+      display: none !important;
+    }
+
+    #watchMoreMenu > button {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      margin: 0;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #watchMoreMenu > button:hover,
+    #watchMoreMenu > button:focus-visible {
+      background: #f2f2f2;
+    }
+
+    /* 元の説明表示だけ隠す。コメント欄は残す */
+    #videoDescriptionBox .video-description-meta,
+    #videoDescriptionText {
+      display: none !important;
+    }
+
+    #videoDescriptionBox {
+      margin: 0;
+      padding: 0;
+      min-height: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    @media (max-width: 768px) {
+      .watch-layout-v3 #mainTitle {
+        flex-basis: 100%;
+      }
+
+      .watch-layout-v3 .watch-rating-actions {
+        gap: 6px;
+      }
+
+      .watch-layout-v3 .watch-rating-actions .rate-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+
+    /* PCで開く説明パネル */
+    @media (min-width: 769px) {
+      #mobileDescriptionSheet {
+        inset: 0;
+        margin: auto;
+        width: min(640px, calc(100vw - 40px));
+        max-width: 640px;
+        height: min(560px, 80vh);
+        min-height: 0;
+        max-height: 80vh;
+        border-radius: 18px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+
+  // 新しいボタンではなく、既存ボタンそのものを移動。
+  // 評価・保存・通報の処理とログイン制限を維持する。
+  const oldActions = meta.querySelector('.meta-actions');
+
+  const actions = document.createElement('div');
+  actions.className = 'watch-rating-actions';
+
+  const more = document.createElement('button');
+  more.id = 'watchMoreButton';
+  more.type = 'button';
+  more.textContent = '⋮';
+  more.setAttribute('aria-label', 'その他の操作');
+  more.setAttribute('aria-expanded', 'false');
+  more.setAttribute('aria-controls', 'watchMoreMenu');
+
+  const menu = document.createElement('div');
+  menu.id = 'watchMoreMenu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'group');
+  menu.setAttribute('aria-label', 'その他の操作');
+
+  menu.append(save, report);
+  document.body.appendChild(menu);
+
+  actions.append(like, dislike, share, more);
+
+  const subscribe = document.getElementById('subscribeBtn');
+
+  if (subscribe?.parentElement === uploader) {
+    subscribe.after(actions);
+  } else {
+    uploader.appendChild(actions);
+  }
+
+  if (oldActions && !oldActions.children.length) {
+    oldActions.remove();
+  }
+
+  meta.append(titleBlock, danmaku, uploader);
+  meta.classList.add('watch-layout-v3');
+
+  function closeMenu(restoreFocus = false) {
+    menu.hidden = true;
+    more.setAttribute('aria-expanded', 'false');
+
+    if (restoreFocus) {
+      more.focus({ preventScroll: true });
+    }
+  }
+
+  function positionMenu() {
+    const rect = more.getBoundingClientRect();
+    const box = menu.getBoundingClientRect();
+
+    const left = Math.max(
+      12,
+      Math.min(rect.right - box.width, window.innerWidth - box.width - 12)
+    );
+
+    let top = rect.bottom + 8;
+
+    if (top + box.height > window.innerHeight - 12) {
+      top = rect.top - box.height - 8;
+    }
+
+    menu.style.left = left + 'px';
+    menu.style.top = Math.max(12, top) + 'px';
+  }
+
+  more.addEventListener('click', () => {
+    if (!menu.hidden) {
+      closeMenu();
+      return;
+    }
+
+    menu.hidden = false;
+    more.setAttribute('aria-expanded', 'true');
+    positionMenu();
+    save.focus({ preventScroll: true });
+  });
+
+  // 未ログイン時は前回のログイン案内が先に処理するため、
+  // このメニュー内の項目の近くに案内が表示される。
+  menu.addEventListener('click', event => {
+    if (event.target.closest('button')) closeMenu();
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (
+      !menu.hidden &&
+      !menu.contains(event.target) &&
+      !more.contains(event.target)
+    ) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      event.preventDefault();
+      closeMenu(true);
+    }
+  });
+
+  document.addEventListener('focusin', event => {
+    if (
+      !menu.hidden &&
+      !menu.contains(event.target) &&
+      !more.contains(event.target) &&
+      !event.target.closest('#nearLoginNotice')
+    ) {
+      closeMenu();
+    }
+  });
+
+  window.addEventListener('resize', () => closeMenu());
+
+  window.addEventListener('scroll', event => {
+    if (event.target instanceof Node && menu.contains(event.target)) return;
+    closeMenu();
+  }, true);
+
+  new MutationObserver(() => closeMenu()).observe(title, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  const watch = document.getElementById('watchScreen');
+
+  if (watch) {
+    new MutationObserver(() => {
+      if (watch.style.display === 'none') closeMenu();
+    }).observe(watch, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  }
+})();
 
   </script>
 </body>
