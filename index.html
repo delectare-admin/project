@@ -6744,6 +6744,103 @@ navHistoryBtn.addEventListener('click', event => {
   }
 })();
 
+// ===== スマホ：登録・評価・共有・その他を横並びにする =====
+(() => {
+  if (document.getElementById('mobileChannelRowStyle')) return;
+
+  const style = document.createElement('style');
+  style.id = 'mobileChannelRowStyle';
+
+  style.textContent = `
+    @media (max-width: 768px) {
+      .watch-layout-v3 .uploader-info-container {
+        display: grid !important;
+        grid-template-columns: 32px auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px 6px;
+        width: 100%;
+        min-width: 0;
+      }
+
+      /* チャンネル名・登録者数は上段 */
+      .watch-layout-v3 #uploaderDetails {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .watch-layout-v3 #uploaderName {
+        font-size: 15px;
+      }
+
+      .watch-layout-v3 #uploaderSubscriberCount {
+        font-size: 11px;
+      }
+
+      /* 下段をアイコン → 登録 → 評価の順にする */
+      .watch-layout-v3 #uploaderAvatar {
+        grid-column: 1;
+        grid-row: 2;
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
+      }
+
+      .watch-layout-v3 #subscribeBtn {
+        grid-column: 2;
+        grid-row: 2;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 8px 10px;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .watch-layout-v3 .watch-rating-actions {
+        grid-column: 3;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap !important;
+        gap: 4px;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        padding: 2px 0;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .watch-layout-v3 .watch-rating-actions > button {
+        flex: 0 0 auto;
+        min-height: 36px;
+        margin: 0;
+      }
+
+      .watch-layout-v3 .watch-rating-actions .rate-btn {
+        padding: 7px 8px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .watch-layout-v3 #watchMoreButton {
+        width: 32px;
+        min-width: 32px;
+        padding: 0;
+        font-size: 24px;
+      }
+
+      .watch-layout-v3 #blockUserBtn {
+        grid-column: 1 / -1;
+        justify-self: end;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+})();
+
   </script>
 </body>
 </html>
