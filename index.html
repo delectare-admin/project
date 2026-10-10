@@ -1782,6 +1782,24 @@ body.mobile-description-open {
   overflow-wrap: anywhere;
 }
 
+/* ヘッダーのログアウトボタンを非表示にする */
+body > header #logoutBtn {
+  display: none !important;
+}
+
+/* スマホの通知・検索・設定が並ぶスペースを確保 */
+@media (max-width: 768px) {
+  body > header .logo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body > header #notificationBell {
+    flex-shrink: 0;
+  }
+}
+
+
   </style>
 
 </head>
@@ -6986,10 +7004,42 @@ import {
     </svg>
   `;
 
-  const search = document.getElementById('mobileWatchSearchBtn');
+ const search = document.getElementById('mobileWatchSearchBtn');
+const settingsButton = document.getElementById('mySettingsBtn');
+const headerUserInfo = document.getElementById('userInfo');
+const headerActions = header.querySelector('.header-actions');
+const notificationMobile = window.matchMedia('(max-width: 768px)');
 
-  if (search) search.before(bell);
-  else header.appendChild(bell);
+function placeNotificationBell() {
+  if (notificationMobile.matches) {
+    // スマホ：左から「通知 → 検索 → 設定」
+    // スマホではheader-actionsが非表示なので、
+    // 通知ベルはヘッダー直下へ移す。
+    if (search) {
+      header.insertBefore(bell, search);
+
+      if (settingsButton) {
+        search.after(settingsButton);
+      }
+    } else {
+      header.appendChild(bell);
+    }
+  } else {
+    // PC：チャンネルアイコンのすぐ左
+    if (headerUserInfo && headerActions?.contains(headerUserInfo)) {
+      headerActions.insertBefore(bell, headerUserInfo);
+    } else if (headerActions) {
+      headerActions.appendChild(bell);
+    } else {
+      header.appendChild(bell);
+    }
+  }
+}
+
+placeNotificationBell();
+
+// ウィンドウ幅を変えた場合も配置を更新
+notificationMobile.addEventListener('change', placeNotificationBell);
 
   const panel = document.createElement('dialog');
   panel.id = 'notificationPanel';
@@ -7018,12 +7068,13 @@ import {
       !auth.currentUser.isAnonymous &&
       auth.currentUser.uid === uid;
 
-    const onHome =
-      homeScreen.style.display !== 'none' &&
-      !document.body.classList.contains('watch-mode') &&
-      currentFeed === 'all';
+   const onNotificationScreen =
+  homeScreen.style.display !== 'none' &&
+  !document.body.classList.contains('watch-mode') &&
+  ['all', 'subscriptions', 'trending', 'mypage']
+    .includes(currentFeed);
 
-    bell.hidden = !signedIn || !onHome;
+bell.hidden = !signedIn || !onNotificationScreen;
 
     if (bell.hidden && panel.open) panel.close();
   }
@@ -7179,6 +7230,8 @@ import {
 
   syncVisibility();
 })();
+
+
 
   </script>
 </body>
