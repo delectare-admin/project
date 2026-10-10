@@ -3920,27 +3920,135 @@ pipBtn.addEventListener('click', async () => {
     pipOpening = false;
   }
 });
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const videoWrapper = document.getElementById('videoWrapper');
-    fullscreenBtn.addEventListener('click', async () => {
-      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen');
-      if (!isFullscreen) {
-        try {
-          if (videoWrapper.requestFullscreen) { await videoWrapper.requestFullscreen(); }
-          else if (videoWrapper.webkitRequestFullscreen) { videoWrapper.webkitRequestFullscreen(); }
-          else { videoWrapper.classList.add('pseudo-fullscreen'); document.body.style.overflow = 'hidden'; }
-        } catch (error) { videoWrapper.classList.add('pseudo-fullscreen'); document.body.style.overflow = 'hidden'; }
-      } else {
-        if (videoWrapper.classList.contains('pseudo-fullscreen')) { videoWrapper.classList.remove('pseudo-fullscreen'); document.body.style.overflow = ''; }
-        else { try { if (document.exitFullscreen) { await document.exitFullscreen(); } else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); } } catch {} }
-      }
-      updateFullscreenBtn();
-    });
-    document.addEventListener('fullscreenchange', updateFullscreenBtn);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
-    function updateFullscreenBtn() {
-      fullscreenBtn.textContent = (document.fullscreenElement || document.webkitFullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen')) ? '✖ 全画面を解除' : '⛶ 全画面';
+
+
+   const fullscreenBtn = document.getElementById('fullscreenBtn');
+const videoWrapper = document.getElementById('videoWrapper');
+
+let fullscreenBusy = false;
+let previousBodyOverflow = '';
+
+function isPlayerFullscreen() {
+  return (
+    document.fullscreenElement === videoWrapper ||
+    document.webkitFullscreenElement === videoWrapper ||
+    mainVideo.webkitDisplayingFullscreen ||
+    videoWrapper.classList.contains('pseudo-fullscreen')
+  );
+}
+
+function enterPseudoFullscreen() {
+  previousBodyOverflow = document.body.style.overflow;
+  videoWrapper.classList.remove('is-sticky');
+  videoWrapper.classList.add('pseudo-fullscreen');
+  document.body.style.overflow = 'hidden';
+}
+
+function exitPseudoFullscreen() {
+  if (!videoWrapper.classList.contains('pseudo-fullscreen')) return;
+
+  videoWrapper.classList.remove('pseudo-fullscreen');
+  document.body.style.overflow = previousBodyOverflow;
+}
+
+async function enterPlayerFullscreen() {
+  videoWrapper.classList.remove('is-sticky');
+
+  // カスタム操作ボタンを含めた全画面を先に試す
+  try {
+    if (videoWrapper.requestFullscreen) {
+      await videoWrapper.requestFullscreen();
+      return;
     }
+
+    if (videoWrapper.webkitRequestFullscreen) {
+      await videoWrapper.webkitRequestFullscreen();
+      return;
+    }
+  } catch (error) {
+    console.warn('プレーヤー全体の全画面は利用できません:', error);
+  }
+
+  // iPhoneなどでは、動画自体の標準全画面を利用
+  if (typeof mainVideo.webkitEnterFullscreen === 'function') {
+    try {
+      mainVideo.webkitEnterFullscreen();
+      return;
+    } catch (error) {
+      console.warn('動画の標準全画面を開けませんでした:', error);
+    }
+  }
+
+  // 全画面APIが使えない環境だけ疑似全画面
+  enterPseudoFullscreen();
+}
+
+fullscreenBtn.addEventListener('click', async () => {
+  if (fullscreenBusy) return;
+  fullscreenBusy = true;
+
+  try {
+    if (videoWrapper.classList.contains('pseudo-fullscreen')) {
+      exitPseudoFullscreen();
+    } else if (mainVideo.webkitDisplayingFullscreen) {
+      mainVideo.webkitExitFullscreen();
+    } else if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else if (document.webkitFullscreenElement) {
+      await document.webkitExitFullscreen();
+    } else {
+      await enterPlayerFullscreen();
+    }
+  } catch (error) {
+    console.error('全画面の切り替えに失敗しました:', error);
+  } finally {
+    fullscreenBusy = false;
+    updateFullscreenBtn();
+  }
+});
+
+function updateFullscreenBtn() {
+  const active = isPlayerFullscreen();
+
+  fullscreenBtn.textContent = active
+    ? '✖ 全画面を解除'
+    : '⛶ 全画面';
+
+  fullscreenBtn.setAttribute(
+    'aria-label',
+    active ? '全画面を解除' : '全画面'
+  );
+
+  fullscreenBtn.title = active ? '全画面を解除' : '全画面';
+}
+
+document.addEventListener('fullscreenchange', updateFullscreenBtn);
+document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+mainVideo.addEventListener('webkitbeginfullscreen', updateFullscreenBtn);
+mainVideo.addEventListener('webkitendfullscreen', updateFullscreenBtn);
+
+document.addEventListener('keydown', event => {
+  if (
+    event.key === 'Escape' &&
+    videoWrapper.classList.contains('pseudo-fullscreen')
+  ) {
+    exitPseudoFullscreen();
+    updateFullscreenBtn();
+  }
+});
+
+// ホームに戻ったとき、疑似全画面とスクロール禁止を解除
+new MutationObserver(() => {
+  if (watchScreen.style.display === 'none') {
+    exitPseudoFullscreen();
+    updateFullscreenBtn();
+  }
+}).observe(watchScreen, {
+  attributes: true,
+  attributeFilter: ['style']
+});
+
+updateFullscreenBtn();
 
 let videoVoteBusy = false;
 let displayedVideoStats = null;
@@ -4814,6 +4922,24 @@ await uploadBytes(thumbRef, thumbFile, {
   let seeking = false;
   let lastVolume = video.volume || 1;
 
+  let adjustingVolume = false;
+
+volume.addEventListener('pointerdown', () => {
+  adjustingVolume = true;
+});
+
+window.addEventListener('pointerup', () => {
+  adjustingVolume = false;
+});
+
+window.addEventListener('pointercancel', () => {
+  adjustingVolume = false;
+});
+
+volume.addEventListener('blur', () => {
+  adjustingVolume = false;
+});
+
   function format(value) {
     const n = Math.max(
       0,
@@ -4844,7 +4970,9 @@ await uploadBytes(thumbRef, thumbFile, {
       silent ? 'ミュート解除' : 'ミュート'
     );
 
-    volume.value = video.muted ? 0 : video.volume;
+    if (!adjustingVolume) {
+  volume.value = video.muted ? 0 : video.volume;
+}
 
     const duration = video.duration;
     seek.disabled = !Number.isFinite(duration) || duration <= 0;
@@ -7231,7 +7359,493 @@ bell.hidden = !signedIn || !onNotificationScreen;
   syncVisibility();
 })();
 
+// ===== スマホ用プレーヤーの配置・設定 =====
+(() => {
+  if (document.getElementById('mobilePlayerTools')) return;
 
+  const video = document.getElementById('mainVideo');
+  const wrapper = document.getElementById('videoWrapper');
+  const anchor = document.getElementById('videoAnchor');
+  const controls = wrapper?.querySelector('.site-player-controls');
+  const row = controls?.querySelector('.player-row');
+  const right = controls?.querySelector('.player-right');
+  const time = controls?.querySelector('.player-time');
+  const seek = controls?.querySelector('.player-seek');
+  const danmakuButton = document.getElementById('toggleDanmakuBtn');
+  const fullscreenButton = document.getElementById('fullscreenBtn');
+  const inputArea = document.getElementById('danmakuInput')
+    ?.closest('.danmaku-input-area');
+
+  if (
+    !video || !wrapper || !anchor || !controls ||
+    !row || !right || !time || !seek ||
+    !danmakuButton || !fullscreenButton || !inputArea
+  ) {
+    console.error('スマホ用プレーヤー：必要な要素が見つかりません。');
+    return;
+  }
+
+  // 横向きのスマホも対象にする
+  const mobile = window.matchMedia(
+    '(max-width: 768px), (hover: none) and (pointer: coarse)'
+  );
+
+  // PC表示に戻すため、元の場所を記録
+  const inputPosition = document.createComment('弾幕入力の元の位置');
+  inputArea.before(inputPosition);
+
+  const buttonPosition = document.createComment('弾幕ボタンの元の位置');
+  danmakuButton.before(buttonPosition);
+
+  const tools = document.createElement('div');
+  tools.id = 'mobilePlayerTools';
+
+  const settingsButton = document.createElement('button');
+  settingsButton.type = 'button';
+  settingsButton.textContent = '⚙';
+  settingsButton.setAttribute('aria-label', '再生設定');
+  settingsButton.setAttribute('aria-expanded', 'false');
+  settingsButton.setAttribute('aria-controls', 'mobilePlaybackSettings');
+
+  tools.appendChild(settingsButton);
+  wrapper.appendChild(tools);
+
+  const settings = document.createElement('div');
+  settings.id = 'mobilePlaybackSettings';
+  settings.hidden = true;
+  settings.setAttribute('role', 'region');
+  settings.setAttribute('aria-label', '再生設定');
+
+  settings.innerHTML = `
+    <div class="playback-settings-heading">
+      <strong>再生設定</strong>
+      <button type="button" class="playback-settings-close"
+        aria-label="再生設定を閉じる">×</button>
+    </div>
+
+    <label>
+      <span>画質</span>
+      <select class="playback-quality" aria-label="画質"></select>
+    </label>
+
+    <p class="playback-quality-note"></p>
+
+    <label>
+      <span>速度</span>
+      <select class="playback-speed" aria-label="再生速度">
+        <option value="0.5">0.5倍</option>
+        <option value="0.75">0.75倍</option>
+        <option value="1">標準（1倍）</option>
+        <option value="1.25">1.25倍</option>
+        <option value="1.5">1.5倍</option>
+        <option value="1.75">1.75倍</option>
+        <option value="2">2倍</option>
+      </select>
+    </label>
+  `;
+
+  wrapper.appendChild(settings);
+
+  const quality = settings.querySelector('.playback-quality');
+  const qualityNote = settings.querySelector('.playback-quality-note');
+  const speed = settings.querySelector('.playback-speed');
+  let settingsPlayer = null;
+
+  function closeSettings(returnFocus = false) {
+    settings.hidden = true;
+    settingsButton.setAttribute('aria-expanded', 'false');
+
+    if (returnFocus) settingsButton.focus();
+  }
+
+  function refreshSettings() {
+    speed.value = String(video.playbackRate);
+
+    settingsPlayer =
+      typeof hlsInstance !== 'undefined' ? hlsInstance : null;
+
+    const levels = settingsPlayer?.levels || [];
+    quality.replaceChildren();
+
+    if (levels.length > 1) {
+      quality.add(new Option('自動', '-1'));
+
+      levels.forEach((level, index) => {
+        const resolution = level.height
+          ? `${level.height}p`
+          : `画質 ${index + 1}`;
+
+        const bitrate = level.bitrate
+          ? `・${Math.round(level.bitrate / 1000)}kbps`
+          : '';
+
+        quality.add(
+          new Option(`${resolution}${bitrate}`, String(index))
+        );
+      });
+
+      quality.value = settingsPlayer.autoLevelEnabled
+        ? '-1'
+        : String(settingsPlayer.loadLevel);
+
+      quality.disabled = false;
+      qualityNote.textContent =
+        '切り替えが映像に反映されるまで少し時間がかかる場合があります。';
+    } else {
+      const height = levels[0]?.height || video.videoHeight;
+      const label = height ? `現在 ${height}p` : '現在の画質';
+
+      quality.add(new Option(label, 'current'));
+      quality.disabled = true;
+
+      qualityNote.textContent = settingsPlayer
+        ? 'この動画には選択できる別の画質がありません。'
+        : 'この再生方式では、サイトから画質を手動選択できません。';
+    }
+  }
+
+  settingsButton.addEventListener('click', () => {
+    if (!settings.hidden) {
+      closeSettings();
+      return;
+    }
+
+    refreshSettings();
+    settings.hidden = false;
+    settingsButton.setAttribute('aria-expanded', 'true');
+  });
+
+  settings.querySelector('.playback-settings-close')
+    .addEventListener('click', () => closeSettings(true));
+
+  quality.addEventListener('change', () => {
+    const player =
+      typeof hlsInstance !== 'undefined' ? hlsInstance : null;
+
+    // 設定を開いている間に動画が切り替わった場合は適用しない
+    if (!player || player !== settingsPlayer) {
+      closeSettings();
+      return;
+    }
+
+    const level = Number(quality.value);
+
+    if (
+      Number.isInteger(level) &&
+      level >= -1 &&
+      level < player.levels.length
+    ) {
+      player.nextLevel = level;
+    }
+  });
+
+  speed.addEventListener('change', () => {
+    const rate = Number(speed.value);
+
+    if (Number.isFinite(rate) && rate >= 0.5 && rate <= 2) {
+      video.playbackRate = rate;
+    }
+  });
+
+  // 設定やスライダー操作を、映像のクリック処理へ伝えない
+  [tools, settings].forEach(element => {
+    element.addEventListener('click', event => {
+      event.stopPropagation();
+    });
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (
+      !settings.hidden &&
+      !settings.contains(event.target) &&
+      !tools.contains(event.target)
+    ) {
+      closeSettings();
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !settings.hidden) {
+      closeSettings(true);
+    }
+  });
+
+  video.addEventListener('emptied', () => closeSettings());
+
+  function arrangePlayer() {
+    const compact = mobile.matches;
+    const mini =
+      wrapper.classList.contains('is-sticky') ||
+      wrapper.classList.contains('in-pip');
+
+    wrapper.classList.toggle('mobile-player-layout', compact);
+
+    if (compact) {
+      // 弾幕入力を動画のすぐ下へ移動
+      if (anchor.nextElementSibling !== inputArea) {
+        anchor.after(inputArea);
+      }
+
+      inputArea.classList.add('mobile-danmaku-below');
+
+      // 再生時間はシークバーの上に表示
+      if (time.parentElement !== controls) {
+        controls.insertBefore(time, seek);
+      }
+    } else {
+      inputPosition.after(inputArea);
+      inputArea.classList.remove('mobile-danmaku-below');
+
+      if (time.parentElement !== row) {
+        row.insertBefore(time, right);
+      }
+    }
+
+    // ミニプレーヤーでは従来の弾幕ボタン配置を使う
+    if (compact && !mini) {
+      if (danmakuButton.parentElement !== tools) {
+        tools.insertBefore(danmakuButton, settingsButton);
+      }
+    } else if (
+      danmakuButton.parentNode !== buttonPosition.parentNode
+    ) {
+      buttonPosition.after(danmakuButton);
+    }
+
+    if (!compact || mini) closeSettings();
+  }
+
+  mobile.addEventListener('change', arrangePlayer);
+
+  new MutationObserver(arrangePlayer).observe(wrapper, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+
+  arrangePlayer();
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #mobilePlayerTools,
+    #mobilePlaybackSettings {
+      display: none;
+    }
+
+    #videoWrapper.mobile-player-layout #mobilePlayerTools {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #mobilePlayerTools button {
+      min-width: 40px;
+      min-height: 40px;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 20px;
+      background: rgba(0,0,0,.55);
+      color: #fff;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    #mobilePlayerTools > button:last-child {
+      font-size: 23px;
+    }
+
+    #videoWrapper.mobile-player-layout .site-player-controls {
+      height: auto;
+      padding: 8px 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    #videoWrapper.mobile-player-layout .player-time {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+    }
+
+    #videoWrapper.mobile-player-layout .player-row {
+      display: flex;
+      gap: 4px;
+      height: 40px;
+      overflow: visible;
+    }
+
+    #videoWrapper.mobile-player-layout .player-row button {
+      flex: 0 0 auto;
+      min-width: 36px;
+      min-height: 40px;
+      padding: 4px;
+    }
+
+    #videoWrapper.mobile-player-layout .player-volume {
+      flex: 1 1 60px;
+      width: 60px;
+      min-width: 30px;
+      max-width: 110px;
+      height: 32px;
+      touch-action: none;
+    }
+
+    #videoWrapper.mobile-player-layout .player-seek {
+      touch-action: none;
+    }
+
+    #videoWrapper.mobile-player-layout .player-right {
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    /* 長い文字列で横にはみ出さないようにする */
+    #videoWrapper.mobile-player-layout #pipBtn,
+    #videoWrapper.mobile-player-layout #fullscreenBtn {
+      font-size: 0;
+    }
+
+    #videoWrapper.mobile-player-layout #pipBtn::after {
+      content: 'PiP';
+      font-size: 13px;
+    }
+
+    #videoWrapper.mobile-player-layout #fullscreenBtn::after {
+      content: '⛶';
+      font-size: 24px;
+    }
+
+    #videoWrapper.mobile-player-layout #mobilePlaybackSettings:not([hidden]) {
+      display: block;
+      position: absolute;
+      z-index: 60;
+      top: 8px;
+      right: 8px;
+      width: min(290px, calc(100% - 16px));
+      max-height: calc(100% - 16px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 12px;
+      border-radius: 14px;
+      background: #242424;
+      color: white;
+      font-size: 14px;
+      overscroll-behavior: contain;
+    }
+
+    #mobilePlaybackSettings[hidden] {
+      display: none !important;
+    }
+
+    .playback-settings-heading,
+    #mobilePlaybackSettings label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    #mobilePlaybackSettings select {
+      max-width: 190px;
+      min-height: 36px;
+      border: 1px solid #666;
+      border-radius: 6px;
+      background: #333;
+      color: white;
+      font-size: 16px;
+    }
+
+    .playback-settings-close {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      background: transparent;
+      color: white;
+      font-size: 24px;
+    }
+
+    .playback-quality-note {
+      margin: 0 0 12px;
+      color: #ccc;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .mobile-danmaku-below {
+      display: flex !important;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0 0 12px !important;
+      padding: 10px 12px !important;
+      background: #fff;
+    }
+
+    .mobile-danmaku-below #danmakuInput {
+      flex: 1;
+      min-width: 0;
+      width: 0;
+      font-size: 16px;
+    }
+
+    .mobile-danmaku-below #danmakuSubmitBtn {
+      flex: 0 0 auto;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    #videoWrapper.mobile-player-layout:is(
+      :fullscreen, : -webkit-full-screen, .pseudo-fullscreen
+    ) {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      background: #000;
+    }
+
+    #videoWrapper.mobile-player-layout.pseudo-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      z-index: 10000 !important;
+      transform: none !important;
+    }
+
+    #videoWrapper.mobile-player-layout:is(
+      :fullscreen, .pseudo-fullscreen
+    ) #mainVideo {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      object-fit: contain;
+    }
+
+    #videoWrapper:is(.is-sticky, .in-pip) #mobilePlayerTools {
+      display: none !important;
+    }
+
+    #videoWrapper.mobile-player-layout:is(.is-sticky, .in-pip)
+      .player-time {
+      display: none;
+    }
+  `;
+
+  // Safari用の疑似クラス名を整える
+  style.textContent = style.textContent.replace(
+    ': -webkit-full-screen',
+    ':-webkit-full-screen'
+  );
+
+  document.head.appendChild(style);
+})();
 
   </script>
 </body>
