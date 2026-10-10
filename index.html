@@ -6841,6 +6841,345 @@ navHistoryBtn.addEventListener('click', event => {
   document.head.appendChild(style);
 })();
 
+// ===== ログインユーザー専用の通知一覧 =====
+import {
+  orderBy as notificationOrderBy,
+  limit as notificationLimit
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+(() => {
+  if (document.getElementById('notificationBell')) return;
+
+  const header = document.querySelector('body > header');
+  if (!header) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #notificationBell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      flex: 0 0 40px;
+      width: 40px;
+      height: 40px;
+      padding: 8px;
+      border: 0;
+      background: transparent;
+      color: #111;
+      cursor: pointer;
+    }
+
+    #notificationBell[hidden] {
+      display: none !important;
+    }
+
+    #notificationBell svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    #notificationBell.has-unread::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #e53935;
+      border: 2px solid #fff;
+    }
+
+    #notificationPanel {
+      position: fixed;
+      inset: 70px 12px auto auto;
+      width: min(390px, calc(100vw - 24px));
+      max-height: 75vh;
+      max-height: 75dvh;
+      margin: 0;
+      padding: 0;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      background: #fff;
+      color: #111;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+
+    #notificationPanel::backdrop {
+      background: rgba(0,0,0,.12);
+    }
+
+    #notificationPanel .notification-heading {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      z-index: 1;
+    }
+
+    #notificationPanel h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    #notificationClose {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      background: transparent;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    #notificationList > button {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border: 0;
+      border-bottom: 1px solid #eee;
+      background: #fff;
+      color: #111;
+      text-align: left;
+      font: inherit;
+      line-height: 1.6;
+      cursor: pointer;
+    }
+
+    #notificationList > button.unread {
+      background: #edf5ff;
+    }
+
+    #notificationList small {
+      display: block;
+      margin-top: 6px;
+      color: #777;
+      font-size: 11px;
+    }
+
+    #notificationStatus {
+      padding: 16px;
+      color: #666;
+      font-size: 13px;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const bell = document.createElement('button');
+  bell.id = 'notificationBell';
+  bell.type = 'button';
+  bell.hidden = true;
+  bell.setAttribute('aria-label', '通知を開く');
+  bell.setAttribute('aria-haspopup', 'dialog');
+
+  bell.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.8"
+      stroke-linecap="round" stroke-linejoin="round"
+      aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+      <path d="M10 21h4"/>
+    </svg>
+  `;
+
+  const search = document.getElementById('mobileWatchSearchBtn');
+
+  if (search) search.before(bell);
+  else header.appendChild(bell);
+
+  const panel = document.createElement('dialog');
+  panel.id = 'notificationPanel';
+  panel.setAttribute('aria-labelledby', 'notificationHeading');
+
+  panel.innerHTML = `
+    <div class="notification-heading">
+      <h2 id="notificationHeading">通知</h2>
+      <button type="button" id="notificationClose"
+        aria-label="通知を閉じる">×</button>
+    </div>
+    <div id="notificationStatus">読み込み中…</div>
+    <div id="notificationList"></div>
+  `;
+  document.body.appendChild(panel);
+
+  const list = panel.querySelector('#notificationList');
+  const status = panel.querySelector('#notificationStatus');
+
+  let uid = null;
+  let unsubscribe = null;
+
+  function syncVisibility() {
+    const signedIn =
+      auth.currentUser &&
+      !auth.currentUser.isAnonymous &&
+      auth.currentUser.uid === uid;
+
+    const onHome =
+      homeScreen.style.display !== 'none' &&
+      !document.body.classList.contains('watch-mode') &&
+      currentFeed === 'all';
+
+    bell.hidden = !signedIn || !onHome;
+
+    if (bell.hidden && panel.open) panel.close();
+  }
+
+  function message(data) {
+    const number = Number(data.milestone).toLocaleString('ja-JP');
+
+    if (data.kind === 'subscribers') {
+      return `チャンネル登録者数が${number}人に到達しました！`;
+    }
+
+    if (data.kind === 'danmaku') {
+      return `「${data.title}」の弾幕が累計${number}件に到達しました！`;
+    }
+
+    return `「${data.title}」の高評価が${number}件に到達しました！`;
+  }
+
+  bell.addEventListener('click', () => {
+    syncVisibility();
+    if (bell.hidden || panel.open) return;
+    panel.showModal();
+  });
+
+  panel.querySelector('#notificationClose')
+    .addEventListener('click', () => panel.close());
+
+  onAuthStateChanged(auth, user => {
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
+
+    uid = user && !user.isAnonymous ? user.uid : null;
+
+    list.replaceChildren();
+    bell.classList.remove('has-unread');
+    status.textContent = '読み込み中…';
+
+    if (panel.open) panel.close();
+    syncVisibility();
+
+    if (!uid) return;
+
+    const ownerUid = uid;
+
+    const notifications = query(
+      collection(db, 'userNotifications', ownerUid, 'items'),
+      notificationOrderBy('createdAt', 'desc'),
+      notificationLimit(50)
+    );
+
+    unsubscribe = onSnapshot(
+      notifications,
+      snapshot => {
+        if (uid !== ownerUid) return;
+
+        list.replaceChildren();
+
+        const unread = snapshot.docs.some(
+          item => item.data().read !== true
+        );
+
+        bell.classList.toggle('has-unread', unread);
+        bell.setAttribute(
+          'aria-label',
+          unread ? '未読の通知があります' : '通知を開く'
+        );
+
+        status.textContent = snapshot.empty
+          ? '通知はまだありません。'
+          : '最新50件まで表示します。青い通知は未読です。';
+
+        for (const item of snapshot.docs) {
+          const data = item.data();
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.classList.toggle('unread', data.read !== true);
+
+          const text = document.createElement('span');
+          text.textContent = message(data);
+
+          const date = document.createElement('small');
+          const recorded = data.createdAt?.toDate?.();
+
+          date.textContent = recorded
+            ? `記録日時：${recorded.toLocaleString('ja-JP')}`
+            : '';
+
+          button.append(text, date);
+
+          button.addEventListener('click', async () => {
+            if (
+              !auth.currentUser ||
+              auth.currentUser.isAnonymous ||
+              auth.currentUser.uid !== ownerUid
+            ) return;
+
+            button.disabled = true;
+
+            try {
+              await updateDoc(item.ref, { read: true });
+
+              if (auth.currentUser?.uid !== ownerUid) return;
+
+              panel.close();
+
+              if (data.kind === 'subscribers') {
+                showMyProfile(ownerUid);
+              } else if (
+                typeof data.videoId === 'string' &&
+                data.videoId.startsWith('videos/')
+              ) {
+                const url = new URL(location.href);
+                url.search = '';
+                url.hash = '';
+                url.searchParams.set('v', data.videoId);
+                location.assign(url.href);
+              }
+            } catch (error) {
+              console.error('通知の既読更新失敗:', error);
+              status.textContent =
+                '既読にできませんでした。通信状態を確認してください。';
+              button.disabled = false;
+            }
+          });
+
+          list.appendChild(button);
+        }
+      },
+      error => {
+        if (uid !== ownerUid) return;
+
+        console.error('通知の読み込み失敗:', error);
+        list.replaceChildren();
+        bell.classList.remove('has-unread');
+        status.textContent =
+          '通知を取得できませんでした。Firestoreルールを確認してください。';
+      }
+    );
+  });
+
+  new MutationObserver(syncVisibility).observe(homeScreen, {
+    attributes: true,
+    childList: true,
+    subtree: true
+  });
+
+  new MutationObserver(syncVisibility).observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+
+  syncVisibility();
+})();
+
   </script>
 </body>
 </html>
