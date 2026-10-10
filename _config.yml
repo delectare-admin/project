@@ -1,0 +1,6 @@
+exclude:
+  - notification-server
+  - node_modules
+  - vendor
+  - Gemfile
+  - Gemfile.lock
