@@ -4027,42 +4027,6 @@ async function loadStats() {
   }
 }
 
-  try {
-    const data = await runTransaction(db, async transaction => {
-      const snapshot = await transaction.get(statsRef);
-
-      if (!snapshot.exists()) {
-        const initial = {
-          views: 1,
-          likes: 0,
-          dislikes: 0,
-          likedUsers: [],
-          dislikedUsers: []
-        };
-
-        transaction.set(statsRef, initial);
-        return initial;
-      }
-
-      const old = snapshot.data();
-      const views = old.views + 1;
-
-      transaction.update(statsRef, { views });
-
-      return { ...old, views };
-    });
-
-    showVideoStats(videoId, data);
-  } catch (error) {
-    console.error('動画情報の取得失敗:', error);
-
-    if (currentVideoId === videoId) {
-      viewCountEl.textContent = '取得できませんでした';
-      likeBtn.disabled = true;
-      dislikeBtn.disabled = true;
-    }
-  }
-
 
 async function toggleVideoVote(kind) {
   const user = auth.currentUser;
