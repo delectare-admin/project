@@ -6095,7 +6095,14 @@ function renderMyPage() {
     // PC：弾幕欄の直下に説明欄を開く
     if (!anchor || !danmakuArea) return;
 
-    danmakuArea.after(sheet);
+    // PC：タイトル・チャンネル情報・評価ボタンの下に表示
+const metaBar = document.querySelector(
+  '#watchScreen .video-meta-bar'
+);
+
+if (!metaBar) return;
+
+metaBar.after(sheet);
 
     // 背景を操作不能にせず、ページ内に表示する
     sheet.show();
