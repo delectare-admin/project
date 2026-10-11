@@ -6483,6 +6483,375 @@ metaBar.after(sheet);
   syncDescription();
 })();
 
+// ===== PCプレーヤー操作の追加 =====
+(() => {
+  const video = document.getElementById('mainVideo');
+  const wrapper = document.getElementById('videoWrapper');
+  const surface = document.getElementById('videoClickToggle');
+  const play = wrapper?.querySelector('.player-play');
+
+  if (!video || !wrapper || !surface || !play) return;
+  if (wrapper.querySelector('.desktop-ten-back')) return;
+
+  const mobile = window.matchMedia(
+    '(max-width: 768px), (hover: none) and (pointer: coarse)'
+  );
+
+  function watching() {
+    return document.body.classList.contains('watch-mode');
+  }
+
+  function move(seconds) {
+    if (
+      video.readyState === 0 ||
+      !Number.isFinite(video.duration) ||
+      video.duration <= 0
+    ) return;
+
+    try {
+      video.currentTime = Math.max(
+        0,
+        Math.min(video.duration, video.currentTime + seconds)
+      );
+    } catch (error) {
+      console.warn('再生位置を変更できませんでした:', error);
+    }
+  }
+
+  function makeSkipButton(seconds) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'desktop-ten-skip';
+    button.textContent = seconds < 0 ? '↶10' : '10↷';
+    button.setAttribute(
+      'aria-label',
+      seconds < 0 ? '10秒戻す' : '10秒進む'
+    );
+    button.title =
+      seconds < 0 ? '10秒戻す（J）' : '10秒進む（L）';
+
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      move(seconds);
+    });
+
+    return button;
+  }
+
+  const back = makeSkipButton(-10);
+  back.classList.add('desktop-ten-back');
+
+  play.before(back);
+  play.after(makeSkipButton(10));
+
+  // PCの映像クリック：再生・停止ではなく操作表示の切り替え
+  // captureで既存の映像クリック処理より先に処理する
+  surface.addEventListener('click', event => {
+    if (mobile.matches || !watching()) return;
+    if (event.detail === 0) return;
+
+    if (
+      wrapper.classList.contains('is-sticky') ||
+      wrapper.classList.contains('in-pip')
+    ) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const hidden = wrapper.classList.toggle(
+      'desktop-controls-hidden'
+    );
+
+    if (hidden) {
+      const settings =
+        document.getElementById('mobilePlaybackSettings');
+
+      if (settings) settings.hidden = true;
+
+      wrapper.querySelector(
+        '[aria-controls="mobilePlaybackSettings"]'
+      )?.setAttribute('aria-expanded', 'false');
+    }
+  }, true);
+
+  // 入力中・設定ダイアログ表示中はショートカットを使わない
+  document.addEventListener('keydown', event => {
+    if (mobile.matches || !watching()) return;
+
+    if (
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      document.querySelector('dialog[open]')
+    ) return;
+
+    const target = event.target;
+
+    if (
+      target instanceof Element &&
+      (
+        target.closest('input, textarea, select, [role="textbox"]') ||
+        target.isContentEditable
+      )
+    ) return;
+
+    const key = event.key.toLowerCase();
+
+    if (key === 'j' || key === 'l') {
+      event.preventDefault();
+      move(key === 'j' ? -10 : 10);
+    }
+  });
+
+  function showControls() {
+    wrapper.classList.remove('desktop-controls-hidden');
+  }
+
+  video.addEventListener('loadstart', showControls);
+  video.addEventListener('ended', showControls);
+  mobile.addEventListener('change', showControls);
+})();
+
+// ===== ミュートワード：ブラウザ内・アカウント別保存 =====
+function subMovieMuteKey() {
+  return 'submovie-muted-words-v1:' +
+    (auth.currentUser?.uid || 'guest');
+}
+
+function subMovieReadMutedWords() {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem(subMovieMuteKey()) || '[]'
+    );
+
+    return Array.isArray(value)
+      ? value.filter(word => typeof word === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function subMovieNormalize(value) {
+  return String(value ?? '').normalize('NFKC').toLowerCase();
+}
+
+function subMovieIsMuted(...values) {
+  const text = subMovieNormalize(values.join('\n'));
+
+  return subMovieReadMutedWords().some(word => {
+    const normalized = subMovieNormalize(word).trim();
+    return normalized && text.includes(normalized);
+  });
+}
+
+// ===== 設定：ミュートワード・ブロックリスト =====
+(() => {
+  const panel = document.getElementById('mySettingsDialog');
+
+  if (!panel || document.getElementById('mutedWordsEditor')) return;
+
+  const section = document.createElement('div');
+  section.className = 'content-filter-settings';
+
+  section.innerHTML = `
+    <details>
+      <summary>ミュートワード</summary>
+      <p>
+        1行に1語ずつ入力してください。
+        動画のタイトル・説明・投稿者名と、通常コメントの本文に適用します。
+        弾幕には適用しません。
+      </p>
+      <label for="mutedWordsEditor">非表示にする語句</label>
+      <textarea id="mutedWordsEditor"
+        rows="5"
+        placeholder="例：ネタバレ"></textarea>
+      <p>このブラウザに保存します。最大100語、1語100文字まで。</p>
+      <button type="button" id="saveMutedWordsBtn">保存</button>
+    </details>
+
+    <details id="blockedUsersDetails">
+      <summary>ブロックリスト</summary>
+      <div id="blockedUsersList"></div>
+    </details>
+
+    <p id="filterSettingsStatus" role="status"></p>
+  `;
+
+  panel.appendChild(section);
+
+  const editor = section.querySelector('#mutedWordsEditor');
+  const save = section.querySelector('#saveMutedWordsBtn');
+  const list = section.querySelector('#blockedUsersList');
+  const status = section.querySelector('#filterSettingsStatus');
+
+  let listVersion = 0;
+
+  async function renderBlockedUsers() {
+    const version = ++listVersion;
+    const user = auth.currentUser;
+
+    list.replaceChildren();
+
+    if (!user || user.isAnonymous) {
+      list.textContent = 'ブロックリストを見るにはログインしてください。';
+      return;
+    }
+
+    list.textContent = '読み込み中…';
+
+    try {
+      const snapshot = await getDoc(
+        doc(db, 'userPrivate', user.uid)
+      );
+
+      if (
+        version !== listVersion ||
+        auth.currentUser?.uid !== user.uid
+      ) return;
+
+      const stored = snapshot.data()?.blockedUids;
+      const ids = Array.isArray(stored)
+        ? [...new Set(stored.filter(id => typeof id === 'string'))]
+        : [];
+
+      list.replaceChildren();
+
+      if (!ids.length) {
+        list.textContent = 'ブロックしているユーザーはいません。';
+        return;
+      }
+
+      for (const id of ids) {
+        const row = document.createElement('div');
+        row.className = 'blocked-user-row';
+
+        const name = document.createElement('span');
+        name.textContent = id;
+
+        const unblock = document.createElement('button');
+        unblock.type = 'button';
+        unblock.textContent = '解除';
+
+        row.append(name, unblock);
+        list.appendChild(row);
+
+        // 名前が取得できない場合はUIDを表示する
+        getDoc(doc(db, 'users', id)).then(profile => {
+          if (
+            version !== listVersion ||
+            !row.isConnected ||
+            auth.currentUser?.uid !== user.uid
+          ) return;
+
+          const channelName = profile.data()?.channelName;
+          if (typeof channelName === 'string' && channelName) {
+            name.textContent = channelName;
+          }
+        }).catch(() => {});
+
+        unblock.addEventListener('click', async () => {
+          if (auth.currentUser?.uid !== user.uid) return;
+
+          unblock.disabled = true;
+          status.textContent = '';
+
+          try {
+            await setDoc(
+              doc(db, 'userPrivate', user.uid),
+              { blockedUids: arrayRemove(id) },
+              { merge: true }
+            );
+
+            if (auth.currentUser?.uid !== user.uid) return;
+
+            currentUserBlocks =
+              currentUserBlocks.filter(uid => uid !== id);
+
+            status.textContent = 'ブロックを解除しました。';
+            await renderBlockedUsers();
+            await applyFilterAndSort();
+          } catch (error) {
+            status.textContent = '解除できませんでした。';
+            console.error(error);
+          } finally {
+            unblock.disabled = false;
+          }
+        });
+      }
+    } catch (error) {
+      if (version !== listVersion) return;
+      list.textContent = 'ブロックリストを取得できませんでした。';
+      console.error(error);
+    }
+  }
+
+  save.addEventListener('click', async () => {
+    const words = [...new Set(
+      editor.value.split(/\r?\n/)
+        .map(word => word.trim())
+        .filter(Boolean)
+    )];
+
+    if (
+      words.length > 100 ||
+      words.some(word => word.length > 100)
+    ) {
+      status.textContent = '最大100語、1語100文字までにしてください。';
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        subMovieMuteKey(),
+        JSON.stringify(words)
+      );
+    } catch {
+      status.textContent = 'ブラウザに保存できませんでした。';
+      return;
+    }
+
+    editor.value = words.join('\n');
+    status.textContent = 'ミュートワードを保存しました。';
+
+    try {
+      await applyFilterAndSort();
+
+      if (
+        currentVideoId &&
+        document.body.classList.contains('watch-mode')
+      ) {
+        loadComments();
+      }
+    } catch (error) {
+      status.textContent =
+        '保存済みです。表示の更新に失敗したため再読み込みしてください。';
+      console.error(error);
+    }
+  });
+
+  function refreshSettings() {
+    if (!panel.open) return;
+
+    editor.value = subMovieReadMutedWords().join('\n');
+    status.textContent = '';
+    renderBlockedUsers();
+  }
+
+  new MutationObserver(refreshSettings).observe(panel, {
+    attributes: true,
+    attributeFilter: ['open']
+  });
+
+  onAuthStateChanged(auth, () => {
+    ++listVersion;
+    list.replaceChildren();
+    refreshSettings();
+  });
+})();
+
 // ===== ログイン案内・登録ボタンの表示改善 =====
 (() => {
   if (document.getElementById('nearLoginNotice')) return;
@@ -7742,11 +8111,20 @@ notificationMobile.addEventListener('change', placeNotificationBell);
       !auth.currentUser.isAnonymous &&
       auth.currentUser.uid === uid;
 
-   const onNotificationScreen =
-  homeScreen.style.display !== 'none' &&
-  !document.body.classList.contains('watch-mode') &&
-  ['all', 'subscriptions', 'trending', 'mypage']
-    .includes(currentFeed);
+   const watching =
+  document.body.classList.contains('watch-mode');
+
+const onNotificationScreen =
+  (
+    homeScreen.style.display !== 'none' &&
+    !watching &&
+    ['all', 'subscriptions', 'trending', 'mypage']
+      .includes(currentFeed)
+  ) ||
+  (
+    watching &&
+    !notificationMobile.matches
+  );
 
 bell.hidden = !signedIn || !onNotificationScreen;
 
@@ -7897,6 +8275,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
     subtree: true
   });
 
+  notificationMobile.addEventListener('change', syncVisibility);
   new MutationObserver(syncVisibility).observe(document.body, {
     attributes: true,
     attributeFilter: ['class']
