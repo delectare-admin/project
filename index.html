@@ -2090,6 +2090,36 @@ body > header #logoutBtn {
   }
 }
 
+/* スマホ：動画の角丸と外周の隙間をなくす */
+@media (max-width: 768px),
+       (hover: none) and (pointer: coarse) {
+
+  #watchScreen #videoAnchor {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  #watchScreen #videoWrapper:not(.is-sticky):not(.in-pip) {
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+  }
+
+  #watchScreen #videoWrapper:not(.is-sticky):not(.in-pip) #mainVideo {
+    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+}
+
   </style>
 
 </head>
