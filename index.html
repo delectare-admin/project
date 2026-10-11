@@ -2120,6 +2120,63 @@ body > header #logoutBtn {
   }
 }
 
+@media (max-width: 768px),
+       (hover: none) and (pointer: coarse) {
+
+  /* 中央に「戻す・再生・進む」をまとめる */
+  #videoWrapper #mobileTenSecondControls {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+
+    width: max-content;
+    max-width: 100%;
+    height: 56px;
+
+    justify-content: center;
+    gap: clamp(14px, 5vw, 28px);
+  }
+
+  #videoWrapper #mobileTenSecondControls .ten-second-button {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    background: rgb(0 0 0 / 30%);
+  }
+
+  #videoWrapper #mobileCenterPlayBtn {
+    width: 56px;
+    height: 56px;
+    flex-basis: 56px;
+  }
+
+  #videoWrapper #mobileCenterPlayBtn svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* 通常のスマホ再生画面：全面をタップ対象にする */
+  #videoWrapper:not(.is-sticky):not(.in-pip) #videoClickToggle {
+    inset: 0 !important;
+  }
+
+  /* ボタン・シークバー・設定をまとめて非表示 */
+  #videoWrapper.mobile-controls-hidden:not(.is-sticky):not(.in-pip)
+    .site-player-controls,
+  #videoWrapper.mobile-controls-hidden:not(.is-sticky):not(.in-pip)
+    #mobilePlayerTools,
+  #videoWrapper.mobile-controls-hidden:not(.is-sticky):not(.in-pip)
+    #mobileTenSecondControls,
+  #videoWrapper.mobile-controls-hidden:not(.is-sticky):not(.in-pip)
+    #mobilePlaybackSettings {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
   </style>
 
 </head>
@@ -2550,21 +2607,30 @@ videoClickToggle.addEventListener('click', async event => {
     return;
   }
 
-  // キーボード操作では従来どおり再生・停止
-  if (tenSecondControlsEnabled() && event.detail !== 0) {
-    const rect = videoClickToggle.getBoundingClientRect();
-    const position = (event.clientX - rect.left) / rect.width;
+  // スマホ：映像の空いている部分で操作表示を切り替える
+if (tenSecondControlsEnabled() && event.detail !== 0) {
+  const wrapper = document.getElementById('videoWrapper');
 
-    if (position < 1 / 3) {
-      moveVideoTenSeconds(-10);
-      return;
-    }
+  const hidden = wrapper.classList.toggle(
+    'mobile-controls-hidden'
+  );
 
-    if (position > 2 / 3) {
-      moveVideoTenSeconds(10);
-      return;
-    }
+  // 操作表示を隠すときは、開いている設定も閉じる
+  if (hidden) {
+    const settings =
+      document.getElementById('mobilePlaybackSettings');
+
+    if (settings) settings.hidden = true;
+
+    wrapper.querySelector(
+      '[aria-controls="mobilePlaybackSettings"]'
+    )?.setAttribute('aria-expanded', 'false');
   }
+
+  return;
+}
+
+
 
   // 中央部分、PC、ミニプレーヤーでは再生・停止
   if (mainVideo.paused || mainVideo.ended) {
@@ -8399,6 +8465,105 @@ bell.hidden = !signedIn || !onNotificationScreen;
   `;
 })();
 </script>
+
+<script>
+(() => {
+  function setupCenterPlayButton() {
+    const video = document.getElementById('mainVideo');
+    const wrapper = document.getElementById('videoWrapper');
+    const controls =
+      document.getElementById('mobileTenSecondControls');
+
+    if (!video || !wrapper || !controls) return;
+    if (document.getElementById('mobileCenterPlayBtn')) return;
+
+    const playButton = document.createElement('button');
+    playButton.id = 'mobileCenterPlayBtn';
+    playButton.type = 'button';
+    playButton.className = 'ten-second-button';
+
+    const playIcon = `
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M11 6L27 16L11 26Z"
+              fill="currentColor"/>
+      </svg>
+    `;
+
+    const pauseIcon = `
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M9 6H14V26H9ZM19 6H24V26H19Z"
+              fill="currentColor"/>
+      </svg>
+    `;
+
+    function updatePlayButton() {
+      const paused = video.paused || video.ended;
+      const label = paused ? '動画を再生' : '動画を一時停止';
+
+      playButton.innerHTML = paused ? playIcon : pauseIcon;
+      playButton.setAttribute('aria-label', label);
+      playButton.title = label;
+    }
+
+    playButton.addEventListener('click', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!video.currentSrc && !video.getAttribute('src')) {
+        return;
+      }
+
+      if (video.paused || video.ended) {
+        try {
+          await video.play();
+        } catch (error) {
+          console.warn('動画を再生できませんでした:', error);
+        }
+      } else {
+        video.pause();
+      }
+    });
+
+    // 戻すボタンと進むボタンの間へ追加
+    controls.insertBefore(
+      playButton,
+      controls.children[1] || null
+    );
+
+    ['play', 'pause', 'ended', 'emptied'].forEach(name => {
+      video.addEventListener(name, updatePlayButton);
+    });
+
+    // 別の動画の読み込み時は操作を表示
+    function showControls() {
+      wrapper.classList.remove('mobile-controls-hidden');
+    }
+
+    video.addEventListener('loadstart', showControls);
+    video.addEventListener('ended', showControls);
+
+    const mobile = window.matchMedia(
+      '(max-width: 768px), (hover: none) and (pointer: coarse)'
+    );
+
+    mobile.addEventListener('change', showControls);
+
+    updatePlayButton();
+  }
+
+  // 既存のモジュールがスキップボタンを作成した後に実行
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      setupCenterPlayButton,
+      { once: true }
+    );
+  } else {
+    setupCenterPlayButton();
+  }
+})();
+</script>
+
 </body>
 
 </html>
