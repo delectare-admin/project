@@ -1800,6 +1800,65 @@ body > header #logoutBtn {
 }
 
 
+/* PC：コメント欄の上の「〜としてコメントします」を非表示 */
+@media (min-width: 769px) {
+  #channelBadge {
+    display: none !important;
+  }
+
+  /* 動画直下の弾幕入力 */
+  #videoAnchor + .danmaku-input-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 16px;
+    padding: 12px 0;
+  }
+
+  #videoAnchor + .danmaku-input-area #danmakuInput {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #videoAnchor + .danmaku-input-area #danmakuSubmitBtn {
+    flex-shrink: 0;
+  }
+}
+
+/* 手動PiP：既存のシークバーを表示 */
+#videoWrapper.in-pip .player-seek {
+  display: block !important;
+  width: 100%;
+  height: 20px;
+  margin: 0 0 4px;
+  padding: 0;
+  box-sizing: border-box;
+  touch-action: none;
+  cursor: pointer;
+}
+
+/* シークバーと操作ボタンの高さを確保 */
+#videoWrapper.in-pip .site-player-controls {
+  display: block !important;
+  height: 76px !important;
+  padding: 8px 10px !important;
+  box-sizing: border-box;
+  z-index: 50;
+}
+
+/* 下段は再生・音声・弾幕ボタン */
+#videoWrapper.in-pip .player-row {
+  height: 36px !important;
+  gap: 6px;
+}
+
+/* 映像クリック用ボタンがシークバーを覆わないようにする */
+#videoWrapper.in-pip #videoClickToggle {
+  bottom: 76px !important;
+}
+
   </style>
 
 </head>
@@ -7593,7 +7652,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
         controls.insertBefore(time, seek);
       }
     } else {
-      inputPosition.after(inputArea);
+     if (anchor.nextElementSibling !== inputArea) {anchor.after(inputArea);}
       inputArea.classList.remove('mobile-danmaku-below');
 
       if (time.parentElement !== row) {
@@ -7845,6 +7904,17 @@ bell.hidden = !signedIn || !onNotificationScreen;
   );
 
   document.head.appendChild(style);
+})();
+
+// PC・スマホ共通：動画 → 弾幕入力 → タイトルの順にする
+(() => {
+  const anchor = document.getElementById('videoAnchor');
+  const inputArea = document.getElementById('danmakuInput')
+    ?.closest('.danmaku-input-area');
+
+  if (!anchor || !inputArea) return;
+
+  anchor.after(inputArea);
 })();
 
   </script>
