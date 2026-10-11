@@ -1892,6 +1892,133 @@ body > header #logoutBtn {
   padding-top: 0 !important;
 }
 
+/* PC：弾幕欄の下に開く説明欄 */
+@media (min-width: 769px) {
+  #watchScreen #mobileDescriptionSheet {
+    position: static !important;
+    inset: auto !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+
+    border: 1px solid #ddd !important;
+    border-radius: 10px !important;
+    box-sizing: border-box;
+    background: #fff;
+  }
+
+  #watchScreen #mobileDescriptionSheet:not([open]) {
+    display: none !important;
+  }
+
+  #watchScreen #mobileDescriptionSheet[open] {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  #watchScreen #mobileDescriptionSheet .mobile-description-body {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: min(360px, 45vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+  }
+
+  #watchScreen #mobileDescriptionSheet + .video-meta-bar {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+}
+
+/* PC・スマホ共通：弾幕入力をひとつの枠にまとめる */
+#watchScreen .danmaku-input-area.danmaku-framed {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+
+  width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+
+  border: 1px solid #cbd0d6;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+#watchScreen .danmaku-framed #danmakuInput {
+  flex: 1 1 0% !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  min-height: 46px;
+  box-sizing: border-box;
+
+  margin: 0 !important;
+  padding: 10px 12px !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+
+  font-size: 16px;
+}
+
+#watchScreen .danmaku-framed .danmaku-tool,
+#watchScreen .danmaku-framed #danmakuSubmitBtn {
+  display: grid !important;
+  place-items: center;
+
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  min-width: 48px;
+  min-height: 46px;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+
+  background: #f5f6f8 !important;
+  color: #1769aa;
+  cursor: pointer;
+}
+
+#watchScreen .danmaku-framed .danmaku-tool {
+  border-right: 1px solid #cbd0d6 !important;
+}
+
+#watchScreen .danmaku-framed #danmakuSubmitBtn {
+  border-left: 1px solid #cbd0d6 !important;
+}
+
+#watchScreen .danmaku-framed button:disabled {
+  color: #999;
+  cursor: default;
+}
+
+#watchScreen .danmaku-framed button svg {
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+}
+
+#watchScreen .danmaku-framed input:focus-visible,
+#watchScreen .danmaku-framed button:focus-visible {
+  outline: 2px solid #1675d1;
+  outline-offset: -3px;
+}
+
   </style>
 
 </head>
@@ -5954,34 +6081,53 @@ function renderMyPage() {
     document.body.classList.remove('mobile-description-open');
   }
 
-  function openDescription() {
-    if (sheet.open) return;
+ function openDescription() {
+  if (sheet.open) return;
 
-    syncDescription();
+  syncDescription();
 
-    // 動画が上に見える位置へ戻す
-    const anchor = document.getElementById('videoAnchor');
+  const anchor = document.getElementById('videoAnchor');
+  const danmakuArea =
+    document.getElementById('danmakuInput')
+      ?.closest('.danmaku-input-area');
 
-    if (anchor) {
-      const headerHeight =
-        document.querySelector('body > header')?.offsetHeight || 56;
+  if (!mobile.matches) {
+    // PC：弾幕欄の直下に説明欄を開く
+    if (!anchor || !danmakuArea) return;
 
-      window.scrollTo({
-        top: Math.max(
-          0,
-          window.scrollY +
-          anchor.getBoundingClientRect().top -
-          headerHeight
-        ),
-        behavior: 'instant'
-      });
-    }
+    danmakuArea.after(sheet);
 
-    sheet.showModal();
+    // 背景を操作不能にせず、ページ内に表示する
+    sheet.show();
+
     panelScroll.scrollTop = 0;
-    document.body.classList.add('mobile-description-open');
     closeButton.focus({ preventScroll: true });
+    return;
   }
+
+  // スマホ：従来の説明パネル
+  document.body.appendChild(sheet);
+
+  if (anchor) {
+    const headerHeight =
+      document.querySelector('body > header')?.offsetHeight || 56;
+
+    window.scrollTo({
+      top: Math.max(
+        0,
+        window.scrollY +
+        anchor.getBoundingClientRect().top -
+        headerHeight
+      ),
+      behavior: 'instant'
+    });
+  }
+
+  sheet.showModal();
+  panelScroll.scrollTop = 0;
+  document.body.classList.add('mobile-description-open');
+  closeButton.focus({ preventScroll: true });
+}
 
   title.addEventListener('click', openDescription);
   openButton.addEventListener('click', openDescription);
@@ -6022,9 +6168,7 @@ function renderMyPage() {
     });
   }
 
-  mobile.addEventListener('change', () => {
-    if (!mobile.matches) closeDescription();
-  });
+ mobile.addEventListener('change', () => {closeDescription();});
 
   syncDescription();
 })();
@@ -7950,6 +8094,88 @@ bell.hidden = !signedIn || !onNotificationScreen;
   anchor.after(inputArea);
 })();
 
-  </script>
+</script>
+
+<script>
+(() => {
+  const input = document.getElementById('danmakuInput');
+  const send = document.getElementById('danmakuSubmitBtn');
+  const area = input?.closest('.danmaku-input-area');
+
+  if (!input || !send || !area) return;
+
+  area.classList.add('danmaku-framed');
+
+  // 将来のカスタマイズ用：工具アイコン
+  if (!document.getElementById('danmakuCustomizeBtn')) {
+    const tool = document.createElement('button');
+
+    tool.id = 'danmakuCustomizeBtn';
+    tool.className = 'danmaku-tool';
+    tool.type = 'button';
+    tool.disabled = true;
+    tool.title = '弾幕カスタマイズ（準備中）';
+    tool.setAttribute(
+      'aria-label',
+      '弾幕カスタマイズ（準備中）'
+    );
+
+    tool.innerHTML = `
+      <svg viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="1.8"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           aria-hidden="true">
+        <path d="
+          M14.5 6.3
+          a5.2 5.2 0 0 0-6.8 6.8
+          L3 17.8
+          a2.3 2.3 0 0 0 3.2 3.2
+          l5.7-5.7
+          a5.2 5.2 0 0 0 6.8-6.8
+          l-3.4 3.4-3.2-3.2
+          3.4-3.4Z"/>
+      </svg>
+    `;
+
+    area.insertBefore(tool, input);
+  }
+
+  // 既存の送信ボタンは残し、中の表示だけ変更
+  send.type = 'button';
+  send.title = '弾幕を送信';
+  send.setAttribute('aria-label', '弾幕を送信');
+
+  send.innerHTML = `
+    <svg viewBox="0 0 32 32"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         aria-hidden="true">
+      <path d="
+        M6 27
+        V16
+        L9 12
+        V5
+        C9 2 13 2 13 5
+        V12
+        H27
+        C30 12 30 16 27 16
+        H19
+        V23
+        C19 26 16 28 13 28
+        H6"/>
+      <path d="M19 17H15"/>
+      <path d="M19 21H15"/>
+      <path d="M6 24H3V29H9"/>
+    </svg>
+  `;
+})();
+</script>
 </body>
+
 </html>
