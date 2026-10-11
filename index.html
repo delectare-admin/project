@@ -1859,6 +1859,39 @@ body > header #logoutBtn {
   bottom: 76px !important;
 }
 
+/* 動画と弾幕入力の間の余白をなくす */
+#watchScreen #videoAnchor {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 弾幕入力：上下の内側余白をなくし、下だけ8px残す */
+#watchScreen #videoAnchor + .danmaku-input-area {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* タイトル側にある追加の上余白もなくす */
+#watchScreen #videoAnchor
+  + .danmaku-input-area
+  + .video-meta-bar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+#watchScreen #videoAnchor
+  + .danmaku-input-area
+  + .video-meta-bar .mobile-description-title,
+#watchScreen #videoAnchor
+  + .danmaku-input-area
+  + .video-meta-bar .title-area,
+#watchScreen #mainTitle {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
   </style>
 
 </head>
