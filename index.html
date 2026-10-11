@@ -2177,6 +2177,31 @@ body > header #logoutBtn {
   }
 }
 
+/* 弾幕・操作ボタンを含めてページ内に大きく表示 */
+#videoWrapper.pseudo-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+
+  background: #000 !important;
+  z-index: 10000 !important;
+}
+
+#videoWrapper.pseudo-fullscreen #mainVideo {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
   </style>
 
 </head>
@@ -4454,35 +4479,31 @@ function exitPseudoFullscreen() {
 
 async function enterPlayerFullscreen() {
   videoWrapper.classList.remove('is-sticky');
+  videoWrapper.classList.remove('mobile-controls-hidden');
 
-  // カスタム操作ボタンを含めた全画面を先に試す
+  // 動画・弾幕・操作ボタンを含むプレーヤー全体を全画面にする
   try {
-    if (videoWrapper.requestFullscreen) {
+    if (typeof videoWrapper.requestFullscreen === 'function') {
       await videoWrapper.requestFullscreen();
       return;
     }
 
-    if (videoWrapper.webkitRequestFullscreen) {
+    if (typeof videoWrapper.webkitRequestFullscreen === 'function') {
       await videoWrapper.webkitRequestFullscreen();
       return;
     }
   } catch (error) {
-    console.warn('プレーヤー全体の全画面は利用できません:', error);
+    console.warn(
+      'プレーヤー全体の全画面が使えないため、ページ内で拡大します:',
+      error
+    );
   }
 
-  // iPhoneなどでは、動画自体の標準全画面を利用
-  if (typeof mainVideo.webkitEnterFullscreen === 'function') {
-    try {
-      mainVideo.webkitEnterFullscreen();
-      return;
-    } catch (error) {
-      console.warn('動画の標準全画面を開けませんでした:', error);
-    }
-  }
-
-  // 全画面APIが使えない環境だけ疑似全画面
+  // 動画だけの標準全画面には切り替えない
+  // 弾幕も一緒に残せるページ内の全画面表示を使う
   enterPseudoFullscreen();
 }
+
 
 fullscreenBtn.addEventListener('click', async () => {
   if (fullscreenBusy) return;
