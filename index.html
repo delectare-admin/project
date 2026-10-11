@@ -2019,6 +2019,77 @@ body > header #logoutBtn {
   outline-offset: -3px;
 }
 
+/* PCでは表示しない */
+#mobileTenSecondControls {
+  display: none;
+}
+
+/* スマホ・タッチ端末 */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  #videoWrapper #videoClickToggle {
+    touch-action: manipulation;
+  }
+
+  #videoWrapper #mobileTenSecondControls {
+    position: absolute;
+    top: 48px;
+    bottom: 100px;
+    left: 12%;
+    right: 12%;
+    z-index: 20;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    /* ボタン以外の場所は既存のタップ面に通す */
+    pointer-events: none;
+  }
+
+  #videoWrapper .ten-second-button {
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    margin: 0;
+    padding: 8px;
+    box-sizing: border-box;
+
+    border: none;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 35%);
+    color: white;
+
+    pointer-events: auto;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  #videoWrapper .ten-second-button svg {
+    display: block;
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+  }
+
+  #videoWrapper .ten-second-button:active {
+    background: rgb(0 0 0 / 65%);
+  }
+
+  #videoWrapper .ten-second-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  /* 小さなプレーヤーでは操作を増やさない */
+  #videoWrapper.is-sticky #mobileTenSecondControls,
+  #videoWrapper.in-pip #mobileTenSecondControls {
+    display: none;
+  }
+}
+
   </style>
 
 </head>
@@ -2403,15 +2474,69 @@ body > header #logoutBtn {
     const mainVideo = document.getElementById('mainVideo');
     const videoClickToggle = document.getElementById('videoClickToggle');
 
-// 映像部分をクリックして再生・一時停止
+// スマホ：左右タップで10秒移動、中央タップで再生・停止
+const tenSecondMobile = window.matchMedia(
+  '(max-width: 768px), (hover: none) and (pointer: coarse)'
+);
+
+function tenSecondControlsEnabled() {
+  const wrapper = document.getElementById('videoWrapper');
+
+  return tenSecondMobile.matches &&
+    wrapper &&
+    !wrapper.classList.contains('is-sticky') &&
+    !wrapper.classList.contains('in-pip');
+}
+
+function moveVideoTenSeconds(seconds) {
+  const duration = mainVideo.duration;
+
+  // 動画情報の読み込み前は操作しない
+  if (
+    mainVideo.readyState === 0 ||
+    !Number.isFinite(duration) ||
+    duration <= 0
+  ) {
+    return;
+  }
+
+  const nextTime = Math.max(
+    0,
+    Math.min(duration, mainVideo.currentTime + seconds)
+  );
+
+  try {
+    // 再生・停止の状態は変更せず、再生位置だけ変更
+    mainVideo.currentTime = nextTime;
+  } catch (error) {
+    console.warn('再生位置を変更できませんでした:', error);
+  }
+}
+
 videoClickToggle.addEventListener('click', async event => {
   event.stopPropagation();
 
-  // 動画がまだ設定されていなければ何もしない
   if (!mainVideo.currentSrc && !mainVideo.getAttribute('src')) {
     return;
   }
 
+  // キーボード操作では従来どおり再生・停止
+  if (tenSecondControlsEnabled() && event.detail !== 0) {
+    const rect = videoClickToggle.getBoundingClientRect();
+    const position = (event.clientX - rect.left) / rect.width;
+
+    if (position < 1 / 3) {
+      moveVideoTenSeconds(-10);
+      return;
+    }
+
+    if (position > 2 / 3) {
+      moveVideoTenSeconds(10);
+      return;
+    }
+  }
+
+  // 中央部分、PC、ミニプレーヤーでは再生・停止
   if (mainVideo.paused || mainVideo.ended) {
     try {
       await mainVideo.play();
@@ -2422,6 +2547,67 @@ videoClickToggle.addEventListener('click', async event => {
     mainVideo.pause();
   }
 });
+
+// 映像上の10秒戻し・送りボタン
+(() => {
+  const wrapper = document.getElementById('videoWrapper');
+
+  if (!wrapper || document.getElementById('mobileTenSecondControls')) {
+    return;
+  }
+
+  const controls = document.createElement('div');
+  controls.id = 'mobileTenSecondControls';
+
+  const makeButton = seconds => {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'ten-second-button';
+    button.setAttribute(
+      'aria-label',
+      seconds < 0 ? '10秒戻す' : '10秒進む'
+    );
+    button.title = seconds < 0 ? '10秒戻す' : '10秒進む';
+
+    button.innerHTML = `
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <g ${seconds < 0 ? 'transform="translate(32 0) scale(-1 1)"' : ''}>
+          <path
+            d="M7 9a11 11 0 1 0 17 0M24 3v6h-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round">
+          </path>
+        </g>
+        <text
+          x="16" y="22"
+          text-anchor="middle"
+          fill="currentColor"
+          font-family="Arial, sans-serif"
+          font-size="12"
+          font-weight="bold">10</text>
+      </svg>
+    `;
+
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      moveVideoTenSeconds(seconds);
+    });
+
+    return button;
+  };
+
+  controls.append(
+    makeButton(-10),
+    makeButton(10)
+  );
+
+  wrapper.appendChild(controls);
+})();
 
 // 読み上げ用のボタン名も再生状態に合わせる
 function updateVideoClickLabel() {
