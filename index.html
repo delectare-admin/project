@@ -2202,6 +2202,284 @@ body > header #logoutBtn {
   object-fit: contain !important;
 }
 
+/* 全画面専用の表示は、通常時には隠す */
+#touchFullscreenTimes,
+#iosFullscreenVolumeNote {
+  display: none;
+}
+
+@media (max-width: 768px),
+       (hover: none) and (pointer: coarse) {
+
+  /* 通常のスマホ再生画面では音量操作を隠す */
+  #watchScreen #videoWrapper .player-volume,
+  #watchScreen #videoWrapper .player-mute,
+  #watchScreen #videoWrapper .desktop-ten-skip {
+    display: none !important;
+  }
+
+  /* 全画面：映像を縦・横画面に収める */
+  #watchScreen #videoWrapper.touch-fullscreen-ui {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    overflow: hidden;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui.pseudo-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    transform: none !important;
+    z-index: 10001 !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui #mainVideo {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+  }
+
+  /* 操作バーを全面に広げ、各ボタンを配置する */
+  #watchScreen #videoWrapper.touch-fullscreen-ui .site-player-controls {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-row {
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-right {
+    display: contents !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-play,
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-time {
+    display: none !important;
+  }
+
+  /* 左上：全画面を閉じる */
+  #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 50%;
+    background: rgb(25 25 25 / 75%);
+    color: white;
+    font-size: 0 !important;
+    pointer-events: auto;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn::before {
+    content: "×";
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  /* 左上：閉じるボタンの隣にPiP */
+  #watchScreen #videoWrapper.touch-fullscreen-ui #pipBtn {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: calc(72px + env(safe-area-inset-left, 0px));
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 50%;
+    background: rgb(25 25 25 / 75%);
+    color: white;
+    font-size: 12px;
+    pointer-events: auto;
+  }
+
+  /* 右上：ミュート */
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-mute {
+    display: grid !important;
+    place-items: center;
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: rgb(25 25 25 / 75%);
+    pointer-events: auto;
+  }
+
+  /* 音量変更に対応する端末：右上の音量バー */
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-volume {
+    display: block !important;
+    position: absolute;
+    top: calc(26px + env(safe-area-inset-top, 0px));
+    right: calc(76px + env(safe-area-inset-right, 0px));
+    width: clamp(80px, 20vw, 160px) !important;
+    height: 20px;
+    margin: 0;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  /* iPhone：操作できない音量バーを表示しない */
+  #watchScreen #videoWrapper.touch-fullscreen-ui.ios-system-volume
+    .player-volume {
+    display: none !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui.ios-system-volume
+    #iosFullscreenVolumeNote {
+    display: block;
+    position: absolute;
+    top: calc(24px + env(safe-area-inset-top, 0px));
+    right: calc(72px + env(safe-area-inset-right, 0px));
+    max-width: 145px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    background: rgb(25 25 25 / 75%);
+    color: white;
+    font-size: 11px;
+    line-height: 1.4;
+    pointer-events: none;
+    z-index: 31;
+  }
+
+  /* 中央：10秒戻す・再生・10秒進む */
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    #mobileTenSecondControls {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%);
+    height: 76px;
+    gap: clamp(20px, 6vw, 48px);
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    .ten-second-button {
+    width: 56px !important;
+    height: 56px !important;
+    flex: 0 0 56px !important;
+    background: rgb(25 25 25 / 70%) !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    #mobileCenterPlayBtn {
+    width: 76px !important;
+    height: 76px !important;
+    flex-basis: 76px !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    #mobileCenterPlayBtn svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 右下：弾幕・設定 */
+  #watchScreen #videoWrapper.touch-fullscreen-ui #mobilePlayerTools {
+    top: auto !important;
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    left: auto;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui #mobilePlaybackSettings {
+    top: auto !important;
+    bottom: calc(138px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    max-width: calc(100% - 32px);
+    max-height: calc(100dvh - 160px);
+    overflow-y: auto;
+  }
+
+  /* 下部のシークバー背景 */
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    .site-player-controls::before {
+    content: "";
+    position: absolute;
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    height: 48px;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 28px;
+    background: rgb(25 25 25 / 75%);
+    pointer-events: none;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-seek {
+    position: absolute;
+    left: calc(95px + env(safe-area-inset-left, 0px));
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    width: calc(
+      100% - 190px -
+      env(safe-area-inset-left, 0px) -
+      env(safe-area-inset-right, 0px)
+    ) !important;
+    height: 20px;
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  /* 再生時間と残り時間 */
+  #watchScreen #videoWrapper.touch-fullscreen-ui #touchFullscreenTimes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: absolute;
+    left: calc(28px + env(safe-area-inset-left, 0px));
+    right: calc(28px + env(safe-area-inset-right, 0px));
+    bottom: calc(27px + env(safe-area-inset-bottom, 0px));
+    height: 22px;
+    color: white;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    z-index: 31;
+  }
+
+  /* 映像タップで、新しい表示も一緒に隠す */
+  #watchScreen #videoWrapper.touch-fullscreen-ui.mobile-controls-hidden
+    #touchFullscreenTimes,
+  #watchScreen #videoWrapper.touch-fullscreen-ui.mobile-controls-hidden
+    #iosFullscreenVolumeNote {
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+}
+
   </style>
 
 </head>
@@ -5446,6 +5724,26 @@ await uploadBytes(thumbRef, thumbFile, {
 
   let adjustingVolume = false;
 
+  // iPhone・iPadでは本体の音量をWebページから取得できない
+const usesIOSSystemVolume =
+  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (
+    navigator.platform === 'MacIntel' &&
+    navigator.maxTouchPoints > 1
+  );
+
+// 音量バーの更新は、実際に音量設定が変わったときだけ行う
+function syncVolumeSlider() {
+  if (usesIOSSystemVolume || adjustingVolume) return;
+
+  volume.value = String(
+    video.muted ? 0 : video.volume
+  );
+}
+
+video.addEventListener('volumechange', syncVolumeSlider);
+video.addEventListener('loadedmetadata', syncVolumeSlider);
+
 volume.addEventListener('pointerdown', () => {
   adjustingVolume = true;
 });
@@ -5491,10 +5789,6 @@ volume.addEventListener('blur', () => {
       'aria-label',
       silent ? 'ミュート解除' : 'ミュート'
     );
-
-    if (!adjustingVolume) {
-  volume.value = video.muted ? 0 : video.volume;
-}
 
     const duration = video.duration;
     seek.disabled = !Number.isFinite(duration) || duration <= 0;
@@ -5544,11 +5838,22 @@ volume.addEventListener('blur', () => {
   });
 
   volume.addEventListener('input', () => {
-    video.volume = Number(volume.value);
-    video.muted = video.volume === 0;
+  if (usesIOSSystemVolume) return;
 
-    if (video.volume > 0) lastVolume = video.volume;
-  });
+  const requestedVolume = Math.max(
+    0,
+    Math.min(1, Number(volume.value))
+  );
+
+  if (!Number.isFinite(requestedVolume)) return;
+
+  video.volume = requestedVolume;
+  video.muted = requestedVolume === 0;
+
+  if (requestedVolume > 0) {
+    lastVolume = requestedVolume;
+  }
+});
 
   // ドラッグ中は時刻を表示し、確定時に移動する
   seek.addEventListener('input', () => {
@@ -8960,6 +9265,130 @@ bell.hidden = !signedIn || !onNotificationScreen;
     );
   } else {
     setupCenterPlayButton();
+  }
+})();
+</script>
+
+<script>
+(() => {
+  function setupTouchFullscreen() {
+    const wrapper = document.getElementById('videoWrapper');
+    const video = document.getElementById('mainVideo');
+
+    if (
+      !wrapper ||
+      !video ||
+      document.getElementById('touchFullscreenTimes')
+    ) return;
+
+    const mobile = window.matchMedia(
+      '(max-width: 768px), (hover: none) and (pointer: coarse)'
+    );
+
+    const ios =
+      /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (
+        navigator.platform === 'MacIntel' &&
+        navigator.maxTouchPoints > 1
+      );
+
+    wrapper.classList.toggle('ios-system-volume', ios);
+
+    const times = document.createElement('div');
+    times.id = 'touchFullscreenTimes';
+    times.innerHTML = `
+      <span class="fs-current"></span>
+      <span class="fs-remaining"></span>
+    `;
+    wrapper.appendChild(times);
+
+    const volumeNote = document.createElement('span');
+    volumeNote.id = 'iosFullscreenVolumeNote';
+    volumeNote.textContent = '音量は本体ボタンで調整';
+    wrapper.appendChild(volumeNote);
+
+    const current = times.querySelector('.fs-current');
+    const remaining = times.querySelector('.fs-remaining');
+
+    function format(value) {
+      const seconds = Math.max(
+        0,
+        Math.floor(Number.isFinite(value) ? value : 0)
+      );
+
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor(seconds / 60) % 60;
+      const secondText =
+        String(seconds % 60).padStart(2, '0');
+
+      return hours
+        ? `${hours}:${String(minutes).padStart(2, '0')}:${secondText}`
+        : `${minutes}:${secondText}`;
+    }
+
+    function updateTimes() {
+      current.textContent = format(video.currentTime);
+
+      remaining.textContent = Number.isFinite(video.duration)
+        ? '-' + format(video.duration - video.currentTime)
+        : '--:--';
+    }
+
+    function updateLayout() {
+      const fullscreen = mobile.matches && (
+        document.fullscreenElement === wrapper ||
+        document.webkitFullscreenElement === wrapper ||
+        wrapper.classList.contains('pseudo-fullscreen')
+      );
+
+      // 同じ状態ならclassを更新しない
+      if (
+        wrapper.classList.contains('touch-fullscreen-ui') !==
+        fullscreen
+      ) {
+        wrapper.classList.toggle(
+          'touch-fullscreen-ui',
+          fullscreen
+        );
+      }
+    }
+
+    [
+      'timeupdate',
+      'loadedmetadata',
+      'durationchange',
+      'emptied'
+    ].forEach(name => {
+      video.addEventListener(name, updateTimes);
+    });
+
+    [
+      'fullscreenchange',
+      'webkitfullscreenchange'
+    ].forEach(name => {
+      document.addEventListener(name, updateLayout);
+    });
+
+    mobile.addEventListener('change', updateLayout);
+
+    new MutationObserver(updateLayout).observe(wrapper, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    updateTimes();
+    updateLayout();
+  }
+
+  // 既存の操作ボタンが作成されてから実行
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      setupTouchFullscreen,
+      { once: true }
+    );
+  } else {
+    setupTouchFullscreen();
   }
 })();
 </script>
