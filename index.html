@@ -2480,6 +2480,83 @@ body > header #logoutBtn {
   }
 }
 
+@media (max-width: 768px),
+       (hover: none) and (pointer: coarse) {
+
+  /* 音量バーと案内は表示しない */
+  #watchScreen #videoWrapper .player-volume,
+  #watchScreen #videoWrapper #iosFullscreenVolumeNote {
+    display: none !important;
+  }
+
+  /* 通常画面・全画面とも音声オン／オフを表示 */
+  #watchScreen #videoWrapper.mobile-player-layout .player-mute {
+    display: grid !important;
+    place-items: center;
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+  }
+
+  /* PiPの文字はボタン本文だけで表示 */
+  #watchScreen #videoWrapper #pipBtn {
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  #watchScreen #videoWrapper #pipBtn::before,
+  #watchScreen #videoWrapper #pipBtn::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* 閉じるボタンの×と全画面アイコンの重複を解消 */
+  #watchScreen #videoWrapper #fullscreenBtn::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  #watchScreen #videoWrapper:not(.touch-fullscreen-ui) #fullscreenBtn {
+    font-size: 0 !important;
+  }
+
+  #watchScreen #videoWrapper:not(.touch-fullscreen-ui) #fullscreenBtn::before {
+    content: "⛶" !important;
+    font-size: 26px;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn {
+    font-size: 0 !important;
+  }
+
+  #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn::before {
+    content: "×" !important;
+    font-size: 32px;
+  }
+
+  /* 全画面のボタンを囲む装飾をなくす */
+  #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn,
+  #watchScreen #videoWrapper.touch-fullscreen-ui #pipBtn,
+  #watchScreen #videoWrapper.touch-fullscreen-ui .player-mute,
+  #watchScreen #videoWrapper.touch-fullscreen-ui .ten-second-button {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* シークバーを囲む大きな枠もなくす */
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    .site-player-controls::before,
+  #watchScreen #videoWrapper.touch-fullscreen-ui
+    .site-player-controls::after {
+    content: none !important;
+    display: none !important;
+  }
+}
+
   </style>
 
 </head>
@@ -4692,23 +4769,43 @@ pipBtn.addEventListener('click', async () => {
       if (resume) {
         mainVideo.play().catch(console.warn);
       }
-    } else if (document.pictureInPictureEnabled) {
-      // Document PiP非対応の場合はブラウザ標準PiP
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else {
-        const wasDisabled = mainVideo.disablePictureInPicture;
-        mainVideo.disablePictureInPicture = false;
-
-        try {
-          await mainVideo.requestPictureInPicture();
-        } finally {
-          mainVideo.disablePictureInPicture = wasDisabled;
-        }
-      }
     } else {
-      alert('このブラウザはPiPに対応していません。');
-    }
+  // 動画要素に設定されていたPiP禁止を解除
+  mainVideo.disablePictureInPicture = false;
+  mainVideo.removeAttribute('disablePictureInPicture');
+
+  const safariPiP =
+    typeof mainVideo.webkitSupportsPresentationMode === 'function' &&
+    mainVideo.webkitSupportsPresentationMode('picture-in-picture') &&
+    typeof mainVideo.webkitSetPresentationMode === 'function';
+
+  if (document.pictureInPictureElement === mainVideo) {
+    // 標準PiPを閉じる
+    await document.exitPictureInPicture();
+
+  } else if (
+    mainVideo.webkitPresentationMode === 'picture-in-picture' &&
+    typeof mainVideo.webkitSetPresentationMode === 'function'
+  ) {
+    // SafariのPiPを閉じる
+    mainVideo.webkitSetPresentationMode('inline');
+
+  } else if (safariPiP) {
+    // SafariのPiPを開く
+    mainVideo.webkitSetPresentationMode('picture-in-picture');
+
+  } else if (
+    document.pictureInPictureEnabled &&
+    typeof mainVideo.requestPictureInPicture === 'function'
+  ) {
+    // 標準PiPを開く
+    await mainVideo.requestPictureInPicture();
+
+  } else {
+    alert('このブラウザ・端末ではPiPを利用できません。');
+  }
+}
+
   } catch (error) {
     if (pipWindow && !pipWindow.closed) {
       pipWindow.close();
@@ -4762,7 +4859,7 @@ async function enterPlayerFullscreen() {
   // 動画・弾幕・操作ボタンを含むプレーヤー全体を全画面にする
   try {
     if (typeof videoWrapper.requestFullscreen === 'function') {
-      await videoWrapper.requestFullscreen();
+     await videoWrapper.requestFullscreen({navigationUI: 'hide'});
       return;
     }
 
@@ -9389,6 +9486,56 @@ bell.hidden = !signedIn || !onNotificationScreen;
     );
   } else {
     setupTouchFullscreen();
+  }
+})();
+</script>
+
+<script>
+(() => {
+  function setupPiPCleanup() {
+    const pip = document.getElementById('pipBtn');
+    const video = document.getElementById('mainVideo');
+    const wrapper = document.getElementById('videoWrapper');
+    const fullscreen = document.getElementById('fullscreenBtn');
+
+    if (!pip || !video || !wrapper || !fullscreen) return;
+
+    pip.textContent = 'PiP';
+    pip.setAttribute('aria-label', 'PiPを切り替える');
+    pip.title = 'PiP';
+
+    function leaveExpandedView() {
+      const nativePiP =
+        document.pictureInPictureElement === video ||
+        video.webkitPresentationMode === 'picture-in-picture';
+
+      if (!nativePiP) return;
+
+      if (wrapper.classList.contains('pseudo-fullscreen')) {
+        // 既存の終了処理を使い、ページのスクロールも戻す
+        fullscreen.click();
+      }
+    }
+
+    video.addEventListener(
+      'enterpictureinpicture',
+      leaveExpandedView
+    );
+
+    video.addEventListener(
+      'webkitpresentationmodechanged',
+      leaveExpandedView
+    );
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      setupPiPCleanup,
+      { once: true }
+    );
+  } else {
+    setupPiPCleanup();
   }
 })();
 </script>
