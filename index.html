@@ -2557,6 +2557,53 @@ body > header #logoutBtn {
   }
 }
 
+/* PC：映像全体をクリックできるようにする */
+#videoWrapper.pc-hover-player #videoClickToggle {
+  inset: 0 !important;
+  z-index: 5;
+}
+
+/* カーソルが外にある間は操作表示を隠す */
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  .site-player-controls,
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  .custom-controls-bar,
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  #mobilePlayerTools,
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  #mobilePlaybackSettings,
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  #mobileTenSecondControls,
+#videoWrapper.pc-hover-player[data-pc-controls="hidden"]
+  #touchFullscreenTimes {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* カーソルが入ったら表示する */
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  .site-player-controls,
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  .custom-controls-bar,
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  #mobilePlayerTools,
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  #mobilePlaybackSettings,
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  #mobileTenSecondControls,
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  #touchFullscreenTimes {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 表示されている操作バーはクリックできる */
+#videoWrapper.pc-hover-player[data-pc-controls="visible"]
+  .site-player-controls {
+  pointer-events: auto !important;
+}
+
   </style>
 
 </head>
@@ -9536,6 +9583,206 @@ bell.hidden = !signedIn || !onNotificationScreen;
     );
   } else {
     setupPiPCleanup();
+  }
+})();
+</script>
+
+<script>
+(() => {
+  function setupPCHoverControls() {
+    const wrapper = document.getElementById('videoWrapper');
+    const video = document.getElementById('mainVideo');
+
+    if (!wrapper || !video || wrapper.dataset.pcHoverFixed) return;
+
+    wrapper.dataset.pcHoverFixed = 'true';
+
+    // PiPが小さなウィンドウでも、PCとして扱う
+    const desktop = window.matchMedia(
+      '(hover: hover) and (pointer: fine)'
+    );
+
+    let keyboardMode = false;
+    const watchedDocuments = new WeakSet();
+
+    function closeSettings() {
+      const settings =
+        wrapper.querySelector('#mobilePlaybackSettings');
+
+      if (settings) settings.hidden = true;
+
+      wrapper.querySelector(
+        '[aria-controls="mobilePlaybackSettings"]'
+      )?.setAttribute('aria-expanded', 'false');
+    }
+
+    function showControls(visible) {
+      if (!desktop.matches) return;
+
+      const state = visible ? 'visible' : 'hidden';
+
+      if (wrapper.dataset.pcControls !== state) {
+        wrapper.dataset.pcControls = state;
+      }
+
+      if (!visible) closeSettings();
+    }
+
+    // 手動PiPへ移動した場合も、そのウィンドウの操作を確認
+    function watchDocument() {
+      const owner = wrapper.ownerDocument;
+
+      if (watchedDocuments.has(owner)) return;
+      watchedDocuments.add(owner);
+
+      owner.addEventListener('keydown', event => {
+        if (event.key === 'Tab') keyboardMode = true;
+      }, true);
+
+      owner.addEventListener('pointerdown', () => {
+        keyboardMode = false;
+      }, true);
+    }
+
+    function refresh() {
+      watchDocument();
+
+      if (
+        wrapper.classList.contains('pc-hover-player') !==
+        desktop.matches
+      ) {
+        wrapper.classList.toggle(
+          'pc-hover-player',
+          desktop.matches
+        );
+      }
+
+      if (desktop.matches) {
+        // 以前のクリック式の非表示状態を解除
+        [
+          'desktop-controls-hidden',
+          'mobile-controls-hidden'
+        ].forEach(name => {
+          if (wrapper.classList.contains(name)) {
+            wrapper.classList.remove(name);
+          }
+        });
+
+        showControls(
+          wrapper.matches(':hover') ||
+          (
+            keyboardMode &&
+            wrapper.contains(wrapper.ownerDocument.activeElement)
+          )
+        );
+      } else {
+        delete wrapper.dataset.pcControls;
+      }
+    }
+
+    wrapper.addEventListener('pointerenter', () => {
+      showControls(true);
+    });
+
+    wrapper.addEventListener('pointermove', event => {
+      if (event.pointerType === 'mouse') {
+        showControls(true);
+      }
+    });
+
+    wrapper.addEventListener('pointerleave', () => {
+      showControls(false);
+    });
+
+    // Tabキーで操作するときもボタンを表示
+    wrapper.addEventListener('focusin', () => {
+      if (keyboardMode) showControls(true);
+    });
+
+    wrapper.addEventListener('focusout', () => {
+      queueMicrotask(() => {
+        if (
+          !wrapper.contains(wrapper.ownerDocument.activeElement) &&
+          !wrapper.matches(':hover')
+        ) {
+          showControls(false);
+        }
+      });
+    });
+
+    // 映像クリック：再生・一時停止
+    wrapper.addEventListener('click', async event => {
+      if (!desktop.matches) return;
+
+      const target = event.target;
+
+      // 操作ボタン・入力欄などのクリックは既存処理に任せる
+      if (target?.closest?.(`
+        .site-player-controls,
+        .custom-controls-bar,
+        #mobilePlayerTools,
+        #mobilePlaybackSettings,
+        #mobileTenSecondControls,
+        button:not(#videoClickToggle),
+        input,
+        select,
+        textarea,
+        a,
+        [contenteditable="true"]
+      `)) {
+        return;
+      }
+
+      // 以前の映像クリック処理との二重実行を防ぐ
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (
+        !video.currentSrc &&
+        !video.getAttribute('src') &&
+        !video.srcObject
+      ) {
+        return;
+      }
+
+      if (video.paused || video.ended) {
+        try {
+          await video.play();
+        } catch (error) {
+          console.warn('動画を再生できませんでした:', error);
+        }
+      } else {
+        video.pause();
+      }
+    }, true);
+
+    desktop.addEventListener('change', refresh);
+
+    // 自動ミニプレーヤー・手動PiPへ切り替わったら再判定
+    new MutationObserver(refresh).observe(wrapper, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    video.addEventListener('loadedmetadata', refresh);
+
+    window.addEventListener('blur', () => {
+      showControls(false);
+    });
+
+    window.addEventListener('focus', refresh);
+
+    refresh();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      setupPCHoverControls,
+      { once: true }
+    );
+  } else {
+    setupPCHoverControls();
   }
 })();
 </script>
