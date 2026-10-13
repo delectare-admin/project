@@ -2604,6 +2604,112 @@ body > header #logoutBtn {
   pointer-events: auto !important;
 }
 
+/* PC用の10秒操作ボタン */
+#videoWrapper .desktop-ten-skip {
+  flex-shrink: 0;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+@media (max-width: 768px),
+       (hover: none) and (pointer: coarse) {
+  #videoWrapper .desktop-ten-skip {
+    display: none !important;
+  }
+}
+
+/* PC：映像の空き部分で操作表示を切り替える */
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  #videoWrapper:not(.is-sticky):not(.in-pip) #videoClickToggle {
+    inset: 0 !important;
+  }
+
+  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
+    .site-player-controls,
+  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
+    .custom-controls-bar,
+  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
+    #mobilePlayerTools,
+  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
+    #mobilePlaybackSettings {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* 設定内容が増えても画面内でスクロール */
+#mySettingsDialog {
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+#mySettingsDialog .content-filter-settings {
+  margin-top: 20px;
+}
+
+#mySettingsDialog details {
+  padding: 14px 0;
+  border-top: 1px solid #ddd;
+}
+
+#mySettingsDialog summary {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#mySettingsDialog .content-filter-settings p {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#mutedWordsEditor {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+#mySettingsDialog .blocked-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+#mySettingsDialog .blocked-user-row span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#mySettingsDialog .blocked-user-row button,
+#saveMutedWordsBtn {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #f5f5f5;
+  color: #065fd4;
+  cursor: pointer;
+}
+
   </style>
 
 </head>
@@ -4269,7 +4375,8 @@ async function fillHomeCard(card, v) {
         !c.parentId &&
         typeof c.text === 'string' &&
         c.text.trim() &&
-        !currentUserBlocks.includes(c.authorUid)
+        !currentUserBlocks.includes(c.authorUid) &&
+        !subMovieIsMuted(c.text)
       )
       .sort((a, b) =>
         likes(b) - likes(a) ||
@@ -4302,11 +4409,14 @@ async function fillHomeCard(card, v) {
   }
 }
 
-
-        function renderGrid(list, container) {
-      if (container === videoGrid) {
-        homeCardObserver.disconnect();
-      }
+      function renderGrid(list, container) {
+          if (container === videoGrid) {
+    list = list.filter(video => !subMovieIsMuted(
+      video.title,
+      video.desc,
+      video.uploaderName
+    ));
+  }
       
       if (list.length === 0) {
         const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
@@ -5413,10 +5523,10 @@ function loadComments() {
       if (currentUserBlocks.includes(data.authorUid)) return;
 
       if (data.type === 'danmaku') {
-        videoComments.push(data);
-      } else {
-        allComments.push(data);
-      }
+  videoComments.push(data);
+} else if (!subMovieIsMuted(data.text)) {
+  allComments.push(data);
+}
     });
 
     // 返信は親コメントの下で古い順に表示
