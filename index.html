@@ -2710,6 +2710,67 @@ body > header #logoutBtn {
   cursor: pointer;
 }
 
+/* ホーム：投稿者名と再生数・高評価数・コメント数 */
+#videoGrid .grid-item-text {
+  min-width: 0;
+}
+
+#videoGrid .home-author-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+#videoGrid .home-author-row .grid-author {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  color: #606060;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#videoGrid .home-video-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-width: 0;
+  color: #606060;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#videoGrid .home-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#videoGrid .home-stat svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+#videoGrid .home-stat-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 以前の人気コメント表示は使わない */
+#videoGrid .home-top-comment,
+#videoGrid .home-comment-icon {
+  display: none !important;
+}
+
   </style>
 
 </head>
@@ -3026,7 +3087,8 @@ body > header #logoutBtn {
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-   import {getFirestore, getDocs, collection, addDoc,query, where, onSnapshot, serverTimestamp,doc, getDoc, setDoc, updateDoc, deleteDoc,increment, arrayUnion, arrayRemove,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {getFirestore, getDocs, collection, addDoc,query, where, onSnapshot, serverTimestamp,doc, getDoc, setDoc, updateDoc, deleteDoc,increment, arrayUnion, arrayRemove,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject, updateMetadata } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -4271,10 +4333,17 @@ function getHomeProfile(uid) {
 }
 
 function decorateHomeCard(card, v) {
+  const info = card.querySelector('.grid-item-info');
+  const authorEl = card.querySelector('.grid-author');
+
+  if (!info || !authorEl) return;
+
+  // チャンネルアイコン
   const avatar = document.createElement('button');
   avatar.type = 'button';
   avatar.className = 'home-channel-avatar';
-  avatar.textContent = (v.uploaderName || 'ゲスト').slice(0, 1);
+  avatar.textContent =
+    (v.uploaderName || 'ゲスト').slice(0, 1);
 
   avatar.setAttribute(
     'aria-label',
@@ -4283,60 +4352,77 @@ function decorateHomeCard(card, v) {
 
   avatar.disabled = !v.uploaderUid;
 
-  avatar.addEventListener('click', e => {
-    e.stopPropagation();
+  avatar.addEventListener('click', event => {
+    event.stopPropagation();
 
     if (v.uploaderUid) {
       showMyProfile(v.uploaderUid);
     }
   });
 
-  card.querySelector('.grid-item-info').prepend(avatar);
+  info.prepend(avatar);
 
-    // 投稿者名とコメントを横並びにする
-  const authorEl = card.querySelector('.grid-author');
-  const authorRow = document.createElement('div');
-  authorRow.className = 'home-author-row';
+  // 投稿者名と件数
+  const row = document.createElement('div');
+  row.className = 'home-author-row';
+  authorEl.replaceWith(row);
 
-  authorEl.replaceWith(authorRow);
-  authorRow.appendChild(authorEl);
+  const stats = document.createElement('div');
+  stats.className = 'home-video-stats';
 
-  const comment = document.createElement('div');
-  comment.className = 'home-top-comment';
-  comment.textContent = 'コメントを読み込み中…';
+  const icons = {
+    views: 'M8 5v14l11-7Z',
+    likes:
+      'M7 10H3v10h4Zm0 0 4-7c1-1 3 0 3 2v5h5c2 0 2 2 2 3l-2 7H7Z',
+    comments: 'M4 4h16v13H9l-5 4Z'
+  };
 
- // 投稿者名の隣に吹き出しアイコンを表示
-const commentIcon = document.createElement('span');
-commentIcon.className = 'home-comment-icon';
-commentIcon.title = '人気コメント';
-commentIcon.setAttribute('role', 'img');
-commentIcon.setAttribute('aria-label', '人気コメント');
+  const labels = {
+    views: '再生数',
+    likes: '高評価数',
+   comments: '弾幕コメント数'
+  };
 
-commentIcon.innerHTML = `
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M20 4H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4v4l5-4h7a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linejoin="round"
-    />
-  </svg>
-`;
+  for (const key of ['views', 'likes', 'comments']) {
+    const item = document.createElement('span');
+    item.className = 'home-stat';
+    item.dataset.stat = key;
 
-authorRow.appendChild(commentIcon);
-authorRow.appendChild(comment);
+    item.setAttribute('role', 'img');
+    item.setAttribute(
+      'aria-label',
+      `${labels[key]} 読み込み中`
+    );
+    item.title = `${labels[key]} 読み込み中`;
 
+    item.innerHTML = `
+      <svg viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="1.7"
+           stroke-linejoin="round"
+           aria-hidden="true">
+        <path d="${icons[key]}"/>
+      </svg>
+      <span class="home-stat-number">--</span>
+    `;
+
+    stats.appendChild(item);
+  }
+
+  row.append(authorEl, stats);
+
+  // 画面に近づいたカードから取得する
   homeCardData.set(card, v);
   homeCardObserver.observe(card);
 }
 
 async function fillHomeCard(card, v) {
-  const avatar = card.querySelector('.home-channel-avatar');
-  const box = card.querySelector('.home-top-comment');
+  const avatar =
+    card.querySelector('.home-channel-avatar');
 
-  // 投稿者アイコンの取得
-  if (v.uploaderUid) {
+  // 投稿者アイコン
+  if (v.uploaderUid && avatar) {
     getHomeProfile(v.uploaderUid).then(profile => {
       if (!card.isConnected || !profile.avatarUrl) return;
 
@@ -4350,62 +4436,108 @@ async function fillHomeCard(card, v) {
         }
       };
 
-      // GIFも変換せず、そのまま表示
       img.src = profile.avatarUrl;
     }).catch(error => {
-      console.warn('アイコン取得失敗', error);
+      console.warn('アイコン取得失敗:', error);
     });
   }
 
-  // 人気コメントの取得
-  try {
-    const snapshot = await getDocs(query(
-      collection(db, 'comments'),
-      where('videoId', '==', v.itemRef.fullPath)
-    ));
+  const labels = {
+    views: '再生数',
+    likes: '高評価数',
+    comments: 'コメント数'
+  };
 
+  function setCount(key, value) {
     if (!card.isConnected) return;
 
-    const likes = c => Math.max(0, Number(c.likes) || 0);
+    const item =
+      card.querySelector(`[data-stat="${key}"]`);
 
-    const comments = snapshot.docs
-      .map(s => ({ ...s.data(), id: s.id }))
-      .filter(c =>
-        c.type !== 'danmaku' &&
-        !c.parentId &&
-        typeof c.text === 'string' &&
-        c.text.trim() &&
-        !currentUserBlocks.includes(c.authorUid) &&
-        !subMovieIsMuted(c.text)
-      )
-      .sort((a, b) =>
-        likes(b) - likes(a) ||
-        (b.createdAt?.toMillis?.() || 0) -
-          (a.createdAt?.toMillis?.() || 0) ||
-        a.id.localeCompare(b.id)
-      );
+    if (!item) return;
 
-    const top = comments[0];
+    const number = Number(value);
+    const count = Number.isFinite(number)
+      ? Math.max(0, Math.floor(number))
+      : 0;
 
-    if (!top) {
-      box.textContent = 'まだ表示できるコメントはありません';
-      return;
-    }
+    // 大きな数字は「1.2万」「1.2億」と表示
+    const text = count >= 100000000
+      ? `${Math.floor(count / 10000000) / 10}億`
+      : count >= 10000
+        ? `${Math.floor(count / 1000) / 10}万`
+        : count.toLocaleString('ja-JP');
 
-        // 改行を空白にして、投稿者名の横に表示
-    const commentText = top.text.replace(/\s+/g, ' ').trim();
+    item.querySelector('.home-stat-number')
+      .textContent = text;
 
-    box.textContent = commentText;
+    // マウスを重ねると正確な件数を表示
+    const label =
+      `${labels[key]} ${count.toLocaleString('ja-JP')}`;
 
-    // マウスを重ねたときに全文といいね数を確認できる
-    box.title = `${top.text}\n👍 ${likes(top)}`;
+    item.title = label;
+    item.setAttribute('aria-label', label);
+  }
 
-  } catch (error) {
-    if (card.isConnected) {
-      box.textContent = 'コメントを取得できませんでした';
-    }
+  function markError(key) {
+    if (!card.isConnected) return;
 
-    console.warn('人気コメント取得失敗', error);
+    const item =
+      card.querySelector(`[data-stat="${key}"]`);
+
+    if (!item) return;
+
+    // 取得失敗を「0件」として表示しない
+    item.title = `${labels[key]}を取得できませんでした`;
+    item.setAttribute('aria-label', item.title);
+  }
+
+  const videoId = v.itemRef.fullPath;
+
+  // 動画集計とコメント件数を並行取得
+  const results = await Promise.allSettled([
+    getDoc(
+      doc(db, 'videoStats', statsDocId(videoId))
+    ),
+
+    getCountFromServer(query(
+      collection(db, 'comments'),
+      where('videoId', '==', videoId),
+      where('type', '==', 'danmaku')
+    ))
+  ]);
+
+  if (!card.isConnected) return;
+
+  const [statsResult, commentsResult] = results;
+
+  if (statsResult.status === 'fulfilled') {
+    const data = statsResult.value.data() || {};
+
+    setCount('views', data.views || 0);
+    setCount('likes', data.likes || 0);
+  } else {
+    markError('views');
+    markError('likes');
+
+    console.warn(
+      'ホームの動画集計取得失敗:',
+      statsResult.reason
+    );
+  }
+
+  if (commentsResult.status === 'fulfilled') {
+    setCount(
+      'comments',
+      commentsResult.value.data().count
+    );
+  } else {
+    markError('comments');
+
+    console.warn(
+      'ホームのコメント数取得失敗:',
+      commentsResult.reason
+    );
   }
 }
 
