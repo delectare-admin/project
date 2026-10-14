@@ -2951,6 +2951,93 @@ body > header #logoutBtn {
   }
 }
 
+/* アイコン＋入力欄、その下の右端に操作ボタン */
+#watchScreen #commentComposer,
+#mobileCommentsSheet #commentComposer {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 8px;
+  margin-bottom: 24px;
+}
+
+#commentComposer #commentAvatar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#commentComposer #commentInput {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100% !important;
+  min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+#commentComposer .comment-compose-actions {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#commentComposer .comment-compose-actions[hidden] {
+  display: none !important;
+}
+
+#commentComposer .comment-compose-actions button {
+  width: auto;
+  min-height: 38px;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 20px;
+}
+
+#commentComposer #commentCancelBtn {
+  background: transparent;
+  color: #222;
+  border: none;
+}
+
+#commentComposer #commentCancelBtn:hover {
+  background: #e9e9e9;
+}
+
+#commentComposeStatus {
+  grid-column: 2;
+  grid-row: 3;
+  margin: 0;
+  color: #b3261e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#commentComposeStatus:empty {
+  display: none;
+}
+
+/* 添付欄が残っていても表示しない */
+.comment-attachment-area {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  #watchScreen #commentComposer,
+  #mobileCommentsSheet #commentComposer {
+    grid-template-columns: 32px minmax(0, 1fr);
+    column-gap: 10px;
+  }
+
+  #commentComposer #commentInput {
+    font-size: 16px;
+  }
+}
+
   </style>
 
 </head>
@@ -3131,36 +3218,28 @@ body > header #logoutBtn {
     </select>
   </label>
 </div>
-            <div class="comment-input-area">
-              <div class="comment-avatar" id="commentAvatar">U</div>
-              <textarea id="commentInput" rows="1" placeholder="コメントを追加..."></textarea>
-              <button id="commentSubmitBtn" disabled>コメント</button>
-            </div>
 
-            <div class="comment-attachment-area">
-  <input
-    id="commentImageInput"
-    type="file"
-    accept="image/jpeg,image/png,image/webp,image/gif"
-    hidden
-  >
+  <<div class="comment-input-area" id="commentComposer">
+  <div class="comment-avatar" id="commentAvatar">U</div>
 
-  <button type="button" id="commentImageButton">
-    🖼 画像・GIF
-  </button>
+  <textarea
+    id="commentInput"
+    rows="1"
+    placeholder="コメントを追加..."
+  ></textarea>
 
-  <div id="commentImagePreviewBox"
-       class="comment-attachment-preview"
+  <div id="commentComposeActions"
+       class="comment-compose-actions"
        hidden>
-    <img id="commentImagePreview" alt="添付画像のプレビュー">
-    <button type="button" id="commentImageRemove">
-      添付を外す
+    <button type="button" id="commentCancelBtn">
+      キャンセル
+    </button>
+    <button type="button" id="commentSubmitBtn" disabled>
+      コメント
     </button>
   </div>
 
-  <p id="commentImageStatus"
-     class="comment-attachment-status"
-     role="status"></p>
+  <p id="commentComposeStatus" role="status"></p>
 </div>
 
 <div id="commentList" class="comment-list"></div>
@@ -5655,136 +5734,150 @@ dislikeBtn.addEventListener(
 }
 
     function autoResizeTextArea(el) { el.style.height = '38px'; const newHeight = el.scrollHeight; if (newHeight > 38) el.style.height = newHeight + 'px'; }
-   const commentImageInput =
-  document.getElementById('commentImageInput');
-const commentImageButton =
-  document.getElementById('commentImageButton');
-const commentImagePreview =
-  document.getElementById('commentImagePreview');
-const commentImageRemove =
-  document.getElementById('commentImageRemove');
-const commentImageStatus =
-  document.getElementById('commentImageStatus');
-const commentImagePreviewBox =
-  document.getElementById('commentImagePreviewBox');
+ const commentCancelBtn =
+  document.getElementById('commentCancelBtn');
+const commentComposeActions =
+  document.getElementById('commentComposeActions');
+const commentComposeStatus =
+  document.getElementById('commentComposeStatus');
 
-const commentImageTypes = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif'
-};
+let textCommentSending = false;
 
-let selectedCommentImage = null;
-let commentImagePreviewUrl = null;
-let commentSending = false;
-let imagePickerContext = null;
+function syncTextCommentActions() {
+  commentSubmitBtn.disabled =
+    textCommentSending || !commentInput.value.trim();
 
-const commentImageUrlCache = new Map();
-
-function syncCommentSubmit() {
-  commentSubmitBtn.disabled = commentSending ||
-    (!commentInput.value.trim() && !selectedCommentImage);
-
-  commentImageButton.disabled = commentSending;
-  commentImageRemove.disabled = commentSending;
+  commentCancelBtn.disabled = textCommentSending;
 }
 
-function clearCommentImage() {
-  selectedCommentImage = null;
-  commentImageInput.value = '';
-  commentImagePreview.removeAttribute('src');
-  commentImagePreviewBox.hidden = true;
-
-  if (commentImagePreviewUrl) {
-    URL.revokeObjectURL(commentImagePreviewUrl);
-  }
-
-  commentImagePreviewUrl = null;
-  syncCommentSubmit();
+function closeTextCommentComposer() {
+  commentInput.value = '';
+  commentInput.style.height = '38px';
+  commentComposeActions.hidden = true;
+  commentComposeStatus.textContent = '';
+  syncTextCommentActions();
 }
 
-commentImageButton.addEventListener('click', () => {
-  if (
-    !requireCommentLogin() ||
-    !currentVideoId ||
-    commentSending
-  ) return;
+// 入力欄を押したら、右下のボタンを表示
+commentInput.addEventListener('focus', () => {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return;
 
-  imagePickerContext = {
-    uid: auth.currentUser.uid,
-    videoId: currentVideoId
-  };
-
-  commentImageInput.click();
+  commentComposeActions.hidden = false;
+  syncTextCommentActions();
 });
 
-commentImageInput.addEventListener('change', () => {
-  const file = commentImageInput.files[0];
-  if (!file) return;
+commentInput.addEventListener('input', function() {
+  if (auth.currentUser && !auth.currentUser.isAnonymous) {
+    commentComposeActions.hidden = false;
+  }
 
-  if (
-    !imagePickerContext ||
-    auth.currentUser?.uid !== imagePickerContext.uid ||
-    currentVideoId !== imagePickerContext.videoId
-  ) {
-    clearCommentImage();
+  syncTextCommentActions();
+  autoResizeTextArea(this);
+});
+
+commentInput.addEventListener('keydown', event => {
+  if (event.isComposing) return;
+
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+
+    if (!commentSubmitBtn.disabled) {
+      commentSubmitBtn.click();
+    }
+  }
+});
+
+// キャンセル
+commentCancelBtn.addEventListener('click', () => {
+  if (textCommentSending) return;
+
+  closeTextCommentComposer();
+  commentInput.blur();
+});
+
+// 本文だけを投稿する
+commentSubmitBtn.addEventListener('click', async () => {
+  if (textCommentSending || !requireCommentLogin()) return;
+
+  const user = auth.currentUser;
+  const videoId = currentVideoId;
+  const text = commentInput.value.trim();
+
+  if (!videoId || !text) return;
+
+  if (text.length > 2000) {
+    commentComposeStatus.textContent =
+      'コメントは2000文字以内で入力してください。';
     return;
   }
 
-  if (
-    !commentImageTypes[file.type] ||
-    file.size === 0 ||
-    file.size > 5 * 1024 * 1024
-  ) {
-    commentImageInput.value = '';
-    commentImageStatus.textContent =
-      'JPEG・PNG・WebP・GIFの5MB以下の画像を選んでください。';
-    return;
+  textCommentSending = true;
+  commentInput.readOnly = true;
+  commentSubmitBtn.textContent = '送信中…';
+  commentComposeStatus.textContent = '';
+  syncTextCommentActions();
+
+  try {
+    await addDoc(collection(db, 'comments'), {
+      videoId,
+      text,
+      author: getNickname(),
+      authorUid: user.uid,
+      type: 'normal',
+      createdAt: serverTimestamp(),
+      parentId: null
+    });
+
+    if (
+      currentVideoId === videoId &&
+      auth.currentUser?.uid === user.uid &&
+      commentInput.value.trim() === text
+    ) {
+      closeTextCommentComposer();
+      commentInput.blur();
+    }
+  } catch (error) {
+    console.error('コメント送信失敗:', error);
+
+    if (
+      currentVideoId === videoId &&
+      auth.currentUser?.uid === user.uid
+    ) {
+      commentComposeStatus.textContent =
+        '送信できませんでした。ログイン状態と通信を確認してください。';
+    }
+  } finally {
+    textCommentSending = false;
+    commentInput.readOnly = false;
+    commentSubmitBtn.textContent = 'コメント';
+    syncTextCommentActions();
   }
-
-  clearCommentImage();
-
-  selectedCommentImage = {
-    file,
-    ...imagePickerContext
-  };
-
-  commentImagePreviewUrl = URL.createObjectURL(file);
-  commentImagePreview.src = commentImagePreviewUrl;
-  commentImagePreviewBox.hidden = false;
-  commentImageStatus.textContent = file.name;
-
-  syncCommentSubmit();
 });
 
-commentImageRemove.addEventListener('click', () => {
-  clearCommentImage();
-  commentImageStatus.textContent = '';
-});
+// 動画・アカウントが変わったら入力を閉じる
+new MutationObserver(closeTextCommentComposer).observe(
+  mainTitle,
+  {
+    childList: true,
+    subtree: true,
+    characterData: true
+  }
+);
 
-// 別の動画に移動したら、添付をリセット
-new MutationObserver(() => {
-  clearCommentImage();
-  commentImageStatus.textContent = '';
-}).observe(mainTitle, {
-  childList: true,
-  subtree: true,
-  characterData: true
-});
-
-// アカウントが変わった場合もリセット
-let commentAttachmentUid = auth.currentUser?.uid || null;
+let textCommentAccountUid = auth.currentUser?.uid || null;
 
 onAuthStateChanged(auth, user => {
   const uid = user?.uid || null;
 
-  if (uid !== commentAttachmentUid) {
-    commentAttachmentUid = uid;
-    clearCommentImage();
-    commentImageStatus.textContent = '';
+  if (uid !== textCommentAccountUid) {
+    textCommentAccountUid = uid;
+    closeTextCommentComposer();
   }
 });
+
+// 既に投稿された画像の表示・削除用
+const commentImageUrlCache = new Map();
 
 function validCommentImagePath(imagePath) {
   return typeof imagePath === 'string' &&
@@ -5792,7 +5885,6 @@ function validCommentImagePath(imagePath) {
       .test(imagePath);
 }
 
-// 投稿後の画像表示
 function attachCommentImage(node, comment) {
   if (!validCommentImagePath(comment.imagePath)) return;
 
@@ -5847,137 +5939,7 @@ function attachCommentImage(node, comment) {
   });
 }
 
-commentInput.addEventListener('input', function() {
-  syncCommentSubmit();
-  autoResizeTextArea(this);
-});
 
-commentInput.addEventListener('keydown', function(event) {
-  if (event.isComposing) return;
-
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-
-    if (!commentSubmitBtn.disabled) {
-      commentSubmitBtn.click();
-    }
-  }
-});
-
-commentSubmitBtn.addEventListener('click', async () => {
-  if (commentSending || !requireCommentLogin()) return;
-
-  const user = auth.currentUser;
-  const videoId = currentVideoId;
-  const text = commentInput.value.trim();
-  const attachment = selectedCommentImage;
-
-  if (!videoId || (!text && !attachment)) return;
-
-  if (text.length > 2000) {
-    commentImageStatus.textContent =
-      'コメントは2000文字以内にしてください。';
-    return;
-  }
-
-  if (
-    attachment &&
-    (
-      attachment.uid !== user.uid ||
-      attachment.videoId !== videoId
-    )
-  ) {
-    clearCommentImage();
-    commentImageStatus.textContent =
-      'この動画で画像を選び直してください。';
-    return;
-  }
-
-  const author = getNickname();
-
-  commentSending = true;
-  commentInput.readOnly = true;
-  commentSubmitBtn.textContent = '送信中…';
-  commentImageStatus.textContent = '送信中…';
-  syncCommentSubmit();
-
-  let uploadedRef = null;
-  let postAttempted = false;
-
-  try {
-    let imagePath = null;
-
-    if (attachment) {
-      const ext = commentImageTypes[attachment.file.type];
-
-      imagePath =
-        `commentImages/${user.uid}/${crypto.randomUUID()}.${ext}`;
-
-      uploadedRef = ref(storage, imagePath);
-
-      // GIFを含め、元のファイルをそのまま保存
-      await uploadBytes(uploadedRef, attachment.file, {
-        contentType: attachment.file.type,
-        customMetadata: {
-          uploaderUid: user.uid
-        }
-      });
-    }
-
-    if (
-      auth.currentUser?.uid !== user.uid ||
-      currentVideoId !== videoId
-    ) {
-      throw new Error(
-        '送信中にアカウントまたは動画が切り替わりました。'
-      );
-    }
-
-    const data = {
-      videoId,
-      text,
-      author,
-      authorUid: user.uid,
-      type: 'normal',
-      createdAt: serverTimestamp(),
-      parentId: null
-    };
-
-    if (imagePath) data.imagePath = imagePath;
-
-    postAttempted = true;
-    await addDoc(collection(db, 'comments'), data);
-
-    if (
-      currentVideoId === videoId &&
-      auth.currentUser?.uid === user.uid
-    ) {
-      commentInput.value = '';
-      commentInput.style.height = '38px';
-      clearCommentImage();
-      commentImageStatus.textContent = '投稿しました。';
-    }
-  } catch (error) {
-    // コメント保存前に中断した画像を削除
-    if (uploadedRef && !postAttempted) {
-      await deleteObject(uploadedRef).catch(cleanupError => {
-        console.warn('未投稿画像の削除失敗:', cleanupError);
-      });
-    }
-
-    console.error('コメント送信失敗:', error);
-
-    if (currentVideoId === videoId) {
-      commentImageStatus.textContent =
-        '送信に失敗しました。投稿一覧を確認してから再試行してください。';
-    }
-  } finally {
-    commentSending = false;
-    commentInput.readOnly = false;
-    commentSubmitBtn.textContent = 'コメント';
-    syncCommentSubmit();
-  }
-});
 
 danmakuInput.addEventListener('input', () => {
   danmakuSubmitBtn.disabled =
