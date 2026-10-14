@@ -2771,6 +2771,186 @@ body > header #logoutBtn {
   display: none !important;
 }
 
+/* 視聴回数の隣に表示する弾幕アイコン・件数 */
+.watch-danmaku-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-danmaku-stat svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+}
+
+#mobileDescriptionMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* スマホでは既存の説明パネルを使用 */
+#desktopVideoDescription {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  /* PCの情報表示は説明枠へ移す */
+  #watchScreen #mobileDescriptionSummary {
+    display: none !important;
+  }
+
+  #watchScreen #mainTitle {
+    cursor: default;
+  }
+
+  #watchScreen #desktopVideoDescription {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 12px 0 20px;
+    padding: 14px 16px;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    background: #f1f1f1;
+    color: #111;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  #watchScreen .desktop-description-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+
+  #watchScreen #desktopDescriptionText {
+    max-height: 4.8em;
+    overflow: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* 展開後も長すぎる説明は枠内でスクロール */
+  #watchScreen #desktopVideoDescription.description-expanded
+    #desktopDescriptionText {
+    max-height: min(360px, 45vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  #watchScreen #desktopDescriptionToggle {
+    display: block;
+    margin-top: 6px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #111;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  #watchScreen #desktopDescriptionToggle:focus-visible {
+    outline: 2px solid #065fd4;
+    outline-offset: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  #watchScreen #mobileDescriptionSummary {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+}
+
+.comment-attachment-area {
+  margin: 8px 0 16px 56px;
+  min-width: 0;
+}
+
+#commentImageButton,
+#commentImageRemove {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #f5f5f5;
+  color: #065fd4;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#commentImageButton:disabled,
+#commentImageRemove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.comment-attachment-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.comment-attachment-preview[hidden] {
+  display: none !important;
+}
+
+#commentImagePreview {
+  display: block;
+  max-width: min(200px, 100%);
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.comment-attachment-status {
+  margin: 6px 0 0;
+  color: #666;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.comment-content {
+  min-width: 0;
+}
+
+.comment-media {
+  display: block;
+  width: min(360px, 100%);
+  margin: 8px 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.comment-media img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .comment-attachment-area {
+    margin-left: 0;
+  }
+}
+
   </style>
 
 </head>
@@ -2956,8 +3136,35 @@ body > header #logoutBtn {
               <textarea id="commentInput" rows="1" placeholder="コメントを追加..."></textarea>
               <button id="commentSubmitBtn" disabled>コメント</button>
             </div>
-            <div id="commentList" class="comment-list"></div>
-          </div>
+
+            <div class="comment-attachment-area">
+  <input
+    id="commentImageInput"
+    type="file"
+    accept="image/jpeg,image/png,image/webp,image/gif"
+    hidden
+  >
+
+  <button type="button" id="commentImageButton">
+    🖼 画像・GIF
+  </button>
+
+  <div id="commentImagePreviewBox"
+       class="comment-attachment-preview"
+       hidden>
+    <img id="commentImagePreview" alt="添付画像のプレビュー">
+    <button type="button" id="commentImageRemove">
+      添付を外す
+    </button>
+  </div>
+
+  <p id="commentImageStatus"
+     class="comment-attachment-status"
+     role="status"></p>
+</div>
+
+<div id="commentList" class="comment-list"></div>
+</div>
 
         </div><!-- /watch-main -->
 
@@ -5448,47 +5655,327 @@ dislikeBtn.addEventListener(
 }
 
     function autoResizeTextArea(el) { el.style.height = '38px'; const newHeight = el.scrollHeight; if (newHeight > 38) el.style.height = newHeight + 'px'; }
-    commentInput.addEventListener('input', function() { commentSubmitBtn.disabled = this.value.trim() === ""; autoResizeTextArea(this); });
-    commentInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!commentSubmitBtn.disabled) commentSubmitBtn.click(); } });
-    commentSubmitBtn.addEventListener('click', async () => {
-  if (!requireCommentLogin()) return;
+   const commentImageInput =
+  document.getElementById('commentImageInput');
+const commentImageButton =
+  document.getElementById('commentImageButton');
+const commentImagePreview =
+  document.getElementById('commentImagePreview');
+const commentImageRemove =
+  document.getElementById('commentImageRemove');
+const commentImageStatus =
+  document.getElementById('commentImageStatus');
+const commentImagePreviewBox =
+  document.getElementById('commentImagePreviewBox');
 
-  const text = commentInput.value.trim();
-  const videoId = currentVideoId;
+const commentImageTypes = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif'
+};
 
-  if (!text || !videoId) return;
+let selectedCommentImage = null;
+let commentImagePreviewUrl = null;
+let commentSending = false;
+let imagePickerContext = null;
 
-  if (text.length > 2000) {
-    alert('コメントは2000文字以内で入力してください。');
+const commentImageUrlCache = new Map();
+
+function syncCommentSubmit() {
+  commentSubmitBtn.disabled = commentSending ||
+    (!commentInput.value.trim() && !selectedCommentImage);
+
+  commentImageButton.disabled = commentSending;
+  commentImageRemove.disabled = commentSending;
+}
+
+function clearCommentImage() {
+  selectedCommentImage = null;
+  commentImageInput.value = '';
+  commentImagePreview.removeAttribute('src');
+  commentImagePreviewBox.hidden = true;
+
+  if (commentImagePreviewUrl) {
+    URL.revokeObjectURL(commentImagePreviewUrl);
+  }
+
+  commentImagePreviewUrl = null;
+  syncCommentSubmit();
+}
+
+commentImageButton.addEventListener('click', () => {
+  if (
+    !requireCommentLogin() ||
+    !currentVideoId ||
+    commentSending
+  ) return;
+
+  imagePickerContext = {
+    uid: auth.currentUser.uid,
+    videoId: currentVideoId
+  };
+
+  commentImageInput.click();
+});
+
+commentImageInput.addEventListener('change', () => {
+  const file = commentImageInput.files[0];
+  if (!file) return;
+
+  if (
+    !imagePickerContext ||
+    auth.currentUser?.uid !== imagePickerContext.uid ||
+    currentVideoId !== imagePickerContext.videoId
+  ) {
+    clearCommentImage();
     return;
   }
 
-  commentSubmitBtn.disabled = true;
+  if (
+    !commentImageTypes[file.type] ||
+    file.size === 0 ||
+    file.size > 5 * 1024 * 1024
+  ) {
+    commentImageInput.value = '';
+    commentImageStatus.textContent =
+      'JPEG・PNG・WebP・GIFの5MB以下の画像を選んでください。';
+    return;
+  }
+
+  clearCommentImage();
+
+  selectedCommentImage = {
+    file,
+    ...imagePickerContext
+  };
+
+  commentImagePreviewUrl = URL.createObjectURL(file);
+  commentImagePreview.src = commentImagePreviewUrl;
+  commentImagePreviewBox.hidden = false;
+  commentImageStatus.textContent = file.name;
+
+  syncCommentSubmit();
+});
+
+commentImageRemove.addEventListener('click', () => {
+  clearCommentImage();
+  commentImageStatus.textContent = '';
+});
+
+// 別の動画に移動したら、添付をリセット
+new MutationObserver(() => {
+  clearCommentImage();
+  commentImageStatus.textContent = '';
+}).observe(mainTitle, {
+  childList: true,
+  subtree: true,
+  characterData: true
+});
+
+// アカウントが変わった場合もリセット
+let commentAttachmentUid = auth.currentUser?.uid || null;
+
+onAuthStateChanged(auth, user => {
+  const uid = user?.uid || null;
+
+  if (uid !== commentAttachmentUid) {
+    commentAttachmentUid = uid;
+    clearCommentImage();
+    commentImageStatus.textContent = '';
+  }
+});
+
+function validCommentImagePath(imagePath) {
+  return typeof imagePath === 'string' &&
+    /^commentImages\/[^/]+\/[A-Za-z0-9_-]+\.(jpg|png|webp|gif)$/
+      .test(imagePath);
+}
+
+// 投稿後の画像表示
+function attachCommentImage(node, comment) {
+  if (!validCommentImagePath(comment.imagePath)) return;
+
+  const textNode = node.querySelector('.comment-text');
+  if (!textNode) return;
+
+  const link = document.createElement('a');
+  link.className = 'comment-media';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = '画像を読み込み中…';
+
+  link.addEventListener('click', event => {
+    event.stopPropagation();
+  });
+
+  textNode.after(link);
+
+  let promise = commentImageUrlCache.get(comment.imagePath);
+
+  if (!promise) {
+    promise = getDownloadURL(ref(storage, comment.imagePath));
+    commentImageUrlCache.set(comment.imagePath, promise);
+
+    promise.catch(() => {
+      commentImageUrlCache.delete(comment.imagePath);
+    });
+  }
+
+  promise.then(url => {
+    if (!node.isConnected) return;
+
+    const img = document.createElement('img');
+    img.alt = 'コメントに添付された画像・GIF';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+
+    img.addEventListener('error', () => {
+      link.removeAttribute('href');
+      link.textContent = '画像を表示できませんでした。';
+    }, { once: true });
+
+    link.href = url;
+    link.replaceChildren(img);
+    img.src = url;
+  }).catch(error => {
+    if (node.isConnected) {
+      link.textContent = '画像を取得できませんでした。';
+    }
+
+    console.warn('コメント画像取得失敗:', error);
+  });
+}
+
+commentInput.addEventListener('input', function() {
+  syncCommentSubmit();
+  autoResizeTextArea(this);
+});
+
+commentInput.addEventListener('keydown', function(event) {
+  if (event.isComposing) return;
+
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+
+    if (!commentSubmitBtn.disabled) {
+      commentSubmitBtn.click();
+    }
+  }
+});
+
+commentSubmitBtn.addEventListener('click', async () => {
+  if (commentSending || !requireCommentLogin()) return;
+
+  const user = auth.currentUser;
+  const videoId = currentVideoId;
+  const text = commentInput.value.trim();
+  const attachment = selectedCommentImage;
+
+  if (!videoId || (!text && !attachment)) return;
+
+  if (text.length > 2000) {
+    commentImageStatus.textContent =
+      'コメントは2000文字以内にしてください。';
+    return;
+  }
+
+  if (
+    attachment &&
+    (
+      attachment.uid !== user.uid ||
+      attachment.videoId !== videoId
+    )
+  ) {
+    clearCommentImage();
+    commentImageStatus.textContent =
+      'この動画で画像を選び直してください。';
+    return;
+  }
+
+  const author = getNickname();
+
+  commentSending = true;
+  commentInput.readOnly = true;
+  commentSubmitBtn.textContent = '送信中…';
+  commentImageStatus.textContent = '送信中…';
+  syncCommentSubmit();
+
+  let uploadedRef = null;
+  let postAttempted = false;
 
   try {
-    await addDoc(collection(db, 'comments'), {
+    let imagePath = null;
+
+    if (attachment) {
+      const ext = commentImageTypes[attachment.file.type];
+
+      imagePath =
+        `commentImages/${user.uid}/${crypto.randomUUID()}.${ext}`;
+
+      uploadedRef = ref(storage, imagePath);
+
+      // GIFを含め、元のファイルをそのまま保存
+      await uploadBytes(uploadedRef, attachment.file, {
+        contentType: attachment.file.type,
+        customMetadata: {
+          uploaderUid: user.uid
+        }
+      });
+    }
+
+    if (
+      auth.currentUser?.uid !== user.uid ||
+      currentVideoId !== videoId
+    ) {
+      throw new Error(
+        '送信中にアカウントまたは動画が切り替わりました。'
+      );
+    }
+
+    const data = {
       videoId,
       text,
-      author: getNickname(),
-      authorUid: auth.currentUser.uid,
+      author,
+      authorUid: user.uid,
       type: 'normal',
       createdAt: serverTimestamp(),
       parentId: null
-    });
+    };
+
+    if (imagePath) data.imagePath = imagePath;
+
+    postAttempted = true;
+    await addDoc(collection(db, 'comments'), data);
 
     if (
       currentVideoId === videoId &&
-      commentInput.value.trim() === text
+      auth.currentUser?.uid === user.uid
     ) {
       commentInput.value = '';
       commentInput.style.height = '38px';
+      clearCommentImage();
+      commentImageStatus.textContent = '投稿しました。';
     }
   } catch (error) {
+    // コメント保存前に中断した画像を削除
+    if (uploadedRef && !postAttempted) {
+      await deleteObject(uploadedRef).catch(cleanupError => {
+        console.warn('未投稿画像の削除失敗:', cleanupError);
+      });
+    }
+
     console.error('コメント送信失敗:', error);
-    alert('コメントを送信できませんでした。ログイン状態を確認してください。');
+
+    if (currentVideoId === videoId) {
+      commentImageStatus.textContent =
+        '送信に失敗しました。投稿一覧を確認してから再試行してください。';
+    }
   } finally {
-    commentSubmitBtn.disabled =
-      commentInput.value.trim() === '';
+    commentSending = false;
+    commentInput.readOnly = false;
+    commentSubmitBtn.textContent = 'コメント';
+    syncCommentSubmit();
   }
 });
 
@@ -5581,6 +6068,7 @@ danmakuSubmitBtn.addEventListener('click', async () => {
           ` : ''}
         </div>`;
       if (!isReply && childReplies.length > 0) { const rc = div.querySelector(`#replies-list-${comment.id}`); childReplies.forEach(r => rc.appendChild(renderCommentNode(r, [], true))); }
+      attachCommentImage(div, comment);
       return div;
     }
 
@@ -5633,6 +6121,7 @@ function loadComments() {
   commentList.innerHTML = '<p>読み込み中...</p>';
 
   const targetVideoId = currentVideoId;
+  updateWatchDanmakuCount(null, targetVideoId);
 
   const q = query(
     collection(db, 'comments'),
@@ -5642,6 +6131,14 @@ function loadComments() {
   unsubscribeComments = onSnapshot(q, snapshot => {
     // 別の動画へ移動済みなら更新しない
     if (currentVideoId !== targetVideoId) return;
+
+    // ブロックやミュートによる非表示に関係なく、弾幕の総件数を表示
+updateWatchDanmakuCount(
+  snapshot.docs.filter(
+    item => item.data().type === 'danmaku'
+  ).length,
+  targetVideoId
+);
 
     const allComments = [];
     videoComments = [];
@@ -5695,20 +6192,60 @@ function loadComments() {
 
     commentList.addEventListener('click', async (e) => {
       const target = e.target;
-      if (target.classList.contains('comment-delete-btn')) { if (!confirm('このコメントを削除しますか？')) return; try { await deleteDoc(doc(db, 'comments', target.dataset.id)); } catch {} return; }
-      if (target.classList.contains('reply-toggle-btn')) { const area = document.getElementById(`reply-area-${target.dataset.id}`); area.style.display = area.style.display === 'flex' ? 'none' : 'flex'; return; }
-      if (target.classList.contains('submit-reply-btn')) {
-      if (!requireCommentLogin()) return;
-        const parentId = target.dataset.id;
-        const input = document.getElementById(`reply-input-${parentId}`);
-        const text = input.value.trim();
+      if (target.classList.contains('comment-delete-btn')) {
+  if (!confirm('このコメントを削除しますか？')) return;
 
-if (!text) return;
+  const commentRef = doc(db, 'comments', target.dataset.id);
 
-if (text.length > 2000) {
-  alert('返信は2000文字以内で入力してください。');
+  try {
+    const snapshot = await getDoc(commentRef);
+    const data = snapshot.data() || {};
+
+    await deleteDoc(commentRef);
+
+    if (
+      validCommentImagePath(data.imagePath) &&
+      data.authorUid === auth.currentUser?.uid &&
+      data.imagePath.split('/')[1] === auth.currentUser?.uid
+    ) {
+      try {
+        await deleteObject(ref(storage, data.imagePath));
+        commentImageUrlCache.delete(data.imagePath);
+      } catch (error) {
+        console.warn('添付画像の削除失敗:', error);
+      }
+    }
+  } catch (error) {
+    console.error('コメント削除失敗:', error);
+    alert('コメントを削除できませんでした。');
+  }
+
   return;
 }
+
+      if (target.classList.contains('reply-toggle-btn')) {
+        const parentId = target.dataset.id;
+        const area = document.getElementById(`reply-area-${parentId}`);
+        if (area) {
+          area.style.display = area.style.display === 'none' ? 'flex' : 'none';
+          if (area.style.display !== 'none') {
+            const input = area.querySelector('textarea');
+            if (input) input.focus();
+          }
+        }
+        return;
+      }
+
+      if (target.classList.contains('submit-reply-btn')) {
+        if (!requireCommentLogin()) return;
+
+        const parentId = target.dataset.id;
+        const input = document.getElementById(`reply-input-${parentId}`);
+        if (!input) return;
+
+        const text = input.value.trim();
+        if (!text) return;
+        
 
 target.disabled = true;
         try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", parentId, createdAt: serverTimestamp() }); input.value = ""; input.style.height = '38px'; document.getElementById(`reply-area-${parentId}`).style.display = 'none'; } catch {} finally { target.disabled = false; } return;
@@ -6895,8 +7432,11 @@ function renderMyPage() {
     heading.textContent = `コメント ${items.length}`;
 
     excerpt.textContent = firstComment
-      ? firstComment.textContent.trim()
-      : 'コメントを追加する…';
+  ? (
+      firstComment.textContent.trim() ||
+      '画像・GIFのコメント'
+    )
+  : 'コメントを追加する…';
   }
 
   function closeSheet() {
@@ -6995,28 +7535,75 @@ function renderMyPage() {
 })();
 
 // スマホ用：タイトルから説明パネルを開く
+// 再生画面に表示する弾幕件数
+function updateWatchDanmakuCount(value, videoId) {
+  if (videoId !== currentVideoId) return;
+
+  const count = Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : null;
+
+  document.querySelectorAll(
+    '[data-watch-danmaku-count]'
+  ).forEach(element => {
+    element.textContent = count === null
+      ? '--'
+      : count.toLocaleString('ja-JP');
+
+    const label = count === null
+      ? '弾幕コメント数を読み込み中'
+      : `弾幕コメント数 ${count.toLocaleString('ja-JP')}`;
+
+    element.parentElement.title = label;
+    element.parentElement.setAttribute('aria-label', label);
+  });
+}
+
+// スマホ：タイトルから説明を開く
+// PC：チャンネル・評価ボタンの下に説明枠を表示
 (() => {
   if (document.getElementById('mobileDescriptionSheet')) return;
 
   const title = document.getElementById('mainTitle');
   const views = document.getElementById('viewCount');
   const date = document.getElementById('videoUploadDate');
-  const description = document.getElementById('videoDescriptionText');
+  const description =
+    document.getElementById('videoDescriptionText');
+  const meta =
+    document.querySelector('#watchScreen .video-meta-bar');
 
-  if (!title || !views || !date || !description) return;
+  if (!title || !views || !date || !description || !meta) return;
 
   const mobile = window.matchMedia('(max-width: 768px)');
 
-  // タイトルをまとめる枠
+  const danmakuHtml = `
+    <span class="watch-danmaku-stat"
+          role="img"
+          aria-label="弾幕コメント数を読み込み中">
+      <svg viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="1.8"
+           stroke-linejoin="round"
+           aria-hidden="true">
+        <path d="M4 4h16v13H9l-5 4Z"/>
+      </svg>
+      <span data-watch-danmaku-count>--</span>
+    </span>
+  `;
+
+  // タイトルの位置は維持
   const titleBlock = document.createElement('div');
   titleBlock.className = 'mobile-description-title';
   title.before(titleBlock);
   titleBlock.appendChild(title);
 
+  // スマホ：タイトル下の情報
   const summary = document.createElement('div');
   summary.id = 'mobileDescriptionSummary';
   summary.innerHTML = `
     <span id="mobileDescriptionViews"></span>
+    ${danmakuHtml}
     <span id="mobileDescriptionDate"></span>
     <button type="button"
             id="mobileDescriptionOpen"
@@ -7027,14 +7614,55 @@ function renderMyPage() {
   `;
   titleBlock.appendChild(summary);
 
-  const openButton = summary.querySelector('#mobileDescriptionOpen');
-  const summaryViews = summary.querySelector('#mobileDescriptionViews');
-  const summaryDate = summary.querySelector('#mobileDescriptionDate');
+  // PC：チャンネル情報・評価ボタンの下の説明枠
+  const box = document.createElement('section');
+  box.id = 'desktopVideoDescription';
+  box.setAttribute('aria-label', '動画の説明');
 
-  // 説明パネル
+  box.innerHTML = `
+    <div class="desktop-description-stats">
+      <span class="desktop-description-views"></span>
+      ${danmakuHtml}
+      <span class="desktop-description-date"></span>
+    </div>
+    <div id="desktopDescriptionText"></div>
+    <button type="button"
+            id="desktopDescriptionToggle"
+            aria-expanded="false"
+            aria-controls="desktopDescriptionText">
+      もっと詳しく
+    </button>
+  `;
+
+  meta.after(box);
+
+  const desktopText =
+    box.querySelector('#desktopDescriptionText');
+  const toggle =
+    box.querySelector('#desktopDescriptionToggle');
+
+  function expandDescription(expanded) {
+    box.classList.toggle('description-expanded', expanded);
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.textContent = expanded ? '閉じる' : 'もっと詳しく';
+
+    if (!expanded) desktopText.scrollTop = 0;
+  }
+
+  toggle.addEventListener('click', () => {
+    expandDescription(
+      !box.classList.contains('description-expanded')
+    );
+  });
+
+  // スマホ用の説明パネル
   const sheet = document.createElement('dialog');
   sheet.id = 'mobileDescriptionSheet';
-  sheet.setAttribute('aria-labelledby', 'mobileDescriptionHeading');
+  sheet.setAttribute(
+    'aria-labelledby',
+    'mobileDescriptionHeading'
+  );
+
   sheet.innerHTML = `
     <div class="mobile-description-header">
       <h2 id="mobileDescriptionHeading">説明</h2>
@@ -7043,31 +7671,46 @@ function renderMyPage() {
               aria-label="説明を閉じる"
               autofocus>×</button>
     </div>
-
     <div class="mobile-description-body">
       <h3 id="mobileDescriptionTitle"></h3>
-      <div id="mobileDescriptionMeta"></div>
+      <div id="mobileDescriptionMeta">
+        <span class="sheet-description-views"></span>
+        ${danmakuHtml}
+        <span class="sheet-description-date"></span>
+      </div>
       <div id="mobileDescriptionBody"></div>
     </div>
   `;
+
   document.body.appendChild(sheet);
 
-  const closeButton = sheet.querySelector('#mobileDescriptionClose');
-  const panelTitle = sheet.querySelector('#mobileDescriptionTitle');
-  const panelMeta = sheet.querySelector('#mobileDescriptionMeta');
-  const panelBody = sheet.querySelector('#mobileDescriptionBody');
-  const panelScroll = sheet.querySelector('.mobile-description-body');
+  const closeButton =
+    sheet.querySelector('#mobileDescriptionClose');
 
   function syncDescription() {
-    summaryViews.textContent = views.textContent;
-    summaryDate.textContent = date.textContent;
+    summary.querySelector('#mobileDescriptionViews')
+      .textContent = views.textContent;
+    summary.querySelector('#mobileDescriptionDate')
+      .textContent = date.textContent;
 
-    panelTitle.textContent = title.textContent;
-    panelMeta.textContent =
-      `${views.textContent}　${date.textContent}`;
+    box.querySelector('.desktop-description-views')
+      .textContent = views.textContent;
+    box.querySelector('.desktop-description-date')
+      .textContent = date.textContent;
 
-    panelBody.textContent =
+    const text =
       description.textContent.trim() || '説明はありません。';
+
+    desktopText.textContent = text;
+
+    sheet.querySelector('#mobileDescriptionTitle')
+      .textContent = title.textContent;
+    sheet.querySelector('.sheet-description-views')
+      .textContent = views.textContent;
+    sheet.querySelector('.sheet-description-date')
+      .textContent = date.textContent;
+    sheet.querySelector('#mobileDescriptionBody')
+      .textContent = text;
   }
 
   function closeDescription() {
@@ -7075,70 +7718,45 @@ function renderMyPage() {
     document.body.classList.remove('mobile-description-open');
   }
 
- function openDescription() {
-  if (sheet.open) return;
+  function openDescription() {
+    if (!mobile.matches || sheet.open) return;
 
-  syncDescription();
+    syncDescription();
 
-  const anchor = document.getElementById('videoAnchor');
-  const danmakuArea =
-    document.getElementById('danmakuInput')
-      ?.closest('.danmaku-input-area');
+    const anchor = document.getElementById('videoAnchor');
 
-  if (!mobile.matches) {
-    // PC：弾幕欄の直下に説明欄を開く
-    if (!anchor || !danmakuArea) return;
+    if (anchor) {
+      const headerHeight =
+        document.querySelector('body > header')?.offsetHeight || 56;
 
-    // PC：タイトル・チャンネル情報・評価ボタンの下に表示
-const metaBar = document.querySelector(
-  '#watchScreen .video-meta-bar'
-);
+      window.scrollTo({
+        top: Math.max(
+          0,
+          window.scrollY +
+          anchor.getBoundingClientRect().top -
+          headerHeight
+        ),
+        behavior: 'instant'
+      });
+    }
 
-if (!metaBar) return;
-
-metaBar.after(sheet);
-
-    // 背景を操作不能にせず、ページ内に表示する
-    sheet.show();
-
-    panelScroll.scrollTop = 0;
+    sheet.showModal();
+    sheet.querySelector('.mobile-description-body').scrollTop = 0;
+    document.body.classList.add('mobile-description-open');
     closeButton.focus({ preventScroll: true });
-    return;
   }
-
-  // スマホ：従来の説明パネル
-  document.body.appendChild(sheet);
-
-  if (anchor) {
-    const headerHeight =
-      document.querySelector('body > header')?.offsetHeight || 56;
-
-    window.scrollTo({
-      top: Math.max(
-        0,
-        window.scrollY +
-        anchor.getBoundingClientRect().top -
-        headerHeight
-      ),
-      behavior: 'instant'
-    });
-  }
-
-  sheet.showModal();
-  panelScroll.scrollTop = 0;
-  document.body.classList.add('mobile-description-open');
-  closeButton.focus({ preventScroll: true });
-}
 
   title.addEventListener('click', openDescription);
-  openButton.addEventListener('click', openDescription);
+
+  summary.querySelector('#mobileDescriptionOpen')
+    .addEventListener('click', openDescription);
+
   closeButton.addEventListener('click', closeDescription);
 
   sheet.addEventListener('close', () => {
     document.body.classList.remove('mobile-description-open');
   });
 
-  // 再生回数・投稿日・説明の取得後も表示を更新
   [views, date, description].forEach(element => {
     new MutationObserver(syncDescription).observe(element, {
       childList: true,
@@ -7147,9 +7765,9 @@ metaBar.after(sheet);
     });
   });
 
-  // 別の動画へ切り替えたら説明を閉じる
   new MutationObserver(() => {
     closeDescription();
+    expandDescription(false);
     syncDescription();
   }).observe(title, {
     childList: true,
@@ -7157,19 +7775,24 @@ metaBar.after(sheet);
     characterData: true
   });
 
-  // ホームなどへ移動したら閉じる
   const watch = document.getElementById('watchScreen');
 
   if (watch) {
     new MutationObserver(() => {
-      if (watch.style.display === 'none') closeDescription();
+      if (watch.style.display === 'none') {
+        closeDescription();
+        expandDescription(false);
+      }
     }).observe(watch, {
       attributes: true,
       attributeFilter: ['style']
     });
   }
 
- mobile.addEventListener('change', () => {closeDescription();});
+  mobile.addEventListener('change', () => {
+    closeDescription();
+    expandDescription(false);
+  });
 
   syncDescription();
 })();
@@ -7757,6 +8380,7 @@ function subMovieIsMuted(...values) {
     '#uploadMenuBtn',
     '#myUploadBtn',
     '#commentSubmitBtn',
+    '#commentImageButton',
     '#danmakuSubmitBtn',
     '.like-comment-btn',
     '.dislike-comment-btn',
