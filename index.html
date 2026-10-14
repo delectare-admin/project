@@ -305,60 +305,8 @@
   object-fit: cover;
 }
 
-#videoGrid .home-comment-text {
-  color: #222;
-  font-size: 13px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 #videoGrid .grid-author {
   padding: 0;
-}
-
-/* 動画の下に表示する人気コメント */
-#videoGrid .home-top-comment {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #f0f2f5;
-  color: #666;
-  font-size: 12px;
-  line-height: 1.5;
-  min-height: 66px;
-  box-sizing: border-box;
-}
-
-#videoGrid .home-comment-label {
-  color: #526477;
-  font-size: 11px;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-#videoGrid .home-comment-text {
-  color: #222;
-  font-size: 13px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-#videoGrid .home-comment-author {
-  margin-top: 4px;
-  color: #777;
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* 視聴回数・投稿日・説明文 */
@@ -412,70 +360,10 @@
   text-overflow: ellipsis;
 }
 
-/* 灰色の枠をなくし、残り幅にコメントを表示 */
-#videoGrid .home-author-row .home-top-comment {
-  display: block;
-  flex: 1 1 0%;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: #606060;
-  font-size: 13px;
-  font-weight: normal;
-  line-height: 1.5;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* 投稿者名・コメントアイコン・コメントを横並びに */
 #videoGrid .home-author-row {
   align-items: center;
   gap: 6px;
-}
-
-/* 吹き出しアイコン */
-#videoGrid .home-comment-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 16px;
-  width: 16px;
-  height: 16px;
-  color: #606060;
-}
-
-#videoGrid .home-comment-icon svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* 人気コメントを小さな枠で囲む */
-#videoGrid .home-author-row .home-top-comment {
-  display: block;
-  flex: 1 1 0%;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 2px 8px;
-  box-sizing: border-box;
-
-  border: 1px solid #d8dde3;
-  border-radius: 6px;
-  background: #f5f6f8;
-  color: #505050;
-  font-size: 12px;
-  line-height: 1.5;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .comment-heading-row {
@@ -738,7 +626,6 @@
   bottom: 68px;
 }
 
-
 /* ===== スマホのヘッダー・ホーム画面の修正 ===== */
 @media (max-width: 768px) {
 
@@ -940,23 +827,6 @@
     margin: 0;
     padding: 0;
     font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  #videoGrid .home-comment-icon {
-    flex: 0 0 14px;
-    width: 14px;
-    height: 14px;
-  }
-
-  #videoGrid .home-author-row .home-top-comment {
-    flex: 1 1 0%;
-    min-width: 0;
-    margin: 0;
-    padding: 2px 6px;
-    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1799,7 +1669,6 @@ body > header #logoutBtn {
   }
 }
 
-
 /* PC：コメント欄の上の「〜としてコメントします」を非表示 */
 @media (min-width: 769px) {
   #channelBadge {
@@ -1890,51 +1759,6 @@ body > header #logoutBtn {
 #watchScreen #mainTitle {
   margin-top: 0 !important;
   padding-top: 0 !important;
-}
-
-/* PC：弾幕欄の下に開く説明欄 */
-@media (min-width: 769px) {
-  #watchScreen #mobileDescriptionSheet {
-    position: static !important;
-    inset: auto !important;
-
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-
-    margin: 0 0 12px !important;
-    padding: 0 !important;
-
-    border: 1px solid #ddd !important;
-    border-radius: 10px !important;
-    box-sizing: border-box;
-    background: #fff;
-  }
-
-  #watchScreen #mobileDescriptionSheet:not([open]) {
-    display: none !important;
-  }
-
-  #watchScreen #mobileDescriptionSheet[open] {
-    display: flex !important;
-    flex-direction: column;
-  }
-
-  #watchScreen #mobileDescriptionSheet .mobile-description-body {
-    flex: 0 1 auto;
-    min-height: 0;
-    max-height: min(360px, 45vh);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 16px;
-  }
-
-  #watchScreen #mobileDescriptionSheet + .video-meta-bar {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-  }
 }
 
 /* PC・スマホ共通：弾幕入力をひとつの枠にまとめる */
@@ -2625,26 +2449,6 @@ body > header #logoutBtn {
   }
 }
 
-/* PC：映像の空き部分で操作表示を切り替える */
-@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
-  #videoWrapper:not(.is-sticky):not(.in-pip) #videoClickToggle {
-    inset: 0 !important;
-  }
-
-  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
-    .site-player-controls,
-  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
-    .custom-controls-bar,
-  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
-    #mobilePlayerTools,
-  #videoWrapper.desktop-controls-hidden:not(.is-sticky):not(.in-pip)
-    #mobilePlaybackSettings {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-}
-
 /* 設定内容が増えても画面内でスクロール */
 #mySettingsDialog {
   max-height: 85vh;
@@ -2765,12 +2569,6 @@ body > header #logoutBtn {
   font-variant-numeric: tabular-nums;
 }
 
-/* 以前の人気コメント表示は使わない */
-#videoGrid .home-top-comment,
-#videoGrid .home-comment-icon {
-  display: none !important;
-}
-
 /* 視聴回数の隣に表示する弾幕アイコン・件数 */
 .watch-danmaku-stat {
   display: inline-flex;
@@ -2873,56 +2671,6 @@ body > header #logoutBtn {
   }
 }
 
-.comment-attachment-area {
-  margin: 8px 0 16px 56px;
-  min-width: 0;
-}
-
-#commentImageButton,
-#commentImageRemove {
-  min-height: 36px;
-  padding: 7px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #f5f5f5;
-  color: #065fd4;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-#commentImageButton:disabled,
-#commentImageRemove:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.comment-attachment-preview {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.comment-attachment-preview[hidden] {
-  display: none !important;
-}
-
-#commentImagePreview {
-  display: block;
-  max-width: min(200px, 100%);
-  max-height: 140px;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.comment-attachment-status {
-  margin: 6px 0 0;
-  color: #666;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
 .comment-content {
   min-width: 0;
 }
@@ -2943,12 +2691,6 @@ body > header #logoutBtn {
   max-height: 360px;
   object-fit: contain;
   border-radius: 10px;
-}
-
-@media (max-width: 768px) {
-  .comment-attachment-area {
-    margin-left: 0;
-  }
 }
 
 /* アイコン＋入力欄、その下の右端に操作ボタン */
@@ -3019,11 +2761,6 @@ body > header #logoutBtn {
 
 #commentComposeStatus:empty {
   display: none;
-}
-
-/* 添付欄が残っていても表示しない */
-.comment-attachment-area {
-  display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -3177,20 +2914,20 @@ body > header #logoutBtn {
           </div>
 
           <!-- 弾幕入力 -->
-<div class="danmaku-input-area">
-  <input type="text" id="danmakuInput" placeholder="動画の今の時間に弾幕を流す...">
-  <button id="danmakuSubmitBtn" disabled>弾幕を送信</button>
-</div>
-  <!-- 動画の説明欄 -->
-  <section id="videoDescriptionBox" aria-label="動画の説明">
+          <div class="danmaku-input-area">
+            <input type="text" id="danmakuInput" placeholder="動画の今の時間に弾幕を流す...">
+            <button id="danmakuSubmitBtn" disabled>弾幕を送信</button>
+          </div>
+          <!-- 動画の説明欄 -->
+          <section id="videoDescriptionBox" aria-label="動画の説明">
             <div class="video-description-meta">
-            <span id="viewCount">- 回視聴</span>
-            <span id="videoUploadDate">投稿日を確認中…</span>
-             </div>
-             <div id="videoDescriptionText" hidden></div>
-           </section>
+              <span id="viewCount">- 回視聴</span>
+              <span id="videoUploadDate">投稿日を確認中…</span>
+            </div>
+            <div id="videoDescriptionText" hidden></div>
+          </section>
 
-<!-- ニックネーム -->
+          <!-- ニックネーム -->
           <div class="nickname-area" id="nicknameArea">
             <label for="nicknameInput">お名前（ニックネーム）</label>
             <input type="text" id="nicknameInput" placeholder="未入力の場合は「ゲスト」">
@@ -3199,44 +2936,44 @@ body > header #logoutBtn {
 
           <!-- コメント -->
           <div class="comment-section">
-           <div class="comment-heading-row">
-  <h3>コメント</h3>
+            <div class="comment-heading-row">
+              <h3>コメント</h3>
 
-  <label class="comment-sort-control">
-    <span>☰ 並べ替え</span>
-    <select id="commentSortSelect" disabled>
-      <option value="popular">人気順</option>
-      <option value="newest">新しい順</option>
-      <option value="oldest">古い順</option>
-    </select>
-  </label>
-</div>
+              <label class="comment-sort-control">
+                <span>☰ 並べ替え</span>
+                <select id="commentSortSelect" disabled>
+                  <option value="popular">人気順</option>
+                  <option value="newest">新しい順</option>
+                  <option value="oldest">古い順</option>
+                </select>
+              </label>
+            </div>
 
-  <div class="comment-input-area" id="commentComposer">
-  <div class="comment-avatar" id="commentAvatar">U</div>
+            <div class="comment-input-area" id="commentComposer">
+              <div class="comment-avatar" id="commentAvatar">U</div>
 
-  <textarea
-    id="commentInput"
-    rows="1"
-    placeholder="コメントを追加..."
-  ></textarea>
+              <textarea
+                  id="commentInput"
+                  rows="1"
+                  placeholder="コメントを追加..."
+                ></textarea>
 
-  <div id="commentComposeActions"
-       class="comment-compose-actions"
-       hidden>
-    <button type="button" id="commentCancelBtn">
-      キャンセル
-    </button>
-    <button type="button" id="commentSubmitBtn" disabled>
-      コメント
-    </button>
-  </div>
+              <div id="commentComposeActions"
+                  class="comment-compose-actions"
+                  hidden>
+                <button type="button" id="commentCancelBtn">
+                  キャンセル
+                </button>
+                <button type="button" id="commentSubmitBtn" disabled>
+                  コメント
+                </button>
+              </div>
 
-  <p id="commentComposeStatus" role="status"></p>
-</div>
+              <p id="commentComposeStatus" role="status"></p>
+            </div>
 
-<div id="commentList" class="comment-list"></div>
-</div>
+            <div id="commentList" class="comment-list"></div>
+          </div>
 
         </div><!-- /watch-main -->
 
@@ -7813,35 +7550,6 @@ function updateWatchDanmakuCount(value, videoId) {
   play.before(back);
   play.after(makeSkipButton(10));
 
-  // PCの映像クリック：再生・停止ではなく操作表示の切り替え
-  // captureで既存の映像クリック処理より先に処理する
-  surface.addEventListener('click', event => {
-    if (mobile.matches || !watching()) return;
-    if (event.detail === 0) return;
-
-    if (
-      wrapper.classList.contains('is-sticky') ||
-      wrapper.classList.contains('in-pip')
-    ) return;
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    const hidden = wrapper.classList.toggle(
-      'desktop-controls-hidden'
-    );
-
-    if (hidden) {
-      const settings =
-        document.getElementById('mobilePlaybackSettings');
-
-      if (settings) settings.hidden = true;
-
-      wrapper.querySelector(
-        '[aria-controls="mobilePlaybackSettings"]'
-      )?.setAttribute('aria-expanded', 'false');
-    }
-  }, true);
 
   // 入力中・設定ダイアログ表示中はショートカットを使わない
   document.addEventListener('keydown', event => {
@@ -7874,13 +7582,6 @@ function updateWatchDanmakuCount(value, videoId) {
     }
   });
 
-  function showControls() {
-    wrapper.classList.remove('desktop-controls-hidden');
-  }
-
-  video.addEventListener('loadstart', showControls);
-  video.addEventListener('ended', showControls);
-  mobile.addEventListener('change', showControls);
 })();
 
 // ===== ミュートワード：ブラウザ内・アカウント別保存 =====
@@ -8335,7 +8036,6 @@ function subMovieIsMuted(...values) {
     '#uploadMenuBtn',
     '#myUploadBtn',
     '#commentSubmitBtn',
-    '#commentImageButton',
     '#danmakuSubmitBtn',
     '.like-comment-btn',
     '.dislike-comment-btn',
@@ -8918,19 +8618,6 @@ navHistoryBtn.addEventListener('click', event => {
       }
     }
 
-    /* PCで開く説明パネル */
-    @media (min-width: 769px) {
-      #mobileDescriptionSheet {
-        inset: 0;
-        margin: auto;
-        width: min(640px, calc(100vw - 40px));
-        max-width: 640px;
-        height: min(560px, 80vh);
-        min-height: 0;
-        max-height: 80vh;
-        border-radius: 18px;
-      }
-    }
   `;
 
   document.head.appendChild(style);
