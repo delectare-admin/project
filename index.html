@@ -2775,6 +2775,40 @@ body > header #logoutBtn {
   }
 }
 
+
+/* 動画投稿者のコメント・弾幕設定 */
+.video-interaction-settings {
+  min-width: 0; margin: 0; padding: 16px;
+  border: 1px solid #ddd; border-radius: 10px;
+}
+.video-interaction-settings legend { padding: 0 6px; font-size: 14px; font-weight: bold; }
+.video-settings-help {
+  display: block; margin: 6px 0 0; font-size: 12px;
+  font-weight: normal; color: #606060; line-height: 1.6;
+}
+.video-setting-switch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 12px 0; cursor: pointer;
+}
+.video-setting-switch > span { min-width: 0; font-size: 14px; }
+.video-setting-switch input[type="checkbox"] {
+  width: 22px; height: 22px; margin: 0; flex: 0 0 22px;
+  accent-color: #065fd4; cursor: pointer;
+}
+.video-setting-switch:focus-within { outline: 2px solid #065fd4; outline-offset: 3px; }
+#editVideoModal .modal-content { max-height: 90dvh; }
+#editVideoModal .auth-body { min-height: 0; overflow-y: auto; }
+#step2Area .details-layout { min-height: min-content; }
+#uploadMutedWords, #editMutedWords { min-height: 100px; resize: vertical; }
+#dislikeBtn[hidden], #toggleDanmakuBtn[hidden],
+.video-interaction-notice[hidden] { display: none !important; }
+body.watch-mode.video-comments-disabled .comment-section,
+body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !important; }
+.video-interaction-notice { margin: 8px 0; font-size: 13px; line-height: 1.6; color: #606060; }
+@media (max-width: 768px) {
+  #uploadMutedWords, #editMutedWords { font-size: 16px; }
+}
+
   </style>
 
 </head>
@@ -3012,6 +3046,29 @@ body > header #logoutBtn {
                 <option value="学問・教養">学問・教養</option><option value="3D・技術">3D・技術</option><option value="その他">その他</option>
               </select>
             </div>
+            <fieldset class="video-interaction-settings">
+              <legend>コメント・弾幕の設定</legend>
+              <div class="input-group">
+                <label for="uploadMutedWords">コメント・弾幕のミュートワード</label>
+                <textarea id="uploadMutedWords" rows="4"
+                  aria-describedby="uploadMuteHelp" placeholder="1行に1語ずつ入力"></textarea>
+                <p id="uploadMuteHelp" class="video-settings-help">この動画のコメント・返信・弾幕に適用します。該当する投稿は、このサイトで非表示になります。最大30語、1語30文字まで。</p>
+              </div>
+              <label class="video-setting-switch" for="uploadDanmakuEnabled">
+                <span>弾幕<span class="video-settings-help">オフにすると、弾幕の表示・送信を停止します。</span></span>
+                <input id="uploadDanmakuEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <label class="video-setting-switch" for="uploadCommentsEnabled">
+                <span>コメント欄<span class="video-settings-help">オフにすると、コメント・返信の表示と投稿を停止します。</span></span>
+                <input id="uploadCommentsEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <label class="video-setting-switch" for="uploadDislikesEnabled">
+                <span>低評価<span class="video-settings-help">動画の低評価ボタンを表示します。</span></span>
+                <input id="uploadDislikesEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <p class="video-settings-help">チェックあり＝オン。オフにしても、既存の投稿・評価は削除されません。</p>
+            </fieldset>
+
           </div>
           <div class="preview-area">
             <video id="previewVideo" controls></video>
@@ -3075,6 +3132,29 @@ body > header #logoutBtn {
             <option value="学問・教養">学問・教養</option><option value="3D・技術">3D・技術</option><option value="その他">その他</option>
           </select>
         </div>
+            <fieldset class="video-interaction-settings">
+              <legend>コメント・弾幕の設定</legend>
+              <div class="input-group">
+                <label for="editMutedWords">コメント・弾幕のミュートワード</label>
+                <textarea id="editMutedWords" rows="4"
+                  aria-describedby="editMuteHelp" placeholder="1行に1語ずつ入力"></textarea>
+                <p id="editMuteHelp" class="video-settings-help">この動画のコメント・返信・弾幕に適用します。該当する投稿は、このサイトで非表示になります。最大30語、1語30文字まで。</p>
+              </div>
+              <label class="video-setting-switch" for="editDanmakuEnabled">
+                <span>弾幕<span class="video-settings-help">オフにすると、弾幕の表示・送信を停止します。</span></span>
+                <input id="editDanmakuEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <label class="video-setting-switch" for="editCommentsEnabled">
+                <span>コメント欄<span class="video-settings-help">オフにすると、コメント・返信の表示と投稿を停止します。</span></span>
+                <input id="editCommentsEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <label class="video-setting-switch" for="editDislikesEnabled">
+                <span>低評価<span class="video-settings-help">動画の低評価ボタンを表示します。</span></span>
+                <input id="editDislikesEnabled" type="checkbox" role="switch" checked>
+              </label>
+              <p class="video-settings-help">チェックあり＝オン。オフにしても、既存の投稿・評価は削除されません。</p>
+            </fieldset>
+
         <div class="input-group"><label>新しいサムネイル画像 (変更する場合のみ)</label><input type="file" id="editThumbInput" accept="image/*"></div>
         <button id="saveEditBtn" class="save-btn" style="margin-top:12px;">変更を保存</button>
       </div>
@@ -3415,6 +3495,203 @@ updateVideoClickLabel();
     const authErrorMsg = document.getElementById('authErrorMsg');
     const authToggleText = document.getElementById('authToggleText');
     const authToggleLink = document.getElementById('authToggleLink');
+
+// 動画ごとのコメント・弾幕・低評価設定。未設定の動画はすべてオン。
+let currentVideoPolicy = {
+  videoId: '', mutedWords: [], commentsEnabled: true,
+  danmakuEnabled: true, dislikesEnabled: true,
+  pending: false, unavailable: false
+};
+let videoPolicyRequest = 0;
+
+function parseVideoInteractionSettings(metadata = {}) {
+  if (!metadata || typeof metadata !== 'object') metadata = {};
+  let words = [];
+  try {
+    const parsed = JSON.parse(metadata.mutedCommentWords || '[]');
+    if (Array.isArray(parsed)) {
+      words = parsed.filter(word => typeof word === 'string')
+        .map(word => word.trim()).filter(Boolean).slice(0, 30)
+        .map(word => word.slice(0, 30));
+    }
+  } catch (error) {
+    console.warn('動画のミュートワードを読み取れませんでした:', error);
+  }
+  return {
+    mutedWords: words,
+    commentsEnabled: metadata.commentsEnabled !== 'false',
+    danmakuEnabled: metadata.danmakuEnabled !== 'false',
+    dislikesEnabled: metadata.dislikesEnabled !== 'false'
+  };
+}
+
+function readVideoInteractionForm(prefix) {
+  const words = [...new Set(
+    document.getElementById(prefix + 'MutedWords').value
+      .split(/\r?\n/).map(word => word.trim()).filter(Boolean)
+  )];
+  if (words.length > 30 || words.some(word => word.length > 30)) {
+    throw new Error('動画のミュートワードは最大30語、1語30文字までにしてください。');
+  }
+  return {
+    mutedWords: words,
+    danmakuEnabled: document.getElementById(prefix + 'DanmakuEnabled').checked,
+    commentsEnabled: document.getElementById(prefix + 'CommentsEnabled').checked,
+    dislikesEnabled: document.getElementById(prefix + 'DislikesEnabled').checked
+  };
+}
+
+function fillVideoInteractionForm(prefix, metadata = {}) {
+  const settings = parseVideoInteractionSettings(metadata);
+  document.getElementById(prefix + 'MutedWords').value = settings.mutedWords.join('\n');
+  document.getElementById(prefix + 'DanmakuEnabled').checked = settings.danmakuEnabled;
+  document.getElementById(prefix + 'CommentsEnabled').checked = settings.commentsEnabled;
+  document.getElementById(prefix + 'DislikesEnabled').checked = settings.dislikesEnabled;
+}
+
+function videoInteractionMetadata(settings) {
+  return {
+    interactionSettingsVersion: '1',
+    mutedCommentWords: JSON.stringify(settings.mutedWords),
+    danmakuEnabled: String(settings.danmakuEnabled),
+    commentsEnabled: String(settings.commentsEnabled),
+    dislikesEnabled: String(settings.dislikesEnabled)
+  };
+}
+
+function validateVideoMetadataSize(metadata) {
+  // 元からあるタイトル・説明・HLS情報も含め、保存前に確認する。
+  const bytes = Object.entries(metadata).reduce((total, [key, value]) =>
+    total + new TextEncoder().encode(key + String(value)).length, 0);
+  if (bytes > 6500) {
+    throw new Error('設定の文字数が多すぎます。動画の説明やミュートワードを短くしてください。');
+  }
+}
+
+function videoFeatureEnabled(feature) {
+  return !!currentVideoId && currentVideoPolicy.videoId === currentVideoId &&
+    !currentVideoPolicy.pending && !currentVideoPolicy.unavailable &&
+    currentVideoPolicy[feature + 'Enabled'] === true;
+}
+
+function matchesVideoMutedWord(text) {
+  const normalized = subMovieNormalize(text);
+  return currentVideoPolicy.mutedWords.some(word => {
+    const term = subMovieNormalize(word).trim();
+    return term && normalized.includes(term);
+  });
+}
+
+function hideVideoComment(text) {
+  return matchesVideoMutedWord(text) || subMovieIsMuted(text);
+}
+
+function canSendVideoComment(type, text) {
+  const feature = type === 'danmaku' ? 'danmaku' : 'comments';
+  if (!videoFeatureEnabled(feature)) {
+    alert(currentVideoPolicy.pending ? '動画の設定を確認しています。少し待ってください。' :
+      currentVideoPolicy.unavailable ? '動画の設定を取得できませんでした。動画を開き直してください。' :
+      type === 'danmaku' ? '投稿者が弾幕をオフにしています。' : '投稿者がコメント欄をオフにしています。');
+    return false;
+  }
+  if (matchesVideoMutedWord(text)) {
+    alert('投稿者が設定したミュートワードが含まれているため送信できません。');
+    return false;
+  }
+  return true;
+}
+
+function syncDanmakuSubmitState() {
+  danmakuSubmitBtn.disabled = danmakuSending ||
+    !videoFeatureEnabled('danmaku') || !danmakuInput.value.trim();
+}
+
+function applyVideoInteractionSettings() {
+  const ready = !currentVideoPolicy.pending && !currentVideoPolicy.unavailable;
+  const commentsOn = videoFeatureEnabled('comments');
+  const danmakuOn = videoFeatureEnabled('danmaku');
+  document.body.classList.toggle('video-comments-disabled', !currentVideoPolicy.commentsEnabled);
+  commentInput.disabled = !commentsOn;
+  danmakuInput.disabled = !danmakuOn;
+  syncTextCommentActions();
+  syncDanmakuSubmitState();
+
+  dislikeBtn.hidden = !currentVideoPolicy.dislikesEnabled;
+  dislikeBtn.disabled = !videoFeatureEnabled('dislikes') || videoVoteBusy;
+
+  const toggle = document.getElementById('toggleDanmakuBtn');
+  toggle.hidden = !currentVideoPolicy.danmakuEnabled;
+  toggle.disabled = !danmakuOn;
+
+  if (!danmakuOn) {
+    danmakuContainer.replaceChildren();
+    danmakuNodes.clear();
+    stopDanmakuLoop();
+  }
+
+  let notice = document.getElementById('videoCommentsDisabledNotice');
+  if (!notice) {
+    notice = document.createElement('p');
+    notice.id = 'videoCommentsDisabledNotice';
+    notice.className = 'video-interaction-notice';
+    notice.setAttribute('role', 'status');
+    document.getElementById('videoDescriptionBox').after(notice);
+  }
+  notice.hidden = ready && currentVideoPolicy.commentsEnabled;
+  notice.textContent = currentVideoPolicy.pending ? '動画の設定を確認中…' :
+    currentVideoPolicy.unavailable ? '動画の設定を取得できませんでした。コメントするには動画を開き直してください。' :
+    '投稿者がコメント欄をオフにしています。';
+
+  let danmakuNotice = document.getElementById('videoDanmakuDisabledNotice');
+  if (!danmakuNotice) {
+    danmakuNotice = document.createElement('p');
+    danmakuNotice.id = 'videoDanmakuDisabledNotice';
+    danmakuNotice.className = 'video-interaction-notice';
+    danmakuInput.closest('.danmaku-input-area').after(danmakuNotice);
+  }
+  danmakuNotice.hidden = currentVideoPolicy.danmakuEnabled;
+  danmakuNotice.textContent = '投稿者が弾幕をオフにしています。';
+
+  if (!commentsOn) {
+    const sheet = document.getElementById('mobileCommentsSheet');
+    if (sheet?.open) sheet.close();
+    document.body.classList.remove('mobile-comments-open');
+    document.getElementById('mobileCommentsPreview')?.setAttribute('aria-expanded', 'false');
+  }
+}
+
+async function loadVideoInteractionSettings(videoData) {
+  const request = ++videoPolicyRequest;
+  const videoId = videoData.itemRef.fullPath;
+  currentVideoPolicy = {
+    ...parseVideoInteractionSettings(videoData.originalCustomMetadata),
+    videoId, pending: true, unavailable: false
+  };
+  commentList.replaceChildren();
+  videoComments = [];
+  applyVideoInteractionSettings();
+
+  try {
+    // 一覧の古いキャッシュだけで判断せず、動画を開くたびに最新設定を取得。
+    const metadata = await getMetadata(videoData.itemRef);
+    if (request !== videoPolicyRequest || currentVideoId !== videoId ||
+        !document.body.classList.contains('watch-mode')) return;
+    videoData.originalCustomMetadata = metadata.customMetadata || {};
+    currentVideoPolicy = {
+      ...parseVideoInteractionSettings(videoData.originalCustomMetadata),
+      videoId, pending: false, unavailable: false
+    };
+  } catch (error) {
+    if (request !== videoPolicyRequest || currentVideoId !== videoId ||
+        !document.body.classList.contains('watch-mode')) return;
+    currentVideoPolicy.pending = false;
+    currentVideoPolicy.unavailable = true;
+    console.error('動画ごとの設定の取得失敗:', error);
+  }
+  applyVideoInteractionSettings();
+  if (videoFeatureEnabled('danmaku') && !mainVideo.paused) startDanmakuLoop();
+}
+
 
     let currentVideoId = "";
     let unsubscribeComments = null;
@@ -4838,6 +5115,9 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
   uploaderNameEl.dataset.uid = videoData.uploaderUid;
   
   currentVideoId = videoData.itemRef.fullPath;
+  await loadVideoInteractionSettings(videoData);
+  if (thisPlayback !== playbackGeneration ||
+      currentVideoId !== videoData.itemRef.fullPath) return;
   
   watchHistory = watchHistory.filter(id => id !== currentVideoId); 
   watchHistory.unshift(currentVideoId);
@@ -5277,7 +5557,7 @@ function showVideoStats(videoId, data) {
   dislikeBtn.classList.toggle('active-dislike', hasDisliked);
 
   likeBtn.disabled = videoVoteBusy;
-  dislikeBtn.disabled = videoVoteBusy;
+  dislikeBtn.disabled = videoVoteBusy || !videoFeatureEnabled('dislikes');
 }
 
 // ログイン・ログアウトしたときに選択表示を更新
@@ -5357,6 +5637,7 @@ async function loadStats() {
 
 
 async function toggleVideoVote(kind) {
+  if (kind === 'dislike' && !videoFeatureEnabled('dislikes')) return;
   const user = auth.currentUser;
 
   if (!user || user.isAnonymous) {
@@ -5475,7 +5756,7 @@ let textCommentSending = false;
 
 function syncTextCommentActions() {
   commentSubmitBtn.disabled =
-    textCommentSending || !commentInput.value.trim();
+    textCommentSending || !videoFeatureEnabled('comments') || !commentInput.value.trim();
 
   commentCancelBtn.disabled = textCommentSending;
 }
@@ -5535,6 +5816,7 @@ commentSubmitBtn.addEventListener('click', async () => {
   const text = commentInput.value.trim();
 
   if (!videoId || !text) return;
+  if (!canSendVideoComment('normal', text)) return;
 
   if (text.length > 2000) {
     commentComposeStatus.textContent =
@@ -5671,12 +5953,11 @@ function attachCommentImage(node, comment) {
 
 
 
-danmakuInput.addEventListener('input', () => {
-  danmakuSubmitBtn.disabled =
-    danmakuInput.value.trim() === '';
-});
+let danmakuSending = false;
+danmakuInput.addEventListener('input', syncDanmakuSubmitState);
 
 danmakuInput.addEventListener('keydown', event => {
+  if (event.isComposing) return;
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
 
@@ -5687,13 +5968,14 @@ danmakuInput.addEventListener('keydown', event => {
 });
 
 danmakuSubmitBtn.addEventListener('click', async () => {
-  if (!requireCommentLogin()) return;
+  if (danmakuSending || !requireCommentLogin()) return;
 
   const text = danmakuInput.value.trim();
   const videoId = currentVideoId;
   const videoTime = mainVideo.currentTime;
 
   if (!text || !videoId) return;
+  if (!canSendVideoComment('danmaku', text)) return;
 
   if (text.length > 200) {
     alert('弾幕は200文字以内で入力してください。');
@@ -5702,7 +5984,8 @@ danmakuSubmitBtn.addEventListener('click', async () => {
 
   if (!Number.isFinite(videoTime) || videoTime < 0) return;
 
-  danmakuSubmitBtn.disabled = true;
+  danmakuSending = true;
+  syncDanmakuSubmitState();
 
   try {
     await addDoc(collection(db, 'comments'), {
@@ -5725,8 +6008,8 @@ danmakuSubmitBtn.addEventListener('click', async () => {
     console.error('弾幕送信失敗:', error);
     alert('弾幕を送信できませんでした。ログイン状態を確認してください。');
   } finally {
-    danmakuSubmitBtn.disabled =
-      danmakuInput.value.trim() === '';
+    danmakuSending = false;
+    syncDanmakuSubmitState();
   }
 });
 
@@ -5843,11 +6126,13 @@ updateWatchDanmakuCount(
 
       if (currentUserBlocks.includes(data.authorUid)) return;
 
+      // 投稿者のNGと自分のNGを、通常コメント・返信・弾幕に適用。
+      if (hideVideoComment(data.text)) return;
       if (data.type === 'danmaku') {
-  videoComments.push(data);
-} else if (!subMovieIsMuted(data.text)) {
-  allComments.push(data);
-}
+        if (videoFeatureEnabled('danmaku')) videoComments.push(data);
+      } else if (videoFeatureEnabled('comments')) {
+        allComments.push(data);
+      }
     });
 
     // 返信は親コメントの下で古い順に表示
@@ -5936,7 +6221,8 @@ updateWatchDanmakuCount(
         if (!input) return;
 
         const text = input.value.trim();
-        if (!text) return;
+        if (!text || !canSendVideoComment('normal', text)) return;
+        if (text.length > 2000) return alert('返信は2000文字以内で入力してください。');
         
 
 target.disabled = true;
@@ -5968,6 +6254,13 @@ let danmakuFrame = 0;
 let danmakuVideoId = null;
 
 function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
+  if (!videoFeatureEnabled('danmaku')) {
+    if (danmakuNodes.size) {
+      danmakuContainer.replaceChildren();
+      danmakuNodes.clear();
+    }
+    return;
+  }
   // 別の動画へ移ったら、前の弾幕を消す
   if (danmakuVideoId !== currentVideoId) {
     danmakuContainer.replaceChildren();
@@ -6040,6 +6333,7 @@ function stopDanmakuLoop() {
 }
 
 function startDanmakuLoop() {
+  if (!videoFeatureEnabled('danmaku')) { stopDanmakuLoop(); return; }
   // 表示更新のループが重複しないようにする
   stopDanmakuLoop();
 
@@ -6088,7 +6382,7 @@ mainVideo.addEventListener('emptied', () => {
     createBtn.addEventListener('click', () => createMenu.classList.toggle('active'));
     uploadMenuBtn.addEventListener('click', () => {
       if (!currentUser) { alert("動画をアップロードするにはログインが必要です。"); authModal.classList.add('active'); return; }
-      createMenu.classList.remove('active'); uploadModal.classList.add('active'); step1Area.style.display = 'flex'; step2Area.style.display = 'none'; fileInput.value = ''; thumbInput.value = '';
+      fillVideoInteractionForm('upload'); createMenu.classList.remove('active'); uploadModal.classList.add('active'); step1Area.style.display = 'flex'; step2Area.style.display = 'none'; fileInput.value = ''; thumbInput.value = '';
     });
     closeModalBtn.addEventListener('click', () => uploadModal.classList.remove('active'));
     selectFileBtn.addEventListener('click', () => fileInput.click());
@@ -6105,7 +6399,23 @@ if (!uploadUser || uploadUser.isAnonymous) {
   return;
 }
 
-      if (!selectedFile) return; saveBtn.disabled = true; let finalThumbUrl = "";
+      if (!selectedFile) return;
+      const uploadFile = selectedFile;
+      let uploadDetails;
+      try {
+        const settings = readVideoInteractionForm('upload');
+        uploadDetails = {
+          title: videoTitleInput.value.trim() || uploadFile.name,
+          desc: document.getElementById('uploadDescInput').value,
+          category: videoCategoryInput.value,
+          uploaderUid: uploadUser.uid,
+          uploaderName: getNickname(),
+          ...videoInteractionMetadata(settings)
+        };
+        validateVideoMetadataSize(uploadDetails);
+      } catch (error) { alert(error.message); return; }
+      saveBtn.disabled = true;
+      let finalThumbUrl = "";
      if (thumbInput.files && thumbInput.files[0]) {
   saveBtn.textContent = 'サムネイル送信中...';
 
@@ -6137,14 +6447,40 @@ if (!uploadUser || uploadUser.isAnonymous) {
     return;
   }
 }
-      const storageRef = ref(storage,'videos/' + crypto.randomUUID() + '_' + selectedFile.name);
-      const descInputVal = document.getElementById('uploadDescInput') ? document.getElementById('uploadDescInput').value : '';
-      const metadata = { customMetadata: { title: videoTitleInput.value, desc: descInputVal, uploaderUid: uploadUser.uid, uploaderName: getNickname(), thumbUrl: finalThumbUrl, category: videoCategoryInput.value } };
-      const uploadTask = uploadBytesResumable(storageRef, selectedFile, metadata);
+      const storageRef = ref(storage,'videos/' + crypto.randomUUID() + '_' + uploadFile.name);
+      const metadata = { customMetadata: { ...uploadDetails, thumbUrl: finalThumbUrl } };
+      try { validateVideoMetadataSize(metadata.customMetadata); }
+      catch (error) { alert(error.message); saveBtn.disabled = false; saveBtn.textContent = '保存して公開'; return; }
+      const uploadTask = uploadBytesResumable(storageRef, uploadFile, metadata);
       uploadTask.on('state_changed',
-        (snapshot) => { saveBtn.textContent = '動画送信中... ' + Math.floor((snapshot.bytesTransferred / snapshot.totalBytes) * 100) + '%'; },
-        () => { alert('エラーが発生しました。'); saveBtn.textContent = '保存して公開'; saveBtn.disabled = false; },
-        () => { getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => { uploadModal.classList.remove('active'); saveBtn.textContent = '保存して公開'; saveBtn.disabled = false; watchVideo({ url: downloadURL, title: videoTitleInput.value, itemRef: uploadTask.snapshot.ref, uploaderName: getNickname(), uploaderUid: getAuthorUid() }); loadVideoList(); }); }
+        snapshot => { saveBtn.textContent = '動画送信中... ' + Math.floor((snapshot.bytesTransferred / snapshot.totalBytes) * 100) + '%'; },
+        error => {
+          console.error('動画の保存失敗:', error);
+          alert('動画を保存できませんでした。通信とログイン状態を確認してください。');
+          saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
+        },
+        async () => {
+          try {
+            const uploadedRef = uploadTask.snapshot.ref;
+            const [downloadURL, savedMetadata] = await Promise.all([
+              getDownloadURL(uploadedRef), getMetadata(uploadedRef)
+            ]);
+            uploadModal.classList.remove('active');
+            await watchVideo({
+              url: downloadURL, title: uploadDetails.title, desc: uploadDetails.desc,
+              category: uploadDetails.category, itemRef: uploadedRef,
+              uploaderName: uploadDetails.uploaderName, uploaderUid: uploadUser.uid,
+              thumbUrl: finalThumbUrl, uploadedAt: savedMetadata.timeCreated,
+              originalCustomMetadata: savedMetadata.customMetadata || metadata.customMetadata
+            });
+            await loadVideoList();
+          } catch (error) {
+            console.error('公開後の動画表示失敗:', error);
+            alert('動画の保存は完了しました。表示できない場合はページを再読み込みしてください。');
+          } finally {
+            saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
+          }
+        }
       );
     });
 
@@ -6181,6 +6517,8 @@ await uploadBytes(storageRef,file, {
     const manageList = document.getElementById('manageList');
     const manageVideoBtn = document.getElementById('manageVideoBtn');
     let currentEditVideo = null;
+    let editPolicyRequest = 0;
+    let editPolicyLoading = false;
     if (manageVideoBtn) {
       manageVideoBtn.addEventListener('click', () => { document.body.classList.remove('watch-mode'); homeScreen.style.display = 'none'; channelScreen.style.display = 'none'; watchScreen.style.display = 'none'; manageScreen.style.display = 'block'; renderManageList(); });
     }
@@ -6192,17 +6530,58 @@ await uploadBytes(storageRef,file, {
         const item = document.createElement('div'); item.className = 'manage-list-item';
       const mediaHtml = thumbnailHtml(v, 'thumb');
         item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">✏️ 編集</button><button class="manage-btn manage-btn-delete">🗑 削除</button></div></div>`;
-        item.querySelector('.edit-btn').addEventListener('click', () => { currentEditVideo = v; document.getElementById('editTitleInput').value = v.title; document.getElementById('editDescInput').value = v.desc || ''; document.getElementById('editCategoryInput').value = v.category || 'エンタメ'; document.getElementById('editThumbInput').value = ''; document.getElementById('editVideoModal').classList.add('active'); });
+        item.querySelector('.edit-btn').addEventListener('click', async () => {
+          const request = ++editPolicyRequest;
+          currentEditVideo = v;
+          editPolicyLoading = true;
+          const modal = document.getElementById('editVideoModal');
+          const save = document.getElementById('saveEditBtn');
+          save.disabled = true;
+          save.textContent = '設定を取得中…';
+          fillVideoInteractionForm('edit', v.originalCustomMetadata);
+          document.getElementById('editTitleInput').value = v.title;
+          document.getElementById('editDescInput').value = v.desc || '';
+          document.getElementById('editCategoryInput').value = v.category || 'エンタメ';
+          document.getElementById('editThumbInput').value = '';
+          modal.classList.add('active');
+          try {
+            const metadata = await getMetadata(v.itemRef);
+            if (request !== editPolicyRequest || currentEditVideo !== v ||
+                !modal.classList.contains('active')) return;
+            v.originalCustomMetadata = metadata.customMetadata || {};
+            fillVideoInteractionForm('edit', v.originalCustomMetadata);
+            editPolicyLoading = false;
+            save.disabled = false;
+          } catch (error) {
+            if (request !== editPolicyRequest || currentEditVideo !== v ||
+                !modal.classList.contains('active')) return;
+            console.error('編集する動画の設定取得失敗:', error);
+            alert('最新の設定を取得できませんでした。編集画面を開き直してください。');
+          } finally {
+            if (request === editPolicyRequest) save.textContent = '変更を保存';
+          }
+        });
         item.querySelector('.manage-btn-delete').addEventListener('click', async () => { if (!confirm(`「${v.title}」を完全に削除しますか？`)) return; try { await deleteObject(v.itemRef); await loadVideoList(); renderManageList(); } catch { alert('削除に失敗しました'); } });
         manageList.appendChild(item);
       });
     }
     document.getElementById('closeEditModalBtn').addEventListener('click', () => document.getElementById('editVideoModal').classList.remove('active'));
     document.getElementById('saveEditBtn').addEventListener('click', async () => {
-      if (!currentEditVideo) return;
+      if (!currentEditVideo || editPolicyLoading) return;
+      const editTarget = currentEditVideo;
+      let editDetails;
+      try {
+        editDetails = {
+          title: document.getElementById('editTitleInput').value,
+          desc: document.getElementById('editDescInput').value,
+          category: document.getElementById('editCategoryInput').value,
+          ...videoInteractionMetadata(readVideoInteractionForm('edit'))
+        };
+        validateVideoMetadataSize(editDetails);
+      } catch (error) { alert(error.message); return; }
       const saveEditBtn = document.getElementById('saveEditBtn'); saveEditBtn.disabled = true; saveEditBtn.textContent = '保存中...';
       try {
-        let newThumbUrl = currentEditVideo.thumbUrl || '';
+        let newThumbUrl = editTarget.thumbUrl || '';
         const thumbFile = document.getElementById('editThumbInput').files[0];
         if (thumbFile) { saveEditBtn.textContent = '画像アップロード中...'; const thumbRef = ref(storage, 'thumbnails/' + crypto.randomUUID() + '_' + thumbFile.name); const thumbUser = auth.currentUser;
 
@@ -6216,12 +6595,22 @@ await uploadBytes(thumbRef, thumbFile, {
   }
 }); newThumbUrl = await getDownloadURL(thumbRef); }
         saveEditBtn.textContent = 'データ更新中...';
-        const latestVideoMetadata = await getMetadata(currentEditVideo.itemRef);
-        const newCustomMetadata = { ...latestVideoMetadata.customMetadata, title: document.getElementById('editTitleInput').value, desc: document.getElementById('editDescInput').value, category: document.getElementById('editCategoryInput').value, thumbUrl: newThumbUrl };
-        await updateMetadata(currentEditVideo.itemRef, { customMetadata: newCustomMetadata });
+        const latestVideoMetadata = await getMetadata(editTarget.itemRef);
+        const newCustomMetadata = { ...latestVideoMetadata.customMetadata, ...editDetails, thumbUrl: newThumbUrl };
+        validateVideoMetadataSize(newCustomMetadata);
+        await updateMetadata(editTarget.itemRef, { customMetadata: newCustomMetadata });
+        editTarget.originalCustomMetadata = newCustomMetadata;
+        if (currentVideoId === editTarget.itemRef.fullPath &&
+            document.body.classList.contains('watch-mode')) {
+          currentVideoPolicy = { ...parseVideoInteractionSettings(newCustomMetadata),
+            videoId: currentVideoId, pending: false, unavailable: false };
+          applyVideoInteractionSettings();
+          loadComments();
+          if (!mainVideo.paused) startDanmakuLoop();
+        }
         alert('変更を保存しました！'); document.getElementById('editVideoModal').classList.remove('active');
         await loadVideoList(); renderManageList();
-      } catch (error) { console.error(error); alert('保存に失敗しました。'); } finally { saveEditBtn.disabled = false; saveEditBtn.textContent = '変更を保存'; }
+      } catch (error) { console.error(error); alert(error.message || '保存に失敗しました。'); } finally { saveEditBtn.disabled = false; saveEditBtn.textContent = '変更を保存'; }
     });
 
     const saveVideoBtn = document.getElementById('saveVideoBtn');
@@ -6267,6 +6656,7 @@ await uploadBytes(thumbRef, thumbFile, {
     const toggleDanmakuBtn = document.getElementById('toggleDanmakuBtn');
     let isDanmakuVisible = true;
     toggleDanmakuBtn.addEventListener('click', () => {
+      if (!videoFeatureEnabled('danmaku')) return;
       isDanmakuVisible = !isDanmakuVisible;
       if (isDanmakuVisible) { danmakuContainer.style.visibility = 'visible'; toggleDanmakuBtn.textContent = '💬 弾幕オン'; toggleDanmakuBtn.style.opacity = '1'; }
       else { danmakuContainer.style.visibility = 'hidden'; toggleDanmakuBtn.textContent = '🔕 弾幕オフ'; toggleDanmakuBtn.style.opacity = '0.6'; }
@@ -7155,7 +7545,7 @@ function renderMyPage() {
   }
 
   preview.addEventListener('click', () => {
-    if (!mobileQuery.matches || sheet.open) return;
+    if (!mobileQuery.matches || sheet.open || !videoFeatureEnabled('comments')) return;
 
     // コメントを開いたときに、動画を上に見える位置へ戻す
     const anchor = document.getElementById('videoAnchor');
@@ -7631,8 +8021,8 @@ function subMovieIsMuted(...values) {
       <summary>ミュートワード</summary>
       <p>
         1行に1語ずつ入力してください。
-        動画のタイトル・説明・投稿者名と、通常コメントの本文に適用します。
-        弾幕には適用しません。
+        動画のタイトル・説明・投稿者名と、通常コメント・返信・弾幕の本文に適用します。
+        この設定は自分の表示だけに適用されます。
       </p>
       <label for="mutedWordsEditor">非表示にする語句</label>
       <textarea id="mutedWordsEditor"
@@ -7819,6 +8209,7 @@ function subMovieIsMuted(...values) {
     ++listVersion;
     list.replaceChildren();
     refreshSettings();
+    if (currentVideoId && document.body.classList.contains('watch-mode')) loadComments();
   });
 })();
 
