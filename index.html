@@ -5689,7 +5689,10 @@ gridItem.addEventListener('click', event => {
 });
 
         const deleteBtn = gridItem.querySelector('.delete-video-btn');
-        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await deleteObject(v.itemRef); loadVideoList(); } catch {} });
+        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await guardedWrite({
+  action: 'deleteVideo',
+  videoId: v.itemRef.fullPath
+}, item); loadVideoList(); } catch {} });
         const menuBtn = gridItem.querySelector('.grid-menu-btn-yt');
         const dropdown = gridItem.querySelector('.grid-dropdown');
         menuBtn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.grid-dropdown.active').forEach(m => { if (m !== dropdown) m.classList.remove('active'); }); dropdown.classList.toggle('active'); });
@@ -7998,6 +8001,15 @@ if (!uploadUser || uploadUser.isAnonymous) {
         validateVideoMetadataSize(uploadDetails);
       } catch (error) { alert(error.message); return; }
       saveBtn.disabled = true;
+      let uploadGrant;
+
+try {
+  uploadGrant = await reserveVideoGrant(uploadFile);
+} catch (error) {
+  saveBtn.disabled = false;
+  saveBtn.textContent = '保存して公開';
+  return;
+}
       let finalThumbUrl = "";
      if (thumbInput.files && thumbInput.files[0]) {
   saveBtn.textContent = 'サムネイル送信中...';
@@ -8030,8 +8042,8 @@ if (!uploadUser || uploadUser.isAnonymous) {
     return;
   }
 }
-      const storageRef = ref(storage,'videos/' + crypto.randomUUID() + '_' + uploadFile.name);
-      const metadata = { customMetadata: { ...uploadDetails, thumbUrl: finalThumbUrl } };
+      const storageRef = ref(storage, uploadGrant.objectName);
+      const metadata = {contentType: uploadGrant.contentType,customMetadata: {...uploadDetails,thumbUrl: finalThumbUrl,uploadTicketId: uploadGrant.ticketId }};
       try { validateVideoMetadataSize(metadata.customMetadata); }
       catch (error) { alert(error.message); saveBtn.disabled = false; saveBtn.textContent = '保存して公開'; return; }
       const uploadTask = uploadBytesResumable(storageRef, uploadFile, metadata);
@@ -8044,6 +8056,7 @@ if (!uploadUser || uploadUser.isAnonymous) {
         },
         async () => {
           try {
+            forgetVideoGrant(uploadFile);
             const uploadedRef = uploadTask.snapshot.ref;
             const [downloadURL, savedMetadata] = await Promise.all([
               getDownloadURL(uploadedRef), getMetadata(uploadedRef)
@@ -8337,7 +8350,11 @@ await uploadBytes(storageRef,file, {
             if (request === editPolicyRequest) save.textContent = '変更を保存';
           }
         });
-        item.querySelector('.manage-btn-delete').addEventListener('click', async () => { if (!confirm(`「${v.title}」を完全に削除しますか？`)) return; try { await deleteObject(v.itemRef); await loadVideoList(); renderManageList(); } catch { alert('削除に失敗しました'); } });
+        item.querySelector('.manage-btn-delete').addEventListener('click', async () => { if (!confirm(`「${v.title}」を完全に削除しますか？`)) 
+          return; try { await guardedWrite({
+  action: 'deleteVideo',
+  videoId: v.itemRef.fullPath
+}, gridItem); await loadVideoList(); renderManageList(); } catch { alert('削除に失敗しました'); } });
         manageList.appendChild(item);
       });
     }
