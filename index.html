@@ -2,11 +2,31 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
+       HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-l4V71+h4WUfXetsdNoIo7jtugx6AtKSxYy+t0tbSU5I=' 'sha256-aVBFQ9I2ZZlwlbaPbSMSOkmEbOpt8RT9/3Z9G3qMr6o=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src-attr 'none';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' https: data: blob:;
+    media-src 'self' https: blob:;
+    font-src 'self' data:;
+    connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://accounts.google.com https://testo-movie-site.firebaseapp.com https://asia-northeast1-testo-movie-site.cloudfunctions.net;
+    frame-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
+    child-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
+    worker-src 'self' blob:;
+    manifest-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com;
+    upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>サブ・ムービー｜弾幕コメントで楽しむ動画共有サイト</title>
 <meta name="description" content="サブ・ムービーは、動画の投稿・視聴と弾幕コメントを楽しめる動画共有サイトです。音楽、アニメ、ゲームなどの動画を探し、コメントで交流できます。">
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js" integrity="sha384-it1zrjZg9Wow4/YazUTfchZX61ulfA0SAtXufVXx9G1XPgBIk+aLylHM5lWl03Bi" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js" integrity="sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX" crossorigin="anonymous"></script>
   <style>
     body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #0f0f0f; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; box-sizing: border-box; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
@@ -3696,7 +3716,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
           <div style="display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:10px;">
             <div id="customizeAvatarPreview" style="width:100px; height:100px; border-radius:50%; background-color:#ccc; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:36px;"></div>
           <input type="file" id="avatarFileInput" accept="image/*,.gif" style="display:none;">
-            <button class="create-btn" onclick="document.getElementById('avatarFileInput').click()">写真を変更</button>
+            <button type="button" id="changeAvatarBtn" class="create-btn">写真を変更</button>
           </div>
         </div>
         <div class="input-group"><label>チャンネル名</label><input type="text" id="customizeNameInput" placeholder="新しいチャンネル名"></div>
@@ -3923,6 +3943,18 @@ function forgetVideoGrant(file) {
   }
 }
     const googleProvider = new GoogleAuthProvider();
+
+   function safeAvatarBackground(value) {
+  if (typeof value !== 'string' || !value.trim()) return 'none';
+  try {
+    const url = new URL(value, window.location.href);
+    if (url.protocol !== 'https:' && url.protocol !== 'blob:') return 'none';
+    if (url.username || url.password) return 'none';
+    return 'url(' + JSON.stringify(url.href) + ')';
+  } catch {
+    return 'none';
+  }
+}
 
    function escapeHtml(value) {
   const replacements = {
@@ -7832,28 +7864,37 @@ function setupReplyThread(node, comment, childReplies) {
       const likes = comment.likes || 0; const dislikes = comment.dislikes || 0;
       const hasLikedC = currentUser && (comment.likedUsers || []).includes(currentUser.uid);
       const hasDislikedC = currentUser && (comment.dislikedUsers || []).includes(currentUser.uid);
+      const commentIdAttr = escapeHtml(comment.id);
+      const avatarBackground = safeAvatarBackground(currentUser?.avatarUrl);
+      const hasAvatar = avatarBackground !== 'none';
+      const showOwnAvatar = hasAvatar && comment.authorUid === currentUser?.uid;
       const div = document.createElement('div'); div.className = 'comment-item';
       if (isReply) { div.style.marginTop = "12px"; div.style.marginBottom = "0"; }
       div.innerHTML = `
-        <div class="comment-avatar" style="${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}">${currentUser && comment.authorUid === currentUser.uid && currentUser.avatarUrl ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
+        <div class="comment-avatar">${showOwnAvatar ? '' : escapeHtml(author.charAt(0).toUpperCase())}</div>
         <div class="comment-content">
           <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
           <div class="comment-text">${escapeHtml(comment.text)}</div>
           <div class="comment-actions-bar">
-            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" data-id="${comment.id}">👍 ${likes > 0 ? likes : ''}</button>
-            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" data-id="${comment.id}">👎 ${dislikes > 0 ? dislikes : ''}</button>
-            ${!isReply ? `<button class="comment-action-btn reply-toggle-btn" data-id="${comment.id}">返信</button>` : ''}
-            ${canDelete ? `<button class="comment-action-btn comment-delete-btn" data-id="${comment.id}" style="color:#909090;">削除</button>` : ''}
+            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" data-id="${commentIdAttr}">👍 ${likes > 0 ? likes : ''}</button>
+            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" data-id="${commentIdAttr}">👎 ${dislikes > 0 ? dislikes : ''}</button>
+            ${!isReply ? `<button class="comment-action-btn reply-toggle-btn" data-id="${commentIdAttr}">返信</button>` : ''}
+            ${canDelete ? `<button class="comment-action-btn comment-delete-btn" data-id="${commentIdAttr}" style="color:#909090;">削除</button>` : ''}
           </div>
           ${!isReply ? `
-            <div class="reply-input-area" id="reply-area-${comment.id}">
-              <div class="comment-avatar" style="${currentUser && currentUser.avatarUrl ? `background-image:url(${currentUser.avatarUrl});` : ''}; width:24px; height:24px; font-size:10px;">${currentUser && currentUser.avatarUrl ? '' : escapeHtml(getNickname().charAt(0).toUpperCase())}</div>
-              <textarea rows="1" placeholder="返信を追加..." id="reply-input-${comment.id}"></textarea>
-              <button class="submit-reply-btn" data-id="${comment.id}" disabled>返信</button>
+            <div class="reply-input-area" id="reply-area-${commentIdAttr}">
+              <div class="comment-avatar" style="width:24px; height:24px; font-size:10px;">${hasAvatar ? '' : escapeHtml(getNickname().charAt(0).toUpperCase())}</div>
+              <textarea rows="1" placeholder="返信を追加..." id="reply-input-${commentIdAttr}"></textarea>
+              <button class="submit-reply-btn" data-id="${commentIdAttr}" disabled>返信</button>
             </div>
-            <div class="replies-list" id="replies-list-${comment.id}"></div>
+            <div class="replies-list" id="replies-list-${commentIdAttr}"></div>
           ` : ''}
         </div>`;
+      if (showOwnAvatar) {
+        div.querySelector('.comment-avatar').style.backgroundImage = avatarBackground;
+      }
+      const replyAvatar = div.querySelector('.reply-input-area > .comment-avatar');
+      if (replyAvatar && hasAvatar) replyAvatar.style.backgroundImage = avatarBackground;
       if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
       attachCommentImage(div, comment);
@@ -8706,6 +8747,7 @@ blockUserBtn.addEventListener('click', () => {
     const customizeBtn = document.getElementById('customizeBtn'); const customizeModal = document.getElementById('customizeModal'); const closeCustomizeModalBtn = document.getElementById('closeCustomizeModalBtn'); const customizeAvatarPreview = document.getElementById('customizeAvatarPreview'); const avatarFileInput = document.getElementById('avatarFileInput'); const customizeNameInput = document.getElementById('customizeNameInput'); const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
     customizeBtn.addEventListener('click', () => { customizeNameInput.value = currentUser.channelName; if (currentUser.avatarUrl) { customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`; customizeAvatarPreview.textContent = ''; } else { customizeAvatarPreview.style.backgroundImage = 'none'; customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase(); } customizeModal.classList.add('active'); });
     closeCustomizeModalBtn.addEventListener('click', () => customizeModal.classList.remove('active'));
+    document.getElementById('changeAvatarBtn').addEventListener('click', () => avatarFileInput.click());
     avatarFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { customizeAvatarPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`; customizeAvatarPreview.textContent = ''; } });
     saveCustomizeBtn.addEventListener('click', async () => { if (!currentUser) return; saveCustomizeBtn.disabled = true; const newName = customizeNameInput.value.trim(); if (!newName) { alert('チャンネル名を入力してください。'); saveCustomizeBtn.disabled = false; return; } let avatarUrl = currentUser.avatarUrl || ""; try { if (avatarFileInput.files[0]) { const file = avatarFileInput.files[0]; const storageRef = ref(storage, `avatars/${currentUser.uid}`); // ファイルの先頭を確認してGIFかどうか判定
 const signature = new TextDecoder().decode(
@@ -8866,9 +8908,9 @@ await uploadBytes(thumbRef, thumbFile, {
     document.getElementById('copyShareLinkBtn').addEventListener('click', () => {
       navigator.clipboard.writeText(shareLinkInput.value).then(() => { const btn = document.getElementById('copyShareLinkBtn'); btn.textContent = 'コピー完了！'; setTimeout(() => btn.textContent = 'コピー', 2000); });
     });
-    document.getElementById('shareXBtn').addEventListener('click', () => { const text = encodeURIComponent(mainTitle.textContent + " | サブ・カルチャー"); const url = encodeURIComponent(shareLinkInput.value); window.open(`https://x.com/intent/tweet?text=${text}&url=${url}`, '_blank'); });
-    document.getElementById('shareRedditBtn').addEventListener('click', () => { const title = encodeURIComponent(mainTitle.textContent); const url = encodeURIComponent(shareLinkInput.value); window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank'); });
-    document.getElementById('shareYouTubeBtn').addEventListener('click', () => { navigator.clipboard.writeText(shareLinkInput.value).then(() => { alert('リンクをコピーしました。YouTubeのコミュニティ等に貼り付けて共有してください。'); window.open('https://www.youtube.com/?app=desktop&hl=ja', '_blank'); }); });
+    document.getElementById('shareXBtn').addEventListener('click', () => { const text = encodeURIComponent(mainTitle.textContent + " | サブ・カルチャー"); const url = encodeURIComponent(shareLinkInput.value); window.open(`https://x.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'noopener,noreferrer'); });
+    document.getElementById('shareRedditBtn').addEventListener('click', () => { const title = encodeURIComponent(mainTitle.textContent); const url = encodeURIComponent(shareLinkInput.value); window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank', 'noopener,noreferrer'); });
+    document.getElementById('shareYouTubeBtn').addEventListener('click', () => { navigator.clipboard.writeText(shareLinkInput.value).then(() => { alert('リンクをコピーしました。YouTubeのコミュニティ等に貼り付けて共有してください。'); window.open('https://www.youtube.com/?app=desktop&hl=ja', '_blank', 'noopener,noreferrer'); }); });
 
     function openVideoFromUrl() {
   const videoIdToPlay =
