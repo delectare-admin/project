@@ -5170,16 +5170,14 @@ gridItem.addEventListener('click', event => {
           if (v.uploaderUid === currentUser.uid) return alert('自分のチャンネルは非表示にできません。');
           try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserNotInterested.push(v.uploaderUid); alert('このチャンネルの動画を今後おすすめに表示しません。'); applyFilterAndSort(); } catch { alert('設定に失敗しました。'); }
         });
+        
         gridItem.querySelector('.block-channel-btn').addEventListener('click', async (e) => {
-          e.stopPropagation(); dropdown.classList.remove('active');
-          if (!currentUser) return alert('この機能を使うにはログインしてください。');
-          if (v.uploaderUid === currentUser.uid) return alert('自分自身はブロックできません。');
-          if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは一切表示されなくなります。')) return;
-          try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { blockedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserBlocks.push(v.uploaderUid); alert('ブロックしました。'); applyFilterAndSort(); } catch { alert('ブロック処理に失敗しました。'); }
+    e.stopPropagation();dropdown.classList.remove('active');
+      await blockUserWithDialog(v.uploaderUid);
         });
-               container.appendChild(gridItem);
 
-        if (container === videoGrid) {
+      container.appendChild(gridItem);
+      if (container === videoGrid) {
           decorateHomeCard(gridItem, v);
         }
       });
@@ -6740,7 +6738,200 @@ if (!uploadUser || uploadUser.isAnonymous) {
     });
 
     reportBtn.addEventListener('click', secureReport);
-    blockUserBtn.addEventListener('click', async () => { if (!currentUser) return alert('ブロックするにはログインしてください。'); const targetUid = uploaderNameEl.dataset.uid; if (targetUid === currentUser.uid) return alert('自分自身はブロックできません。'); if (!confirm('このユーザーをブロックしますか？\n以降、このユーザーの動画やコメントは表示されなくなります。')) return; try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { blockedUids: arrayUnion(targetUid) }, { merge: true }); currentUserBlocks.push(targetUid); alert('ブロックしました。ホーム画面に戻ります。'); goHome(); } catch { alert('ブロック処理に失敗しました。'); } });
+   // ブラウザ標準のalert・confirmを使わない確認画面
+function showBlockMessage(message, ask = false) {
+  if (!document.getElementById('blockDialogStyle')) {
+    const style = document.createElement('style');
+    style.id = 'blockDialogStyle';
+
+    style.textContent = `
+      #blockConfirmationDialog {
+        width: min(360px, calc(100vw - 32px));
+        max-height: calc(100dvh - 32px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 24px;
+        border: 0;
+        border-radius: 16px;
+        background: #fff;
+        color: #111;
+        box-shadow: 0 12px 40px #0004;
+      }
+
+      #blockConfirmationDialog::backdrop {
+        background: #0008;
+      }
+
+      #blockConfirmationDialog p {
+        white-space: pre-line;
+        line-height: 1.7;
+      }
+
+      #blockConfirmationDialog form {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      #blockConfirmationDialog button {
+        min-height: 44px;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 24px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      #blockConfirmationDialog button[value="ok"] {
+        background: #111;
+        color: #fff;
+      }
+
+      #blockConfirmationDialog button[hidden] {
+        display: none;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  const dialog = document.createElement('dialog');
+  dialog.id = 'blockConfirmationDialog';
+  dialog.setAttribute('aria-labelledby', 'blockDialogTitle');
+  dialog.setAttribute('aria-describedby', 'blockDialogMessage');
+
+  dialog.innerHTML = `
+    <h2 id="blockDialogTitle">ユーザーブロック</h2>
+    <p id="blockDialogMessage"></p>
+    <form method="dialog">
+      <button type="submit" value="cancel">キャンセル</button>
+      <button type="submit" value="ok"></button>
+    </form>
+  `;
+
+  dialog.querySelector('p').textContent = message;
+
+  const cancel = dialog.querySelector('[value="cancel"]');
+  const ok = dialog.querySelector('[value="ok"]');
+
+  cancel.hidden = !ask;
+  ok.textContent = ask ? 'ブロックする' : '閉じる';
+
+  document.body.appendChild(dialog);
+
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => {
+      const accepted = dialog.returnValue === 'ok';
+      dialog.remove();
+      resolve(accepted);
+    }, { once: true });
+
+    dialog.showModal();
+    (ask ? cancel : ok).focus();
+  });
+}
+
+let blockRequestPending = false;
+
+async function blockUserWithDialog(targetUid, returnHome = false) {
+  if (blockRequestPending) return;
+  blockRequestPending = true;
+
+  try {
+    const user = auth.currentUser;
+
+    if (
+      !user ||
+      user.isAnonymous ||
+      currentUser?.uid !== user.uid
+    ) {
+      await showBlockMessage(
+        'ブロックするにはログインしてください。'
+      );
+      return;
+    }
+
+    if (
+      !targetUid ||
+      targetUid === 'undefined' ||
+      targetUid === 'null'
+    ) {
+      await showBlockMessage('投稿者を確認できませんでした。');
+      return;
+    }
+
+    if (targetUid === user.uid) {
+      await showBlockMessage('自分自身はブロックできません。');
+      return;
+    }
+
+    if (currentUserBlocks.includes(targetUid)) {
+      await showBlockMessage(
+        'このユーザーはすでにブロックしています。'
+      );
+      return;
+    }
+
+    const accepted = await showBlockMessage(
+      'このユーザーをブロックしますか？\n' +
+      '以後、自分の画面でこのユーザーの動画・コメント・弾幕を非表示にします。',
+      true
+    );
+
+    if (!accepted) return;
+
+    // 確認画面を開いている間にアカウントが変わっていないか確認
+    if (
+      auth.currentUser?.uid !== user.uid ||
+      currentUser?.uid !== user.uid
+    ) {
+      await showBlockMessage(
+        'ログイン状態が変わりました。もう一度操作してください。'
+      );
+      return;
+    }
+
+    await setDoc(
+      doc(db, 'userPrivate', user.uid),
+      { blockedUids: arrayUnion(targetUid) },
+      { merge: true }
+    );
+
+    if (
+      auth.currentUser?.uid !== user.uid ||
+      currentUser?.uid !== user.uid
+    ) return;
+
+    if (!currentUserBlocks.includes(targetUid)) {
+      currentUserBlocks.push(targetUid);
+    }
+
+    await showBlockMessage(
+      'ブロックしました。\n' +
+      'マイページの設定にある「ブロックリスト」から解除できます。'
+    );
+
+    if (auth.currentUser?.uid !== user.uid) return;
+
+    if (returnHome) {
+      goHome();
+    } else {
+      await applyFilterAndSort();
+    }
+  } catch (error) {
+    console.error('ブロック処理に失敗:', error);
+
+    await showBlockMessage(
+      'ブロックできませんでした。通信状態やログイン状態を確認してください。'
+    );
+  } finally {
+    blockRequestPending = false;
+  }
+}
+
+blockUserBtn.addEventListener('click', () => {
+  blockUserWithDialog(uploaderNameEl.dataset.uid, true);
+});
 
     const customizeBtn = document.getElementById('customizeBtn'); const customizeModal = document.getElementById('customizeModal'); const closeCustomizeModalBtn = document.getElementById('closeCustomizeModalBtn'); const customizeAvatarPreview = document.getElementById('customizeAvatarPreview'); const avatarFileInput = document.getElementById('avatarFileInput'); const customizeNameInput = document.getElementById('customizeNameInput'); const saveCustomizeBtn = document.getElementById('saveCustomizeBtn');
     customizeBtn.addEventListener('click', () => { customizeNameInput.value = currentUser.channelName; if (currentUser.avatarUrl) { customizeAvatarPreview.style.backgroundImage = `url(${currentUser.avatarUrl})`; customizeAvatarPreview.textContent = ''; } else { customizeAvatarPreview.style.backgroundImage = 'none'; customizeAvatarPreview.textContent = currentUser.channelName.charAt(0).toUpperCase(); } customizeModal.classList.add('active'); });
@@ -9394,6 +9585,20 @@ navHistoryBtn.addEventListener('click', event => {
   download.title = 'この端末に動画ファイルを保存（無料）';
   download.setAttribute('aria-label', '動画を端末に保存・無料');
   menu.append(save, report, download);
+
+  // 既存のブロックボタンを三点メニューへ移す
+const blockMenuItem = document.getElementById('blockUserBtn');
+
+if (blockMenuItem) {
+  blockMenuItem.type = 'button';
+  blockMenuItem.textContent = '🚫 ユーザーをブロック';
+
+  ['font-size', 'padding', 'margin-left'].forEach(name => {
+    blockMenuItem.style.removeProperty(name);
+  });
+
+  menu.append(blockMenuItem);
+}
 
   const downloadStatus = document.createElement('div');
   downloadStatus.id = 'videoDownloadProgress';
