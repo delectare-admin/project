@@ -3625,6 +3625,11 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, listAll, getMetadata, deleteObject, updateMetadata } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+    import {
+  getFunctions as getGuardFunctions,
+  httpsCallable as guardCallable
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
+
     const firebaseConfig = {
       apiKey: "AIzaSyDvZtc5bs5rb5Xtrel3mVMoTiqHH4LoVkM",
       authDomain: "testo-movie-site.firebaseapp.com",
@@ -3639,10 +3644,6 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     const storage = getStorage(app);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    import {
-  getFunctions as getGuardFunctions,
-  httpsCallable as guardCallable
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
 
 const callSubmovieGuard = guardCallable(
   getGuardFunctions(app, 'asia-northeast1'),
@@ -3727,10 +3728,11 @@ async function guardedWrite(payload, anchor) {
   try {
     const { data } = await callSubmovieGuard(payload);
 
-    if (!data.ok) {
-      if (sameContext()) showGuardNotice(anchor, data);
+    if (!data || data.ok !== true) {
+      const result = data || { message: 'サーバーの応答を確認できませんでした。' };
+      if (sameContext()) showGuardNotice(anchor, result);
 
-      const error = new Error(data.message);
+      const error = new Error(result.message);
       error.limitNoticeShown = true;
       throw error;
     }
@@ -5689,10 +5691,25 @@ gridItem.addEventListener('click', event => {
 });
 
         const deleteBtn = gridItem.querySelector('.delete-video-btn');
-        if (deleteBtn) deleteBtn.addEventListener('click', async (e) => { e.stopPropagation(); if (!confirm(`「${v.title}」を削除しますか？`)) return; try { await guardedWrite({
-  action: 'deleteVideo',
-  videoId: v.itemRef.fullPath
-}, item); loadVideoList(); } catch {} });
+        if (deleteBtn) deleteBtn.addEventListener('click', async event => {
+          event.stopPropagation();
+          if (deleteBtn.disabled || !confirm(`「${v.title}」を削除しますか？`)) return;
+          deleteBtn.disabled = true;
+
+          try {
+            await guardedWrite({
+              action: 'deleteVideo',
+              videoId: v.itemRef.fullPath
+            }, gridItem);
+            await loadVideoList();
+          } catch (error) {
+            if (!error.limitNoticeShown) {
+              showGuardNotice(gridItem, { message: error.message || '動画を削除できませんでした。' });
+            }
+          } finally {
+            deleteBtn.disabled = false;
+          }
+        });
         const menuBtn = gridItem.querySelector('.grid-menu-btn-yt');
         const dropdown = gridItem.querySelector('.grid-dropdown');
         menuBtn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.grid-dropdown.active').forEach(m => { if (m !== dropdown) m.classList.remove('active'); }); dropdown.classList.toggle('active'); });
@@ -6617,12 +6634,12 @@ commentSubmitBtn.addEventListener('click', async () => {
 
   try {
     await guardedWrite({
-  action: 'post',
-  videoId,
-  text,
-  type: 'normal',
-  parentId: null
-}, commentInput);
+      action: 'post',
+      videoId,
+      text,
+      type: 'normal',
+      parentId: null
+    }, commentInput);
 
     if (
       currentVideoId === videoId &&
@@ -6633,6 +6650,7 @@ commentSubmitBtn.addEventListener('click', async () => {
       commentInput.blur();
     }
   } catch (error) {
+    if (error.limitNoticeShown) return;
     console.error('コメント送信失敗:', error);
 
     if (
@@ -6753,6 +6771,7 @@ danmakuInput.addEventListener('keydown', event => {
 danmakuSubmitBtn.addEventListener('click', async () => {
   if (danmakuSending || !requireCommentLogin()) return;
 
+  const uid = auth.currentUser.uid;
   const text = danmakuInput.value.trim();
   const videoId = currentVideoId;
   const videoTime = mainVideo.currentTime;
@@ -6772,20 +6791,22 @@ danmakuSubmitBtn.addEventListener('click', async () => {
 
   try {
     await guardedWrite({
-  action: 'post',
-  videoId,
-  text,
-  type: 'danmaku',
-  videoTime
-}, danmakuInput);
+      action: 'post',
+      videoId,
+      text,
+      type: 'danmaku',
+      videoTime
+    }, danmakuInput);
 
     if (
       currentVideoId === videoId &&
+      auth.currentUser?.uid === uid &&
       danmakuInput.value.trim() === text
     ) {
       danmakuInput.value = '';
     }
   } catch (error) {
+    if (error.limitNoticeShown) return;
     console.error('弾幕送信失敗:', error);
     alert('弾幕を送信できませんでした。ログイン状態を確認してください。');
   } finally {
@@ -6908,6 +6929,10 @@ function commentActionDialog(
       await save(text);
       dialog.close('ok');
     } catch (error) {
+      if (error.limitNoticeShown) {
+        status.textContent = '';
+        return;
+      }
       console.error(error);
       status.textContent = error.message || '保存できませんでした。';
     } finally {
@@ -7047,25 +7072,15 @@ async function runCommentMenuAction(action, comment) {
           throw new Error('投稿者のミュートワードが含まれています。');
         }
 
-        await runTransaction(db, async transaction => {
-          const snapshot = await transaction.get(commentRef);
-          const data = snapshot.data();
+        checkCommentSession(user);
 
-          checkOwnComment(data, comment, user);
-
-          if (data.text === text) return;
-
-          if (data.text !== comment.text) {
-            throw new Error(
-              '別の画面で本文が変更されました。キャンセルして開き直してください。'
-            );
-          }
-
-          transaction.update(commentRef, {
-            text,
-            editedAt: serverTimestamp()
-          });
-        });
+        await guardedWrite({
+          action: 'edit',
+          videoId: comment.videoId,
+          commentId: comment.id,
+          text,
+          expectedText: comment.text
+        }, document.querySelector('.comment-action-dialog textarea'));
       }
     });
     return;
@@ -7078,15 +7093,14 @@ async function runCommentMenuAction(action, comment) {
       save: async () => {
         let removed;
 
-       await guardedWrite({
-  action: 'edit',
-  videoId: comment.videoId,
-  commentId: comment.id,
-  text,
-  expectedText: comment.text
-}, document.querySelector(
-  '.comment-action-dialog textarea'
-));
+        await runTransaction(db, async transaction => {
+          const snapshot = await transaction.get(commentRef);
+          const data = snapshot.data();
+
+          checkOwnComment(data, comment, user);
+          removed = data;
+          transaction.delete(commentRef);
+        });
 
         // 過去に投稿済みの添付画像も、本人のファイルだけ削除
         if (
@@ -7098,7 +7112,6 @@ async function runCommentMenuAction(action, comment) {
             await deleteObject(ref(storage, removed.imagePath));
             commentImageUrlCache.delete(removed.imagePath);
           } catch (error) {
-          if (error.limitNoticeShown) return;
             console.warn('添付画像の削除失敗:', error);
           }
         }
@@ -7365,7 +7378,6 @@ function enhanceCommentNode(node, comment, isReply) {
     try {
       checkCommentSession(user);
     } catch (error) {
-      if (error.limitNoticeShown) return;
       status.textContent = error.message;
       return;
     }
@@ -7413,16 +7425,22 @@ function enhanceCommentNode(node, comment, isReply) {
         throw new Error('動画が切り替わりました。');
       }
 
-     await guardedWrite({
-  action: 'post',
-  videoId,
-  text,
-  type: 'normal',
-  parentId: comment.id
-}, input);
+      await guardedWrite({
+        action: 'post',
+        videoId,
+        text,
+        type: 'normal',
+        parentId: comment.id
+      }, input);
 
-      closeReply();
+      if (currentVideoId === videoId && auth.currentUser?.uid === user.uid) {
+        closeReply();
+      }
     } catch (error) {
+      if (error.limitNoticeShown) {
+        status.textContent = '';
+        return;
+      }
       console.error(error);
       status.textContent = error.message || '返信できませんでした。';
     } finally {
@@ -7811,8 +7829,32 @@ updateWatchDanmakuCount(
         if (text.length > 2000) return alert('返信は2000文字以内で入力してください。');
         
 
-target.disabled = true;
-        try { await addDoc(collection(db, "comments"), { videoId: currentVideoId, text, author: getNickname(), authorUid: getAuthorUid(), type: "normal", parentId, createdAt: serverTimestamp() }); input.value = ""; input.style.height = '38px'; document.getElementById(`reply-area-${parentId}`).style.display = 'none'; } catch {} finally { target.disabled = false; } return;
+        if (target.disabled) return;
+        const videoId = currentVideoId;
+        const uid = auth.currentUser.uid;
+        target.disabled = true;
+        input.readOnly = true;
+
+        try {
+          await guardedWrite({
+            action: 'post', videoId, text, type: 'normal', parentId
+          }, input);
+
+          if (currentVideoId === videoId && auth.currentUser?.uid === uid) {
+            input.value = '';
+            input.style.height = '38px';
+            const area = document.getElementById(`reply-area-${parentId}`);
+            if (area) area.style.display = 'none';
+          }
+        } catch (error) {
+          if (!error.limitNoticeShown) {
+            showGuardNotice(input, { message: error.message || '返信できませんでした。' });
+          }
+        } finally {
+          input.readOnly = false;
+          target.disabled = !input.value.trim();
+        }
+        return;
       }
 
       const voteButton =
@@ -7830,7 +7872,7 @@ target.disabled = true;
 
     });
     commentList.addEventListener('input', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn) btn.disabled = e.target.value.trim() === ""; autoResizeTextArea(e.target); } });
-    commentList.addEventListener('keydown', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn && !btn.disabled) btn.click(); } } });
+    commentList.addEventListener('keydown', (e) => { if (e.target.tagName.toLowerCase() === 'textarea' && e.target.id.startsWith('reply-input-')) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); const parentId = e.target.id.replace('reply-input-', ''); const btn = document.querySelector(`.submit-reply-btn[data-id="${parentId}"]`); if(btn && !btn.disabled) btn.click(); } } });
 
    // 同じコメントIDの弾幕は、画面内に1つだけ表示する
 const danmakuNodes = new Map();
@@ -7977,17 +8019,22 @@ mainVideo.addEventListener('emptied', () => {
     fileInput.addEventListener('change', (event) => { selectedFile = event.target.files[0]; if (selectedFile) { videoTitleInput.value = selectedFile.name.split('.').slice(0, -1).join('.') || selectedFile.name; previewFileName.textContent = selectedFile.name; previewVideo.src = URL.createObjectURL(selectedFile); step1Area.style.display = 'none'; step2Area.style.display = 'flex'; } });
     backModalBtn.addEventListener('click', () => { step2Area.style.display = 'none'; step1Area.style.display = 'flex'; fileInput.value = ''; thumbInput.value = ''; selectedFile = null; });
 
+    let videoUploadSending = false;
+
     saveBtn.addEventListener('click', async () => {
+      if (videoUploadSending) return;
       const uploadUser = auth.currentUser;
 
-if (!uploadUser || uploadUser.isAnonymous) {
-  alert('動画を投稿するにはログインしてください。');
-  return;
-}
+      if (!uploadUser || uploadUser.isAnonymous) {
+        alert('動画を投稿するにはログインしてください。');
+        return;
+      }
 
       if (!selectedFile) return;
       const uploadFile = selectedFile;
+      const thumbFile = thumbInput.files?.[0] || null;
       let uploadDetails;
+
       try {
         const settings = readVideoInteractionForm('upload');
         uploadDetails = {
@@ -7999,85 +8046,102 @@ if (!uploadUser || uploadUser.isAnonymous) {
           ...videoInteractionMetadata(settings)
         };
         validateVideoMetadataSize(uploadDetails);
-      } catch (error) { alert(error.message); return; }
-      saveBtn.disabled = true;
-      let uploadGrant;
-
-try {
-  uploadGrant = await reserveVideoGrant(uploadFile);
-} catch (error) {
-  saveBtn.disabled = false;
-  saveBtn.textContent = '保存して公開';
-  return;
-}
-      let finalThumbUrl = "";
-     if (thumbInput.files && thumbInput.files[0]) {
-  saveBtn.textContent = 'サムネイル送信中...';
-
-  try {
-    const thumbFile = thumbInput.files[0];
-
-    const thumbRef = ref(
-      storage,
-      'thumbnails/' + crypto.randomUUID() + '_' + thumbFile.name
-    );
-
-    await uploadBytes(thumbRef, thumbFile, {
-      customMetadata: {
-        uploaderUid: uploadUser.uid
+      } catch (error) {
+        showGuardNotice(saveBtn, { message: error.message });
+        return;
       }
-    });
 
-    finalThumbUrl = await getDownloadURL(thumbRef);
-  } catch (error) {
-    console.error('サムネイルの保存に失敗:', error);
+      const checkUploadSession = () => {
+        if (auth.currentUser?.uid !== uploadUser.uid) {
+          throw new Error('ログイン状態が変わりました。ログインし直してから再度投稿してください。');
+        }
+      };
 
-    alert(
-      'サムネイルを保存できませんでした。' +
-      'ログイン状態と通信を確認してください。'
-    );
+      videoUploadSending = true;
+      saveBtn.disabled = true;
+      saveBtn.textContent = '投稿上限を確認中…';
 
-    saveBtn.textContent = '保存して公開';
-    saveBtn.disabled = false;
-    return;
-  }
-}
-      const storageRef = ref(storage, uploadGrant.objectName);
-      const metadata = {contentType: uploadGrant.contentType,customMetadata: {...uploadDetails,thumbUrl: finalThumbUrl,uploadTicketId: uploadGrant.ticketId }};
-      try { validateVideoMetadataSize(metadata.customMetadata); }
-      catch (error) { alert(error.message); saveBtn.disabled = false; saveBtn.textContent = '保存して公開'; return; }
-      const uploadTask = uploadBytesResumable(storageRef, uploadFile, metadata);
-      uploadTask.on('state_changed',
-        snapshot => { saveBtn.textContent = '動画送信中... ' + Math.floor((snapshot.bytesTransferred / snapshot.totalBytes) * 100) + '%'; },
-        error => {
-          console.error('動画の保存失敗:', error);
-          alert('動画を保存できませんでした。通信とログイン状態を確認してください。');
-          saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
-        },
-        async () => {
-          try {
-            forgetVideoGrant(uploadFile);
-            const uploadedRef = uploadTask.snapshot.ref;
-            const [downloadURL, savedMetadata] = await Promise.all([
-              getDownloadURL(uploadedRef), getMetadata(uploadedRef)
-            ]);
+      try {
+        const uploadGrant = await reserveVideoGrant(uploadFile);
+        checkUploadSession();
+        let finalThumbUrl = '';
+
+        if (thumbFile) {
+          saveBtn.textContent = 'サムネイル送信中…';
+          const thumbRef = ref(
+            storage,
+            'thumbnails/' + crypto.randomUUID() + '_' + thumbFile.name
+          );
+
+          await uploadBytes(thumbRef, thumbFile, {
+            customMetadata: { uploaderUid: uploadUser.uid }
+          });
+          finalThumbUrl = await getDownloadURL(thumbRef);
+          checkUploadSession();
+        }
+
+        const storageRef = ref(storage, uploadGrant.objectName);
+        const metadata = {
+          contentType: uploadGrant.contentType,
+          customMetadata: {
+            ...uploadDetails,
+            thumbUrl: finalThumbUrl,
+            uploadTicketId: uploadGrant.ticketId
+          }
+        };
+        validateVideoMetadataSize(metadata.customMetadata);
+
+        const uploadTask = uploadBytesResumable(storageRef, uploadFile, metadata);
+        await new Promise((resolve, reject) => {
+          uploadTask.on('state_changed', snapshot => {
+            const percent = Math.floor(
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+            );
+            saveBtn.textContent = '動画送信中… ' + percent + '%';
+          }, reject, resolve);
+        });
+
+        // 保存が完了したら次回は新しい投稿として数える。
+        forgetVideoGrant(uploadFile);
+
+        try {
+          const uploadedRef = uploadTask.snapshot.ref;
+          const [downloadURL, savedMetadata] = await Promise.all([
+            getDownloadURL(uploadedRef), getMetadata(uploadedRef)
+          ]);
+
+          if (auth.currentUser?.uid === uploadUser.uid) {
             uploadModal.classList.remove('active');
             await watchVideo({
-              url: downloadURL, title: uploadDetails.title, desc: uploadDetails.desc,
-              category: uploadDetails.category, itemRef: uploadedRef,
-              uploaderName: uploadDetails.uploaderName, uploaderUid: uploadUser.uid,
-              thumbUrl: finalThumbUrl, uploadedAt: savedMetadata.timeCreated,
+              url: downloadURL,
+              title: uploadDetails.title,
+              desc: uploadDetails.desc,
+              category: uploadDetails.category,
+              itemRef: uploadedRef,
+              uploaderName: uploadDetails.uploaderName,
+              uploaderUid: uploadUser.uid,
+              thumbUrl: finalThumbUrl,
+              uploadedAt: savedMetadata.timeCreated,
               originalCustomMetadata: savedMetadata.customMetadata || metadata.customMetadata
             });
-            await loadVideoList();
-          } catch (error) {
-            console.error('公開後の動画表示失敗:', error);
-            alert('動画の保存は完了しました。表示できない場合はページを再読み込みしてください。');
-          } finally {
-            saveBtn.textContent = '保存して公開'; saveBtn.disabled = false;
           }
+          await loadVideoList();
+        } catch (error) {
+          console.error('公開後の動画表示失敗:', error);
+          alert('動画の保存は完了しました。表示できない場合はページを再読み込みしてください。');
         }
-      );
+      } catch (error) {
+        if (!error.limitNoticeShown) {
+          console.error('動画の保存失敗:', error);
+          showGuardNotice(saveBtn, {
+            message: error.message || '動画を保存できませんでした。通信とログイン状態を確認してください。'
+          });
+        }
+      } finally {
+        videoUploadSending = false;
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存して公開';
+      }
     });
 
     reportBtn.addEventListener('click', secureReport);
@@ -8350,11 +8414,26 @@ await uploadBytes(storageRef,file, {
             if (request === editPolicyRequest) save.textContent = '変更を保存';
           }
         });
-        item.querySelector('.manage-btn-delete').addEventListener('click', async () => { if (!confirm(`「${v.title}」を完全に削除しますか？`)) 
-          return; try { await guardedWrite({
-  action: 'deleteVideo',
-  videoId: v.itemRef.fullPath
-}, gridItem); await loadVideoList(); renderManageList(); } catch { alert('削除に失敗しました'); } });
+        const deleteButton = item.querySelector('.manage-btn-delete');
+        deleteButton.addEventListener('click', async () => {
+          if (deleteButton.disabled || !confirm(`「${v.title}」を完全に削除しますか？`)) return;
+          deleteButton.disabled = true;
+
+          try {
+            await guardedWrite({
+              action: 'deleteVideo',
+              videoId: v.itemRef.fullPath
+            }, item);
+            await loadVideoList();
+            if (currentUser) renderManageList();
+          } catch (error) {
+            if (!error.limitNoticeShown) {
+              showGuardNotice(item, { message: error.message || '動画を削除できませんでした。' });
+            }
+          } finally {
+            deleteButton.disabled = false;
+          }
+        });
         manageList.appendChild(item);
       });
     }
