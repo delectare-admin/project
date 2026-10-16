@@ -3210,6 +3210,86 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   cursor: pointer;
 }
 
+
+/* Iキーで開く、ホーム閲覧用ミニプレーヤー */
+#browseMiniPlayer[hidden] { display: none !important; }
+#browseMiniPlayer {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1100;
+  width: min(420px, calc(100vw - 32px));
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f0f0f;
+  box-shadow: 0 6px 30px #0005;
+}
+#browseMiniStage { position: relative; aspect-ratio: 16 / 9; background: #000; }
+#browseMiniStage #videoWrapper {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  aspect-ratio: auto !important;
+}
+#browseMiniStage #mainVideo { width: 100%; height: 100%; max-height: none; object-fit: contain; }
+#browseMiniStage .site-player-controls { padding: 6px 10px; height: 72px; box-sizing: border-box; }
+#browseMiniStage .player-row { height: 38px; gap: 4px; }
+#browseMiniStage .player-volume { flex: 0 0 48px; width: 48px; min-width: 0; }
+#browseMiniStage .site-player-controls button { padding: 4px 6px; font-size: 12px; }
+#browseMiniStage #videoClickToggle { bottom: 72px; }
+#browseMiniStage #pipBtn,
+#browseMiniStage #fullscreenBtn,
+#browseMiniStage #browseMiniToggleBtn,
+#browseMiniStage #mobilePlayerTools,
+#browseMiniStage #mobilePlaybackSettings,
+#browseMiniStage [aria-controls="mobilePlaybackSettings"] { display: none !important; }
+#browseMiniStage #toggleDanmakuBtn { font-size: 11px; padding: 4px; white-space: nowrap; }
+#browseMiniStage .player-time { font-size: 10px; }
+.browse-mini-actions {
+  position: absolute; top: 8px; right: 8px; z-index: 100;
+  display: flex; gap: 6px;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+#browseMiniPlayer:hover .browse-mini-actions,
+#browseMiniPlayer:focus-within .browse-mini-actions { opacity: 1; pointer-events: auto; }
+.browse-mini-actions button {
+  width: 36px; height: 36px; padding: 7px;
+  border: 0; border-radius: 50%; background: #000b; color: white; cursor: pointer;
+}
+.browse-mini-actions svg { width: 100%; height: 100%; }
+#browseMiniDetails { display: block; width: 100%; padding: 12px 14px; border: 0; background: #fff; text-align: left; color: inherit; cursor: pointer; }
+#browseMiniTitle, #browseMiniAuthor { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#browseMiniTitle { font-size: 14px; font-weight: 700; line-height: 1.5; }
+#browseMiniAuthor { margin-top: 3px; color: #606060; font-size: 12px; }
+#browseMiniToggleBtn svg { display: block; width: 22px; height: 22px; }
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  #browseMiniToggleBtn { display: none !important; }
+}
+
+/* 通常コメントの返信を10件ずつ開く */
+.replies-thread-toggle,
+.reply-page-actions button {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 36px; padding: 7px 12px; border: 0; border-radius: 20px;
+  background: transparent; color: #065fd4; font: inherit; font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+.replies-thread-toggle { margin: 6px 0 0 -10px; }
+.replies-thread-toggle:hover, .reply-page-actions button:hover { background: #def1ff; }
+.replies-thread-toggle svg, .reply-page-actions svg { width: 18px; height: 18px; flex-shrink: 0; }
+.replies-thread-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.replies-list[hidden], .reply-page-actions button[hidden] { display: none !important; }
+.replies-list { border-left: 1px solid #e5e5e5; margin-left: 6px; padding-left: 12px; }
+.reply-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 8px; }
+.reply-page-actions button { padding-inline: 10px; }
+.reply-page-actions button:last-child svg { transform: rotate(180deg); }
+
   </style>
 
 </head>
@@ -3320,6 +3400,14 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
               <div class="custom-controls-bar">
                 <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
                 <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
+                <button type="button" id="browseMiniToggleBtn" class="custom-control-btn"
+                  title="ミニプレーヤー（I）" aria-label="ミニプレーヤーでホームに戻る（I）"
+                  aria-controls="browseMiniPlayer" aria-expanded="false" aria-keyshortcuts="i">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <rect x="12" y="12" width="7" height="5" fill="currentColor" stroke="none"></rect>
+                  </svg>
+                </button>
                 <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
               </div>
             </div>
@@ -3617,6 +3705,27 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
       </div>
     </div>
   </div>
+
+  <aside id="browseMiniPlayer" aria-label="ホーム閲覧用ミニプレーヤー" hidden>
+    <div id="browseMiniStage">
+      <div class="browse-mini-actions">
+        <button type="button" id="browseMiniRestore" title="視聴画面に戻る（I）" aria-label="視聴画面に戻る（I）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M4 10V4h6M4 4l7 7M14 4h6v16H4v-6"></path>
+          </svg>
+        </button>
+        <button type="button" id="browseMiniClose" title="ミニプレーヤーを閉じて再生を停止" aria-label="ミニプレーヤーを閉じて再生を停止">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <button type="button" id="browseMiniDetails" title="視聴画面に戻る">
+      <span id="browseMiniTitle"></span>
+      <span id="browseMiniAuthor"></span>
+    </button>
+  </aside>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -5319,7 +5428,7 @@ async function loadVideoList(prefetched = null) {
       const updateStickyState = () => {
         stickyRaf = 0;
         // 動画ソースがない場合、全画面表示時、またはDocument PiP表示中はPIP（is-sticky）を解除
-        if (!mainVideo.src || document.fullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen') || videoWrapper.classList.contains('in-pip')) { 
+        if (!mainVideo.src || document.fullscreenElement || videoWrapper.classList.contains('pseudo-fullscreen') || videoWrapper.classList.contains('in-pip') || videoWrapper.classList.contains('in-browse-mini')) { 
           clearSticky(); 
           return; 
         }
@@ -5735,7 +5844,7 @@ gridItem.addEventListener('click', event => {
     function triggerChannelNavigation() {
       const uid = uploaderNameEl.dataset.uid; showMyProfile(uid);
       const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-     if (!isStandardPiP && !isDocumentPiP) {stopMainPlayback();}
+     if (!isStandardPiP && !isDocumentPiP && !browseMini.active) {stopMainPlayback();}
     }
     uploaderDetailsEl.addEventListener('click', triggerChannelNavigation); uploaderAvatarEl.addEventListener('click', triggerChannelNavigation);
 
@@ -5759,6 +5868,7 @@ let hlsInstance = null;
 let playbackGeneration = 0;
 
 function stopMainPlayback() {
+  releaseBrowseMiniPlayer({ resume: false });
   // 古い動画の再生処理を無効にする
   playbackGeneration++;
 
@@ -5782,6 +5892,10 @@ function stopMainPlayback() {
 // 1. 動画再生処理（HLS対応・最適化済み）
 // ==========================================
 async function watchVideo(videoData, options = {}) {
+  if (browseMini.active && videoData.itemRef.fullPath === currentVideoId) {
+    restoreBrowseMiniWatch({ updateUrl: options.updateUrl !== false });
+    return;
+  }
   const updateUrl = options.updateUrl !== false;
 
   document.title =
@@ -6035,7 +6149,7 @@ logoHome.addEventListener('click', returnToHomeList);
       document.body.classList.remove('watch-mode'); uploadModal.classList.remove('active'); createMenu.classList.remove('active');
       watchScreen.style.display = 'none'; channelScreen.style.display = 'none'; homeScreen.style.display = 'block';
       const isStandardPiP = document.pictureInPictureElement === mainVideo; const isDocumentPiP = ('documentPictureInPicture' in window) && window.documentPictureInPicture.window;
-      if (!isStandardPiP && !isDocumentPiP) {
+      if (!isStandardPiP && !isDocumentPiP && !browseMini.active) {
   stopMainPlayback();
 }
       window.scrollTo({ top: 0, behavior: 'smooth' }); applyFilterAndSort();
@@ -6046,8 +6160,152 @@ logoHome.addEventListener('click', returnToHomeList);
 const pipPlayer = document.getElementById('videoWrapper');
 const pipHome = document.getElementById('videoAnchor');
 
+// 自動追従・別ウィンドウのPiPとは独立した、ホーム閲覧用の小窓。
+const browseMini = {
+  active: false,
+  busy: false,
+  title: '',
+  scrollY: 0
+};
+const browseMiniDesktop = window.matchMedia(
+  '(min-width: 769px) and (hover: hover) and (pointer: fine)'
+);
+const browseMiniDock = document.getElementById('browseMiniPlayer');
+const browseMiniStage = document.getElementById('browseMiniStage');
+const browseMiniToggle = document.getElementById('browseMiniToggleBtn');
+const browseMiniRestore = document.getElementById('browseMiniRestore');
+
+function moveBrowsePlayer(parent) {
+  // 対応ブラウザでは再生状態を保ったDOM移動を優先する。
+  if (typeof parent.moveBefore === 'function' && pipPlayer.isConnected) {
+    try {
+      parent.moveBefore(pipPlayer, null);
+      return;
+    } catch (error) {
+      // 未対応の移動条件では通常のDOM移動に切り替える。
+    }
+  }
+  parent.appendChild(pipPlayer);
+}
+
+function releaseBrowseMiniPlayer({ resume = true } = {}) {
+  if (!browseMini.active) return;
+  const wasPlaying = !mainVideo.paused && !mainVideo.ended;
+  browseMini.active = false;
+  browseMiniDock.hidden = true;
+  pipPlayer.classList.remove('in-browse-mini');
+  moveBrowsePlayer(pipHome);
+  browseMiniToggle.setAttribute('aria-expanded', 'false');
+
+  if (resume && wasPlaying) mainVideo.play().catch(console.warn);
+  window.dispatchEvent(new Event('resize'));
+}
+
+function restoreBrowseMiniWatch({ updateUrl = true } = {}) {
+  if (!browseMini.active) return;
+  releaseBrowseMiniPlayer();
+  homeScreen.style.display = 'none';
+  channelScreen.style.display = 'none';
+  document.getElementById('manageScreen').style.display = 'none';
+  watchScreen.style.display = 'block';
+  document.body.classList.add('watch-mode');
+  document.title = browseMini.title;
+
+  if (updateUrl) {
+    const url = window.location.pathname + '?v=' + encodeURIComponent(currentVideoId);
+    if (window.location.pathname + window.location.search !== url) {
+      window.history.pushState(null, '', url);
+    }
+  }
+  window.scrollTo({ top: browseMini.scrollY, behavior: 'instant' });
+  browseMiniToggle.focus({ preventScroll: true });
+  window.dispatchEvent(new Event('resize'));
+}
+
+async function toggleBrowseMiniPlayer() {
+  if (browseMini.busy || !browseMiniDesktop.matches) return;
+  if (browseMini.active) {
+    restoreBrowseMiniWatch();
+    return;
+  }
+  if (
+    watchScreen.style.display === 'none' ||
+    !currentVideoId ||
+    (!mainVideo.currentSrc && !mainVideo.getAttribute('src') && !mainVideo.srcObject) ||
+    pipOpening || pipPlayer.ownerDocument !== document ||
+    pipPlayer.classList.contains('in-pip') ||
+    window.documentPictureInPicture?.window ||
+    document.pictureInPictureElement === mainVideo ||
+    mainVideo.webkitPresentationMode === 'picture-in-picture'
+  ) return;
+
+  const videoId = currentVideoId;
+  const generation = playbackGeneration;
+  browseMini.busy = true;
+
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      await document.webkitExitFullscreen();
+    }
+    exitPseudoFullscreen();
+    updateFullscreenBtn();
+    if (currentVideoId !== videoId || playbackGeneration !== generation || watchScreen.style.display === 'none') return;
+
+    browseMini.title = document.title;
+    browseMini.scrollY = window.scrollY;
+    document.getElementById('browseMiniTitle').textContent = mainTitle.textContent;
+    document.getElementById('browseMiniAuthor').textContent = uploaderNameEl.textContent;
+    const wasPlaying = !mainVideo.paused && !mainVideo.ended;
+    browseMini.active = true;
+    browseMiniDock.hidden = false;
+    pipPlayer.classList.remove('is-sticky');
+    pipPlayer.classList.add('in-browse-mini');
+    moveBrowsePlayer(browseMiniStage);
+    browseMiniToggle.setAttribute('aria-expanded', 'true');
+
+    // goHomeは小窓表示中だけ再生停止を省略する。
+    document.getElementById('manageScreen').style.display = 'none';
+    returnToHomeList();
+    if (wasPlaying) mainVideo.play().catch(console.warn);
+    browseMiniRestore.focus({ preventScroll: true });
+  } catch (error) {
+    console.error('ミニプレーヤーの切り替え失敗:', error);
+    if (browseMini.active) restoreBrowseMiniWatch();
+  } finally {
+    browseMini.busy = false;
+  }
+}
+
+browseMiniToggle.addEventListener('click', toggleBrowseMiniPlayer);
+browseMiniRestore.addEventListener('click', () => restoreBrowseMiniWatch());
+document.getElementById('browseMiniDetails').addEventListener('click', () => restoreBrowseMiniWatch());
+document.getElementById('browseMiniClose').addEventListener('click', () => {
+  if (browseMini.active) stopMainPlayback();
+});
+
+document.addEventListener('keydown', event => {
+  if (
+    event.defaultPrevented || event.repeat || event.isComposing || event.keyCode === 229 ||
+    event.ctrlKey || event.metaKey || event.altKey ||
+    event.key.toLowerCase() !== 'i' ||
+    !browseMiniDesktop.matches || document.querySelector('dialog[open]')
+  ) return;
+  const target = event.target;
+  if (target?.closest?.('input, textarea, select, [role="textbox"], [contenteditable]') || target?.isContentEditable) return;
+  if (!browseMini.active && watchScreen.style.display === 'none') return;
+  event.preventDefault();
+  toggleBrowseMiniPlayer();
+});
+
+browseMiniDesktop.addEventListener('change', () => {
+  if (!browseMiniDesktop.matches && browseMini.active) restoreBrowseMiniWatch();
+});
+
+
 pipBtn.addEventListener('click', async () => {
   if (pipOpening) return;
+  if (browseMini.active) restoreBrowseMiniWatch();
 
   // すでに開いていれば閉じる
   if (window.documentPictureInPicture?.window) {
@@ -7474,6 +7732,99 @@ document.addEventListener('keydown', event => {
   }
 });
 
+
+const replyThreadStates = new Map();
+let replyThreadVideoId = null;
+
+function setupReplyThread(node, comment, childReplies) {
+  const list = node.querySelector('.replies-list');
+  if (!list) return;
+  list.hidden = true;
+  if (!childReplies.length) {
+    replyThreadStates.delete(comment.id);
+    return;
+  }
+
+  const state = replyThreadStates.get(comment.id) || { visible: 0 };
+  replyThreadStates.set(comment.id, state);
+  const previousVisible = Math.min(state.visible, childReplies.length);
+  let shown = 0;
+  let lastMore = null;
+  const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>';
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'replies-thread-toggle';
+  toggle.setAttribute('aria-controls', list.id);
+  toggle.setAttribute('aria-expanded', 'false');
+  const label = document.createElement('span');
+  label.textContent = childReplies.length.toLocaleString('ja-JP') + '件の返信';
+  toggle.innerHTML = arrow;
+  toggle.appendChild(label);
+  list.before(toggle);
+
+  function collapseReplies() {
+    shown = 0;
+    state.visible = 0;
+    lastMore = null;
+    list.replaceChildren();
+    list.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.focus({ preventScroll: true });
+  }
+
+  function appendReplyPage(focus = false) {
+    if (shown >= childReplies.length) return;
+    if (lastMore) lastMore.hidden = true;
+    const end = Math.min(shown + 10, childReplies.length);
+    const page = document.createElement('div');
+    page.className = 'reply-page';
+    for (const reply of childReplies.slice(shown, end)) {
+      page.appendChild(renderCommentNode(reply, [], true));
+    }
+    shown = end;
+    state.visible = shown;
+    const actions = document.createElement('div');
+    actions.className = 'reply-page-actions';
+    lastMore = null;
+
+    if (shown < childReplies.length) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.textContent = '他の返信を表示';
+      more.title = '次の' + Math.min(10, childReplies.length - shown) + '件の返信を表示';
+      more.addEventListener('click', event => {
+        event.stopPropagation();
+        appendReplyPage(true);
+      });
+      actions.appendChild(more);
+      lastMore = more;
+    }
+
+    // 10件ごとの区切りと最後の端数にも、閉じる操作を置く。
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.innerHTML = '返信を非表示' + arrow;
+    hide.addEventListener('click', event => {
+      event.stopPropagation();
+      collapseReplies();
+    });
+    actions.appendChild(hide);
+    page.appendChild(actions);
+    list.appendChild(page);
+    list.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    if (focus) (lastMore || hide).focus({ preventScroll: true });
+  }
+
+  toggle.addEventListener('click', event => {
+    event.stopPropagation();
+    if (shown) collapseReplies();
+    else appendReplyPage();
+  });
+
+  while (shown < previousVisible) appendReplyPage();
+}
+
     function renderCommentNode(comment, childReplies = [], isReply = false) {
       const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
       const author = comment.author || 'ゲスト';
@@ -7503,7 +7854,7 @@ document.addEventListener('keydown', event => {
             <div class="replies-list" id="replies-list-${comment.id}"></div>
           ` : ''}
         </div>`;
-      if (!isReply && childReplies.length > 0) { const rc = div.querySelector(`#replies-list-${comment.id}`); childReplies.forEach(r => rc.appendChild(renderCommentNode(r, [], true))); }
+      if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
       attachCommentImage(div, comment);
       return div;
@@ -7574,7 +7925,7 @@ commentSortSelect.addEventListener('change', renderSortedComments);
   function syncHeader() {
     button.disabled = select.disabled;
 
-    const count = commentList.querySelectorAll('.comment-item').length;
+    const count = Number(commentList.dataset.totalComments || 0);
 
     heading.textContent = select.disabled
       ? 'コメント'
@@ -7699,6 +8050,11 @@ function loadComments() {
   commentList.innerHTML = '<p>読み込み中...</p>';
 
   const targetVideoId = currentVideoId;
+  commentList.dataset.totalComments = '0';
+  if (replyThreadVideoId !== targetVideoId) {
+    replyThreadStates.clear();
+    replyThreadVideoId = targetVideoId;
+  }
   loadCommentPin(targetVideoId);
   updateWatchDanmakuCount(null, targetVideoId);
 
@@ -7748,9 +8104,16 @@ updateWatchDanmakuCount(
         a.id.localeCompare(b.id)
       );
 
-    sortableCommentRows = allComments
-      .filter(c => !c.parentId)
-      .map(comment => ({
+    const parents = allComments.filter(c => !c.parentId);
+    const parentIds = new Set(parents.map(c => c.id));
+    commentList.dataset.totalComments = String(
+      parents.length + replies.filter(c => parentIds.has(c.parentId)).length
+    );
+    for (const id of replyThreadStates.keys()) {
+      if (!parentIds.has(id)) replyThreadStates.delete(id);
+    }
+
+    sortableCommentRows = parents.map(comment => ({
         comment,
         node: renderCommentNode(
           comment,
@@ -8579,7 +8942,7 @@ await uploadBytes(thumbRef, thumbFile, {
   // 既存のボタンを移す。登録済みの機能も維持する
   const right = panel.querySelector('.player-right');
 
-  ['pipBtn', 'toggleDanmakuBtn', 'fullscreenBtn'].forEach(id => {
+  ['pipBtn', 'browseMiniToggleBtn', 'toggleDanmakuBtn', 'fullscreenBtn'].forEach(id => {
     const button = document.getElementById(id);
 
     if (button) {
@@ -9468,7 +9831,7 @@ function renderMyPage() {
 
   // 表示中のコメントから、件数とプレビューを更新
   function updatePreview() {
-    const items = commentList.querySelectorAll('.comment-item');
+    const count = Number(commentList.dataset.totalComments || 0);
     const firstComment = commentList.querySelector('.comment-text');
 
     if (commentSortSelect.disabled) {
@@ -9480,8 +9843,8 @@ function renderMyPage() {
     }
 
     // 返信を含めた、現在表示対象になっているコメント数
-    countLabel.textContent = String(items.length);
-    heading.textContent = `コメント ${items.length}`;
+    countLabel.textContent = String(count);
+    heading.textContent = `コメント ${count}`;
 
     excerpt.textContent = firstComment
   ? (
@@ -9864,7 +10227,7 @@ function updateWatchDanmakuCount(value, videoId) {
   );
 
   function watching() {
-    return document.body.classList.contains('watch-mode');
+    return document.body.classList.contains('watch-mode') || browseMini.active;
   }
 
   function move(seconds) {
