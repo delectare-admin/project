@@ -2969,6 +2969,198 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   font-weight: normal;
 }
 
+/* コメント右上の三点メニュー */
+.comment-content {
+  position: relative;
+}
+
+.comment-content > .comment-author,
+.comment-pin-label {
+  padding-right: 38px;
+}
+
+.comment-more {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.comment-more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  list-style: none;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.comment-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.comment-more > summary:hover {
+  background: #eee;
+}
+
+.comment-more-menu {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 50;
+  width: 210px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 18px #0003;
+}
+
+.comment-more-menu button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #111;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.comment-more-menu button:hover {
+  background: #eee;
+}
+
+.comment-more-menu button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.comment-pin-label {
+  margin-bottom: 8px;
+  color: #606060;
+  font-size: 12px;
+}
+
+.comment-pin-label[hidden],
+.reply-compose-actions[hidden],
+.comment-action-dialog textarea[hidden] {
+  display: none !important;
+}
+
+/* 返信欄：入力欄の下・右側にボタン */
+.comment-list .reply-input-area {
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: start;
+}
+
+.comment-list .reply-input-area > .comment-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+.comment-list .reply-input-area textarea {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.reply-compose-actions {
+  grid-column: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reply-compose-actions button {
+  margin: 0;
+  min-height: 40px;
+  padding: 8px 16px;
+}
+
+.reply-compose-actions button:first-child {
+  background: transparent;
+  color: #111;
+}
+
+.reply-compose-status {
+  grid-column: 2;
+  margin: 0;
+  color: #b3261e;
+  font-size: 13px;
+}
+
+/* 編集・通報・削除確認 */
+.comment-action-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: #111;
+}
+
+.comment-action-dialog::backdrop {
+  background: #0008;
+}
+
+.comment-action-dialog h3 {
+  margin: 0 0 16px;
+  font-size: 19px;
+}
+
+.comment-action-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+.comment-action-dialog p {
+  color: #b3261e;
+  font-size: 13px;
+}
+
+.comment-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.comment-dialog-actions button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 24px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.comment-dialog-actions button[type="submit"] {
+  background: #111;
+  color: #fff;
+}
+
+.comment-dialog-actions button:disabled {
+  opacity: .5;
+}
+
   </style>
 
 </head>
@@ -6382,6 +6574,666 @@ danmakuSubmitBtn.addEventListener('click', async () => {
   }
 });
 
+let commentPinState = { videoId: '', id: '', owner: '' };
+let commentPinRequest = 0;
+
+function isPinnedComment(c) {
+  return !c.parentId &&
+    c.id === commentPinState.id &&
+    c.videoId === commentPinState.videoId &&
+    c.videoId === currentVideoId &&
+    c.authorUid === commentPinState.owner;
+}
+
+function refreshCommentPinLabels() {
+  for (const row of sortableCommentRows) {
+    const pinned = isPinnedComment(row.comment);
+    const label = row.node.querySelector('.comment-pin-label');
+    const button = row.node.querySelector('.comment-pin-action');
+
+    if (label) label.hidden = !pinned;
+    if (button) {
+      button.textContent = pinned ? '📌 固定を解除' : '📌 固定';
+    }
+  }
+}
+
+async function loadCommentPin(videoId) {
+  const version = ++commentPinRequest;
+  commentPinState = { videoId, id: '', owner: '' };
+
+  try {
+    const metadata = await getMetadata(ref(storage, videoId));
+
+    if (
+      version !== commentPinRequest ||
+      currentVideoId !== videoId
+    ) return;
+
+    const cm = metadata.customMetadata || {};
+
+    commentPinState = {
+      videoId,
+      id: cm.pinnedCommentId || '',
+      owner: cm.uploaderUid || ''
+    };
+
+    if (!commentSortSelect.disabled) renderSortedComments();
+  } catch (error) {
+    console.warn('固定コメントの取得失敗:', error);
+  }
+}
+
+// サイト内の確認・入力画面。
+// 保存に失敗した場合は、入力内容を残してエラーを表示する。
+function commentActionDialog(
+  title,
+  { value = null, ok = '閉じる', save = async () => {} } = {}
+) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'comment-action-dialog';
+  dialog.setAttribute('aria-label', title);
+
+  dialog.innerHTML = `
+    <form>
+      <h3></h3>
+      <textarea rows="5" maxlength="2000"
+        aria-label="本文または通報理由"></textarea>
+      <p role="status"></p>
+      <div class="comment-dialog-actions">
+        <button type="button">キャンセル</button>
+        <button type="submit"></button>
+      </div>
+    </form>
+  `;
+
+  const form = dialog.querySelector('form');
+  const input = dialog.querySelector('textarea');
+  const status = dialog.querySelector('p');
+  const cancel = dialog.querySelector('[type="button"]');
+  const submit = dialog.querySelector('[type="submit"]');
+
+  dialog.querySelector('h3').textContent = title;
+  input.hidden = value === null;
+  input.value = value ?? '';
+  submit.textContent = ok;
+
+  let busy = false;
+
+  cancel.addEventListener('click', () => {
+    if (!busy) dialog.close('cancel');
+  });
+
+  dialog.addEventListener('cancel', event => {
+    if (busy) event.preventDefault();
+  });
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy) return;
+
+    const text = input.value.trim();
+
+    if (value !== null && (!text || text.length > 2000)) {
+      status.textContent = '1～2000文字で入力してください。';
+      return;
+    }
+
+    busy = true;
+    submit.disabled = cancel.disabled = true;
+    input.readOnly = true;
+    status.textContent = '処理中…';
+
+    try {
+      await save(text);
+      dialog.close('ok');
+    } catch (error) {
+      console.error(error);
+      status.textContent = error.message || '保存できませんでした。';
+    } finally {
+      busy = false;
+      submit.disabled = cancel.disabled = false;
+      input.readOnly = false;
+    }
+  });
+
+  document.body.appendChild(dialog);
+
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => {
+      const accepted = dialog.returnValue === 'ok';
+      dialog.remove();
+      resolve(accepted);
+    }, { once: true });
+
+    dialog.showModal();
+    (value === null ? cancel : input).focus();
+  });
+}
+
+function checkCommentSession(user) {
+  if (
+    !user ||
+    user.isAnonymous ||
+    auth.currentUser?.uid !== user.uid ||
+    currentUser?.uid !== user.uid
+  ) {
+    throw new Error(
+      'ログイン状態を確認して、もう一度操作してください。'
+    );
+  }
+}
+
+function checkOwnComment(data, comment, user) {
+  checkCommentSession(user);
+
+  if (
+    !data ||
+    data.authorUid !== user.uid ||
+    data.videoId !== comment.videoId ||
+    data.type !== 'normal'
+  ) {
+    throw new Error('自分の通常コメントだけ操作できます。');
+  }
+}
+
+async function runCommentMenuAction(action, comment) {
+  const user = auth.currentUser;
+  checkCommentSession(user);
+
+  const commentRef = doc(db, 'comments', comment.id);
+
+  if (action === 'block') {
+    if (typeof blockUserWithDialog !== 'function') {
+      throw new Error(
+        '前回のブロック機能のコードを先に追加してください。'
+      );
+    }
+
+    await blockUserWithDialog(comment.authorUid);
+
+    if (
+      currentVideoId === comment.videoId &&
+      auth.currentUser?.uid === user.uid
+    ) {
+      loadComments();
+    }
+    return;
+  }
+
+  if (action === 'report') {
+    const accepted = await commentActionDialog('コメントを通報', {
+      value: '',
+      ok: '通報',
+
+      save: async reason => {
+        checkCommentSession(user);
+
+        const snapshot = await getDoc(commentRef);
+        const data = snapshot.data();
+
+        if (
+          !snapshot.exists() ||
+          data.videoId !== comment.videoId ||
+          data.type !== 'normal'
+        ) {
+          throw new Error('対象のコメントが見つかりません。');
+        }
+
+        if (data.authorUid === user.uid) {
+          throw new Error('自分のコメントは通報できません。');
+        }
+
+        checkCommentSession(user);
+
+        // 同じユーザーによる同じコメントへの通報は1件まで
+        await setDoc(
+          doc(db, 'commentReports', comment.id + '__' + user.uid),
+          {
+            commentId: comment.id,
+            videoId: data.videoId,
+            commentAuthorUid: data.authorUid,
+            reportedBy: user.uid,
+            reason,
+            createdAt: serverTimestamp(),
+            status: 'pending'
+          }
+        );
+      }
+    });
+
+    if (accepted) {
+      await commentActionDialog('通報を受け付けました。');
+    }
+    return;
+  }
+
+  if (action === 'edit') {
+    await commentActionDialog('コメントを編集', {
+      value: comment.text || '',
+      ok: '保存',
+
+      save: async text => {
+        if (
+          !videoFeatureEnabled('comments') ||
+          currentVideoId !== comment.videoId
+        ) {
+          throw new Error(
+            'この動画のコメント欄では現在編集できません。'
+          );
+        }
+
+        if (matchesVideoMutedWord(text)) {
+          throw new Error('投稿者のミュートワードが含まれています。');
+        }
+
+        await runTransaction(db, async transaction => {
+          const snapshot = await transaction.get(commentRef);
+          const data = snapshot.data();
+
+          checkOwnComment(data, comment, user);
+
+          if (data.text === text) return;
+
+          if (data.text !== comment.text) {
+            throw new Error(
+              '別の画面で本文が変更されました。キャンセルして開き直してください。'
+            );
+          }
+
+          transaction.update(commentRef, {
+            text,
+            editedAt: serverTimestamp()
+          });
+        });
+      }
+    });
+    return;
+  }
+
+  if (action === 'delete') {
+    await commentActionDialog('このコメントを削除しますか？', {
+      ok: '削除',
+
+      save: async () => {
+        let removed;
+
+        await runTransaction(db, async transaction => {
+          const snapshot = await transaction.get(commentRef);
+          removed = snapshot.data();
+
+          checkOwnComment(removed, comment, user);
+          transaction.delete(commentRef);
+        });
+
+        // 過去に投稿済みの添付画像も、本人のファイルだけ削除
+        if (
+          validCommentImagePath(removed.imagePath) &&
+          removed.imagePath.split('/')[1] === user.uid
+        ) {
+          try {
+            checkCommentSession(user);
+            await deleteObject(ref(storage, removed.imagePath));
+            commentImageUrlCache.delete(removed.imagePath);
+          } catch (error) {
+            console.warn('添付画像の削除失敗:', error);
+          }
+        }
+      }
+    });
+    return;
+  }
+
+  if (action === 'pin') {
+    const unpin = isPinnedComment(comment);
+
+    await commentActionDialog(
+      unpin ? '固定を解除しますか？' : 'このコメントを固定しますか？',
+      {
+        ok: unpin ? '固定を解除' : '固定',
+
+        save: async () => {
+          const snapshot = await getDoc(commentRef);
+          const data = snapshot.data();
+
+          checkOwnComment(data, comment, user);
+
+          if (data.parentId) {
+            throw new Error('固定できるのは親コメントだけです。');
+          }
+
+          const videoRef = ref(storage, comment.videoId);
+          const metadata = await getMetadata(videoRef);
+          const cm = metadata.customMetadata || {};
+
+          if (cm.uploaderUid !== user.uid) {
+            throw new Error(
+              '自分の動画にあるコメントだけ固定できます。'
+            );
+          }
+
+          if (unpin && cm.pinnedCommentId !== comment.id) {
+            throw new Error(
+              '固定先が変わっています。動画を開き直してください。'
+            );
+          }
+
+          checkCommentSession(user);
+
+          // タイトル・説明・HLS情報などを残して更新
+          const next = {
+            ...cm,
+            pinnedCommentId: unpin ? '' : comment.id
+          };
+
+          validateVideoMetadataSize(next);
+
+          await updateMetadata(videoRef, {
+            customMetadata: next
+          });
+
+          if (currentVideoId === comment.videoId) {
+            ++commentPinRequest;
+
+            commentPinState = {
+              videoId: comment.videoId,
+              id: next.pinnedCommentId,
+              owner: user.uid
+            };
+
+            renderSortedComments();
+          }
+        }
+      }
+    );
+  }
+}
+
+function enhanceCommentNode(node, comment, isReply) {
+  const content = node.querySelector('.comment-content');
+
+  // 表に出ていた削除ボタンを、三点メニューの操作に置き換える
+  content.querySelector(
+    '.comment-actions-bar > .comment-delete-btn'
+  )?.remove();
+
+  if (comment.editedAt) {
+    content.querySelector('.comment-date')?.append('（編集済み）');
+  }
+
+  if (!isReply) {
+    const badge = document.createElement('div');
+    badge.className = 'comment-pin-label';
+    badge.textContent = '📌 投稿者が固定';
+    badge.hidden = !isPinnedComment(comment);
+    content.prepend(badge);
+  }
+
+  const mine = !!auth.currentUser &&
+    !auth.currentUser.isAnonymous &&
+    auth.currentUser.uid === comment.authorUid;
+
+  const actions = mine
+    ? [['edit', '✎ 編集'], ['delete', '削除']]
+    : [
+        ['report', '⚑ 通報'],
+        ['block', '🚫 ユーザーをブロック']
+      ];
+
+  if (
+    mine &&
+    !isReply &&
+    auth.currentUser.uid === uploaderNameEl.dataset.uid
+  ) {
+    actions.splice(1, 0, [
+      'pin',
+      isPinnedComment(comment) ? '📌 固定を解除' : '📌 固定'
+    ]);
+  }
+
+  const details = document.createElement('details');
+  details.className = 'comment-more';
+
+  details.innerHTML = `
+    <summary aria-label="コメントの操作">⋮</summary>
+    <div class="comment-more-menu"
+         role="group"
+         aria-label="コメントの操作"></div>
+  `;
+
+  for (const [action, label] of actions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+
+    if (action === 'pin') {
+      button.className = 'comment-pin-action';
+    }
+
+    if (action === 'block' && !comment.authorUid) {
+      button.disabled = true;
+    }
+
+    button.addEventListener('click', async event => {
+      event.stopPropagation();
+      details.open = false;
+
+      try {
+        await runCommentMenuAction(action, comment);
+      } catch (error) {
+        await commentActionDialog(
+          error.message || '操作できませんでした。'
+        );
+      }
+    });
+
+    details.querySelector('div').appendChild(button);
+  }
+
+  details.addEventListener('toggle', () => {
+    if (!details.open) return;
+
+    document.querySelectorAll('.comment-more[open]')
+      .forEach(other => {
+        if (other !== details) other.open = false;
+      });
+  });
+
+  content.appendChild(details);
+
+  if (isReply) return;
+
+  // 既存の返信欄の要素を使って、配置と操作を変更
+  const area = content.querySelector('.reply-input-area');
+  const input = area.querySelector('textarea');
+  const send = area.querySelector('.submit-reply-btn');
+  const toggle = content.querySelector('.reply-toggle-btn');
+
+  const buttons = document.createElement('div');
+  buttons.className = 'reply-compose-actions';
+
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.textContent = 'キャンセル';
+
+  const status = document.createElement('p');
+  status.className = 'reply-compose-status';
+  status.setAttribute('role', 'status');
+
+  buttons.append(cancel, send);
+  area.append(buttons, status);
+
+  send.type = 'button';
+  input.maxLength = 2000;
+  input.placeholder = '返信を追加…';
+
+  area.style.display = 'none';
+  buttons.hidden = true;
+  toggle.setAttribute('aria-expanded', 'false');
+
+  let sending = false;
+
+  const sync = () => {
+    send.disabled = sending ||
+      !videoFeatureEnabled('comments') ||
+      !input.value.trim();
+
+    cancel.disabled = sending;
+    input.readOnly = sending;
+  };
+
+  function closeReply() {
+    input.value = '';
+    input.style.height = '38px';
+    input.blur();
+    area.style.display = 'none';
+    buttons.hidden = true;
+    status.textContent = '';
+    toggle.setAttribute('aria-expanded', 'false');
+    sync();
+  }
+
+  toggle.addEventListener('click', event => {
+    event.stopPropagation();
+
+    if (sending || !requireCommentLogin()) return;
+
+    const open = area.style.display === 'none';
+
+    area.style.display = open ? 'grid' : 'none';
+    toggle.setAttribute('aria-expanded', String(open));
+
+    if (open) {
+      buttons.hidden = false;
+      sync();
+      input.focus();
+    }
+  });
+
+  cancel.addEventListener('click', event => {
+    event.stopPropagation();
+    if (!sending) closeReply();
+  });
+
+  input.addEventListener('input', event => {
+    event.stopPropagation();
+    sync();
+    autoResizeTextArea(input);
+  });
+
+  input.addEventListener('keydown', event => {
+    event.stopPropagation();
+
+    // 日本語変換の確定では送信しない
+    if (event.isComposing || event.keyCode === 229) return;
+
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (!send.disabled) send.click();
+    }
+  });
+
+  send.addEventListener('click', async event => {
+    event.stopPropagation();
+    if (sending) return;
+
+    const user = auth.currentUser;
+
+    try {
+      checkCommentSession(user);
+    } catch (error) {
+      status.textContent = error.message;
+      return;
+    }
+
+    const videoId = comment.videoId;
+    const text = input.value.trim();
+
+    if (!text || text.length > 2000) return;
+
+    if (
+      currentVideoId !== videoId ||
+      !videoFeatureEnabled('comments')
+    ) return;
+
+    if (matchesVideoMutedWord(text)) {
+      status.textContent = '投稿者のミュートワードが含まれています。';
+      return;
+    }
+
+    sending = true;
+    sync();
+    send.textContent = '送信中…';
+    status.textContent = '';
+
+    try {
+      const parent = await getDoc(
+        doc(db, 'comments', comment.id)
+      );
+
+      if (
+        !parent.exists() ||
+        parent.data().videoId !== videoId ||
+        parent.data().type !== 'normal' ||
+        parent.data().parentId
+      ) {
+        throw new Error('返信先が見つかりません。');
+      }
+
+      checkCommentSession(user);
+
+      if (
+        currentVideoId !== videoId ||
+        !videoFeatureEnabled('comments')
+      ) {
+        throw new Error('動画が切り替わりました。');
+      }
+
+      await addDoc(collection(db, 'comments'), {
+        videoId,
+        text,
+        author: getNickname(),
+        authorUid: user.uid,
+        type: 'normal',
+        parentId: comment.id,
+        createdAt: serverTimestamp()
+      });
+
+      closeReply();
+    } catch (error) {
+      console.error(error);
+      status.textContent = error.message || '返信できませんでした。';
+    } finally {
+      sending = false;
+      send.textContent = '返信';
+      sync();
+    }
+  });
+
+  sync();
+}
+
+// 三点メニューの外側を押したら閉じる
+document.addEventListener('pointerdown', event => {
+  document.querySelectorAll('.comment-more[open]')
+    .forEach(menu => {
+      if (!menu.contains(event.target)) menu.open = false;
+    });
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+
+  const menu = document.querySelector('.comment-more[open]');
+
+  if (menu) {
+    event.preventDefault();
+    event.stopPropagation();
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  }
+});
+
     function renderCommentNode(comment, childReplies = [], isReply = false) {
       const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
       const author = comment.author || 'ゲスト';
@@ -6412,6 +7264,7 @@ danmakuSubmitBtn.addEventListener('click', async () => {
           ` : ''}
         </div>`;
       if (!isReply && childReplies.length > 0) { const rc = div.querySelector(`#replies-list-${comment.id}`); childReplies.forEach(r => rc.appendChild(renderCommentNode(r, [], true))); }
+      enhanceCommentNode(div, comment, isReply);
       attachCommentImage(div, comment);
       return div;
     }
@@ -6421,6 +7274,8 @@ let sortableCommentRows = [];
 
 // 選択した並び順で比較する
 function compareCommentRows(a, b) {
+  const pinOrder =Number(isPinnedComment(b.comment)) -Number(isPinnedComment(a.comment));
+  if (pinOrder) return pinOrder;
   const timeA = a.comment.createdAt?.toMillis?.() || 0;
   const timeB = b.comment.createdAt?.toMillis?.() || 0;
   const newest = timeB - timeA;
@@ -6442,6 +7297,7 @@ function compareCommentRows(a, b) {
 
 // 取得済みのコメントを並べ替える
 function renderSortedComments() {
+  refreshCommentPinLabels();
   if (!sortableCommentRows.length) {
     commentList.innerHTML =
       "<p style='color:#606060;font-size:14px;'>最初のコメントを書き込みましょう！</p>";
@@ -6603,6 +7459,7 @@ function loadComments() {
   commentList.innerHTML = '<p>読み込み中...</p>';
 
   const targetVideoId = currentVideoId;
+  loadCommentPin(targetVideoId);
   updateWatchDanmakuCount(null, targetVideoId);
 
   const q = query(
