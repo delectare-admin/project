@@ -2809,6 +2809,69 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   #uploadMutedWords, #editMutedWords { font-size: 16px; }
 }
 
+
+/* PCのPiP横に再生設定を配置。スマホは既存の上部ツールに配置。 */
+#videoWrapper:not(.mobile-player-layout) #playerSettingsBtn {
+  min-width: 36px; min-height: 32px; padding: 2px 6px;
+  font-size: 22px; line-height: 1; color: #fff;
+}
+#videoWrapper:not(.mobile-player-layout) #mobilePlaybackSettings:not([hidden]) {
+  display: block; position: absolute; z-index: 60;
+  top: auto; right: 12px; bottom: 80px;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 92px); overflow-y: auto;
+  box-sizing: border-box; padding: 14px; border-radius: 12px;
+  background: rgba(36, 36, 36, .96); color: #fff;
+  font-size: 14px; overscroll-behavior: contain;
+}
+#videoWrapper:is(.is-sticky, .in-pip):not(.mobile-player-layout)
+  #mobilePlaybackSettings:not([hidden]) {
+  bottom: 8px; max-height: calc(100% - 16px);
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 14px 0 8px;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-header label { margin: 0; }
+#videoWrapper #mobilePlaybackSettings .playback-speed-value {
+  font-size: 18px; font-weight: bold; font-variant-numeric: tabular-nums;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-adjust {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed {
+  flex: 1 1 0; min-width: 0; width: 100%; height: 36px; margin: 0;
+  accent-color: #fff; cursor: pointer; touch-action: pan-y;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-adjust button {
+  flex: 0 0 36px; width: 36px; height: 36px; padding: 0;
+  border: none; border-radius: 50%; background: #454545;
+  color: #fff; font-size: 23px; cursor: pointer;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-adjust button:disabled {
+  opacity: .4; cursor: default;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-presets {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-presets button {
+  min-height: 36px; padding: 6px 10px; border: 1px solid #666;
+  border-radius: 18px; background: #383838; color: #fff;
+  font-size: 13px; cursor: pointer;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-presets button.active {
+  color: #111; background: #fff; border-color: #fff;
+}
+#videoWrapper #mobilePlaybackSettings button:focus-visible,
+#videoWrapper #mobilePlaybackSettings input:focus-visible,
+#videoWrapper #mobilePlaybackSettings select:focus-visible {
+  outline: 2px solid #73aaff; outline-offset: 3px;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-note {
+  margin: 10px 0 0; color: #ffd2c9; font-size: 12px; line-height: 1.5;
+}
+#videoWrapper #mobilePlaybackSettings .playback-speed-note:empty { display: none; }
+
   </style>
 
 </head>
@@ -9730,7 +9793,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
   syncVisibility();
 })();
 
-// ===== スマホ用プレーヤーの配置・設定 =====
+// ===== PC・スマホ共通の再生設定とスマホの配置 =====
 (() => {
   if (document.getElementById('mobilePlayerTools')) return;
 
@@ -9773,6 +9836,8 @@ bell.hidden = !signedIn || !onNotificationScreen;
 
   const settingsButton = document.createElement('button');
   settingsButton.type = 'button';
+  settingsButton.id = 'playerSettingsBtn';
+  settingsButton.className = 'custom-control-btn player-settings-button';
   settingsButton.textContent = '⚙';
   settingsButton.setAttribute('aria-label', '再生設定');
   settingsButton.setAttribute('aria-expanded', 'false');
@@ -9784,7 +9849,8 @@ bell.hidden = !signedIn || !onNotificationScreen;
   const settings = document.createElement('div');
   settings.id = 'mobilePlaybackSettings';
   settings.hidden = true;
-  settings.setAttribute('role', 'region');
+  settings.setAttribute('role', 'dialog');
+  settings.setAttribute('aria-modal', 'false');
   settings.setAttribute('aria-label', '再生設定');
 
   settings.innerHTML = `
@@ -9801,18 +9867,31 @@ bell.hidden = !signedIn || !onNotificationScreen;
 
     <p class="playback-quality-note"></p>
 
-    <label>
-      <span>速度</span>
-      <select class="playback-speed" aria-label="再生速度">
-        <option value="0.5">0.5倍</option>
-        <option value="0.75">0.75倍</option>
-        <option value="1">標準（1倍）</option>
-        <option value="1.25">1.25倍</option>
-        <option value="1.5">1.5倍</option>
-        <option value="1.75">1.75倍</option>
-        <option value="2">2倍</option>
-      </select>
-    </label>
+    <div class="playback-speed-header">
+      <label for="playbackSpeedRange">再生速度</label>
+      <output class="playback-speed-value" for="playbackSpeedRange">1.00倍</output>
+    </div>
+    <div class="playback-speed-adjust">
+      <button type="button" class="playback-speed-minus" aria-label="速度を0.05倍下げる">−</button>
+      <input id="playbackSpeedRange" class="playback-speed" type="range"
+        min="0.25" max="4" step="0.05" value="1" aria-label="再生速度">
+      <button type="button" class="playback-speed-plus" aria-label="速度を0.05倍上げる">＋</button>
+    </div>
+    <div class="playback-speed-presets" aria-label="よく使う再生速度">
+      <button type="button" data-playback-rate="0.25" aria-pressed="false">0.25倍</button>
+      <button type="button" data-playback-rate="0.5" aria-pressed="false">0.5倍</button>
+      <button type="button" data-playback-rate="0.75" aria-pressed="false">0.75倍</button>
+      <button type="button" data-playback-rate="1" aria-pressed="false">標準</button>
+      <button type="button" data-playback-rate="1.25" aria-pressed="false">1.25倍</button>
+      <button type="button" data-playback-rate="1.5" aria-pressed="false">1.5倍</button>
+      <button type="button" data-playback-rate="1.75" aria-pressed="false">1.75倍</button>
+      <button type="button" data-playback-rate="2" aria-pressed="false">2倍</button>
+      <button type="button" data-playback-rate="2.5" aria-pressed="false">2.5倍</button>
+      <button type="button" data-playback-rate="3" aria-pressed="false">3倍</button>
+      <button type="button" data-playback-rate="3.5" aria-pressed="false">3.5倍</button>
+      <button type="button" data-playback-rate="4" aria-pressed="false">4倍</button>
+    </div>
+    <p class="playback-speed-note" role="status"></p>
   `;
 
   wrapper.appendChild(settings);
@@ -9820,67 +9899,139 @@ bell.hidden = !signedIn || !onNotificationScreen;
   const quality = settings.querySelector('.playback-quality');
   const qualityNote = settings.querySelector('.playback-quality-note');
   const speed = settings.querySelector('.playback-speed');
+  const speedValue = settings.querySelector('.playback-speed-value');
+  const speedNote = settings.querySelector('.playback-speed-note');
+  const speedMinus = settings.querySelector('.playback-speed-minus');
+  const speedPlus = settings.querySelector('.playback-speed-plus');
+  const speedPresets = [...settings.querySelectorAll('[data-playback-rate]')];
+  const QUALITY_HEIGHTS = [144, 240, 360, 480, 720];
+  const SPEED_MIN = 0.25;
+  const SPEED_MAX = 4;
+  const SPEED_STEP = 0.05;
   let settingsPlayer = null;
+  let settingsVideoId = null;
+  let requestedQuality = null;
+  let boundPlayer = null;
+  let boundEvents = [];
+  const settingsDocuments = new WeakSet();
+
+  function currentHlsPlayer() {
+    return typeof hlsInstance !== 'undefined' ? hlsInstance : null;
+  }
 
   function closeSettings(returnFocus = false) {
     settings.hidden = true;
     settingsButton.setAttribute('aria-expanded', 'false');
-
     if (returnFocus) settingsButton.focus();
   }
 
+  function syncSpeedControls() {
+    const actual = Number(video.playbackRate);
+    const rate = Number.isFinite(actual) ? actual : 1;
+    speed.value = String(Math.max(SPEED_MIN, Math.min(SPEED_MAX, rate)));
+    speedValue.textContent = `${rate.toFixed(2)}倍`;
+    speed.setAttribute('aria-valuetext', `${rate.toFixed(2)}倍`);
+    speedMinus.disabled = rate <= SPEED_MIN;
+    speedPlus.disabled = rate >= SPEED_MAX;
+    speedPresets.forEach(button => {
+      const selected = Math.abs(Number(button.dataset.playbackRate) - rate) < 0.001;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+  }
+
+  function changePlaybackSpeed(value) {
+    if (settingsVideoId !== currentVideoId) { closeSettings(); return; }
+    const candidate = Number(value);
+    if (!Number.isFinite(candidate)) return;
+    const rate = Math.max(SPEED_MIN, Math.min(SPEED_MAX,
+      Math.round(candidate / SPEED_STEP) * SPEED_STEP));
+    const rounded = Number(rate.toFixed(2));
+    try {
+      video.playbackRate = rounded;
+      video.defaultPlaybackRate = rounded;
+      if ('preservesPitch' in video) video.preservesPitch = true;
+      speedNote.textContent = '';
+    } catch (error) {
+      console.warn('再生速度を変更できませんでした:', error);
+      speedNote.textContent = 'このブラウザでは指定した速度に変更できませんでした。';
+    }
+    syncSpeedControls();
+  }
+
+  function bindHlsSettingsEvents(player) {
+    if (boundPlayer === player) return;
+    if (boundPlayer) {
+      boundEvents.forEach(event => boundPlayer.off?.(event, refreshSettings));
+    }
+    boundPlayer = player;
+    boundEvents = [];
+    if (!player || !window.Hls?.Events) return;
+    boundEvents = [
+      window.Hls.Events.MANIFEST_PARSED,
+      window.Hls.Events.LEVELS_UPDATED,
+      window.Hls.Events.LEVEL_SWITCHED
+    ].filter(Boolean);
+    boundEvents.forEach(event => player.on?.(event, refreshSettings));
+  }
+
   function refreshSettings() {
-    speed.value = String(video.playbackRate);
-
-    settingsPlayer =
-      typeof hlsInstance !== 'undefined' ? hlsInstance : null;
-
-    const levels = settingsPlayer?.levels || [];
+    syncSpeedControls();
+    const player = currentHlsPlayer();
+    if (settingsPlayer !== player) requestedQuality = null;
+    settingsPlayer = player;
+    bindHlsSettingsEvents(player);
+    const levels = player?.levels || [];
     quality.replaceChildren();
 
-    if (levels.length > 1) {
+    if (levels.length) {
       quality.add(new Option('自動', '-1'));
-
-      levels.forEach((level, index) => {
-        const resolution = level.height
-          ? `${level.height}p`
-          : `画質 ${index + 1}`;
-
-        const bitrate = level.bitrate
-          ? `・${Math.round(level.bitrate / 1000)}kbps`
-          : '';
-
-        quality.add(
-          new Option(`${resolution}${bitrate}`, String(index))
+      QUALITY_HEIGHTS.forEach(height => {
+        // 同じ解像度の配信が複数ある場合は、帯域の小さい方を使う。
+        const candidates = levels.map((level, index) => ({level, index}))
+          .filter(item => item.level.height === height)
+          .sort((a, b) => (a.level.bitrate || 0) - (b.level.bitrate || 0));
+        const index = candidates[0]?.index;
+        const option = new Option(
+          index === undefined ? `${height}p（未対応）` : `${height}p`,
+          index === undefined ? `unavailable-${height}` : String(index)
         );
+        option.disabled = index === undefined;
+        quality.add(option);
       });
-
-      quality.value = settingsPlayer.autoLevelEnabled
-        ? '-1'
-        : String(settingsPlayer.loadLevel);
-
+      const manual = requestedQuality ?? (player.autoLevelEnabled ? -1 : player.loadLevel);
+      if ([...quality.options].some(option => !option.disabled && option.value === String(manual))) {
+        quality.value = String(manual);
+      } else if (Number.isInteger(manual) && levels[manual]) {
+        const current = new Option(`現在の画質（${levels[manual].height || '不明'}p）`, 'current-level');
+        current.disabled = true;
+        quality.add(current);
+        quality.value = 'current-level';
+      } else {
+        quality.value = '-1';
+      }
       quality.disabled = false;
-      qualityNote.textContent =
-        '切り替えが映像に反映されるまで少し時間がかかる場合があります。';
+      qualityNote.textContent = '用意されている画質を選択できます。変更の反映に少し時間がかかる場合があります。';
     } else {
-      const height = levels[0]?.height || video.videoHeight;
-      const label = height ? `現在 ${height}p` : '現在の画質';
-
-      quality.add(new Option(label, 'current'));
-      quality.disabled = true;
-
-      qualityNote.textContent = settingsPlayer
-        ? 'この動画には選択できる別の画質がありません。'
-        : 'この再生方式では、サイトから画質を手動選択できません。';
+      const height = video.videoHeight;
+      quality.add(new Option(height ? `元の画質（${height}p）` : '元の画質', 'current'));
+      QUALITY_HEIGHTS.forEach(value => {
+        const option = new Option(`${value}p（切替不可）`, `unavailable-${value}`);
+        option.disabled = true;
+        quality.add(option);
+      });
+      quality.value = 'current';
+      quality.disabled = false;
+      qualityNote.textContent = player
+        ? '画質情報を読み込み中です。'
+        : '現在は元の画質で再生します。各画質の動画が用意され、手動切替に対応する場合に選択できます。';
     }
   }
 
   settingsButton.addEventListener('click', () => {
-    if (!settings.hidden) {
-      closeSettings();
-      return;
-    }
-
+    if (!settings.hidden) { closeSettings(); return; }
+    settingsVideoId = currentVideoId;
+    speedNote.textContent = '';
     refreshSettings();
     settings.hidden = false;
     settingsButton.setAttribute('aria-expanded', 'true');
@@ -9890,58 +10041,67 @@ bell.hidden = !signedIn || !onNotificationScreen;
     .addEventListener('click', () => closeSettings(true));
 
   quality.addEventListener('change', () => {
-    const player =
-      typeof hlsInstance !== 'undefined' ? hlsInstance : null;
-
-    // 設定を開いている間に動画が切り替わった場合は適用しない
-    if (!player || player !== settingsPlayer) {
-      closeSettings();
-      return;
+    const player = currentHlsPlayer();
+    if (settingsVideoId !== currentVideoId || player !== settingsPlayer) {
+      closeSettings(); return;
     }
-
+    const option = quality.selectedOptions[0];
+    if (!player || !option || option.disabled || !/^-?\d+$/.test(quality.value)) return;
     const level = Number(quality.value);
-
-    if (
-      Number.isInteger(level) &&
-      level >= -1 &&
-      level < player.levels.length
-    ) {
+    if (!Number.isInteger(level) || level < -1 || level >= player.levels.length) return;
+    if (level !== -1 && !QUALITY_HEIGHTS.includes(player.levels[level].height)) return;
+    try {
       player.nextLevel = level;
+      requestedQuality = level;
+      qualityNote.textContent = level === -1 ? '画質を自動で調整します。' :
+        `${player.levels[level].height}pに切り替えています。`;
+    } catch (error) {
+      console.warn('画質変更に失敗しました:', error);
+      qualityNote.textContent = '画質を変更できませんでした。設定を開き直してください。';
     }
   });
 
-  speed.addEventListener('change', () => {
-    const rate = Number(speed.value);
+  speed.addEventListener('input', () => changePlaybackSpeed(speed.value));
+  speedMinus.addEventListener('click', () => changePlaybackSpeed(video.playbackRate - SPEED_STEP));
+  speedPlus.addEventListener('click', () => changePlaybackSpeed(video.playbackRate + SPEED_STEP));
+  speedPresets.forEach(button => {
+    button.addEventListener('click', () => changePlaybackSpeed(button.dataset.playbackRate));
+  });
+  video.addEventListener('ratechange', syncSpeedControls);
 
-    if (Number.isFinite(rate) && rate >= 0.5 && rate <= 2) {
-      video.playbackRate = rate;
-    }
+  // PCの下段へ移した設定ボタンも、映像の再生切替へクリックを伝えない。
+  [tools, settings, settingsButton].forEach(element => {
+    element.addEventListener('click', event => event.stopPropagation());
   });
 
-  // 設定やスライダー操作を、映像のクリック処理へ伝えない
-  [tools, settings].forEach(element => {
-    element.addEventListener('click', event => {
-      event.stopPropagation();
+  function bindSettingsDocument() {
+    const owner = wrapper.ownerDocument;
+    if (settingsDocuments.has(owner)) return;
+    settingsDocuments.add(owner);
+    owner.addEventListener('pointerdown', event => {
+      if (!settings.hidden && !settings.contains(event.target) &&
+          !tools.contains(event.target) && !settingsButton.contains(event.target)) closeSettings();
     });
+    owner.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !settings.hidden) closeSettings(true);
+    });
+  }
+
+  video.addEventListener('emptied', () => {
+    closeSettings();
+    requestedQuality = null;
+    bindHlsSettingsEvents(null);
+  });
+  video.addEventListener('loadstart', () => {
+    closeSettings();
+    requestedQuality = null;
+    bindHlsSettingsEvents(currentHlsPlayer());
+  });
+  video.addEventListener('loadedmetadata', () => {
+    if (!settings.hidden) refreshSettings();
+    else bindHlsSettingsEvents(currentHlsPlayer());
   });
 
-  document.addEventListener('pointerdown', event => {
-    if (
-      !settings.hidden &&
-      !settings.contains(event.target) &&
-      !tools.contains(event.target)
-    ) {
-      closeSettings();
-    }
-  });
-
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !settings.hidden) {
-      closeSettings(true);
-    }
-  });
-
-  video.addEventListener('emptied', () => closeSettings());
 
   function arrangePlayer() {
     const compact = mobile.matches;
@@ -9949,7 +10109,17 @@ bell.hidden = !signedIn || !onNotificationScreen;
       wrapper.classList.contains('is-sticky') ||
       wrapper.classList.contains('in-pip');
 
-    wrapper.classList.toggle('mobile-player-layout', compact);
+    if (wrapper.classList.contains('mobile-player-layout') !== compact) {
+      wrapper.classList.toggle('mobile-player-layout', compact);
+    }
+    bindSettingsDocument();
+    if (compact && !mini) {
+      if (settingsButton.parentElement !== tools) tools.appendChild(settingsButton);
+    } else {
+      const pipButton = wrapper.querySelector('#pipBtn');
+      if (pipButton && pipButton.nextElementSibling !== settingsButton) pipButton.after(settingsButton);
+      else if (!pipButton && settingsButton.parentElement !== right) right.appendChild(settingsButton);
+    }
 
     if (compact) {
       // 弾幕入力を動画のすぐ下へ移動
