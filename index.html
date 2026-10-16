@@ -3161,6 +3161,55 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   opacity: .5;
 }
 
+/* 入力欄の近くに出す警告 */
+.guard-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0;
+  padding: 12px 16px;
+  border-left: 4px solid transparent;
+  border-radius: 10px;
+  background: #212121;
+  color: #fff;
+  box-shadow: 0 4px 16px #0003;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.guard-notice[data-level="warning"] {
+  border-left-color: #ffd166;
+}
+
+.guard-notice[data-level="danger"] {
+  border-left-color: #ff6e6e;
+}
+
+.guard-notice > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.guard-notice > button {
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
   </style>
 
 </head>
@@ -3590,6 +3639,178 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     const storage = getStorage(app);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    import {
+  getFunctions as getGuardFunctions,
+  httpsCallable as guardCallable
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js';
+
+const callSubmovieGuard = guardCallable(
+  getGuardFunctions(app, 'asia-northeast1'),
+  'submovieGuard'
+);
+
+const guardNotices = new WeakMap();
+const uploadGrantIds = new WeakMap();
+
+function showGuardNotice(anchor, result) {
+  if (!anchor?.isConnected) return;
+
+  // スマホのコメントパネルや編集画面の内側にも表示する
+  const form = anchor.closest('.comment-action-dialog form');
+
+  const host = form ||
+    anchor.closest(
+      '.reply-input-area, #commentComposer, .danmaku-input-area'
+    ) ||
+    anchor;
+
+  const old = guardNotices.get(host);
+
+  if (old) {
+    clearTimeout(old.timer);
+    old.node.remove();
+  }
+
+  const box = document.createElement('div');
+  box.className = 'guard-notice';
+
+  box.dataset.level = result.severe
+    ? 'danger'
+    : result.warnings >= 5
+      ? 'warning'
+      : 'normal';
+
+  box.setAttribute('role', 'alert');
+  box.setAttribute('aria-atomic', 'true');
+
+  const message = document.createElement('span');
+  message.textContent = result.message;
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = '×';
+  close.setAttribute('aria-label', '警告を閉じる');
+
+  box.append(message, close);
+
+  if (form) {
+    form.appendChild(box);
+  } else {
+    host.after(box);
+  }
+
+  const hide = () => {
+    box.remove();
+    guardNotices.delete(host);
+  };
+
+  const timer = setTimeout(hide, 10000);
+
+  close.addEventListener('click', () => {
+    clearTimeout(timer);
+    hide();
+  });
+
+  guardNotices.set(host, { node: box, timer });
+}
+
+async function guardedWrite(payload, anchor) {
+  const uid = auth.currentUser?.uid;
+
+  const sameContext = () =>
+    auth.currentUser?.uid === uid &&
+    (
+      !['post', 'edit'].includes(payload.action) ||
+      currentVideoId === payload.videoId
+    );
+
+  try {
+    const { data } = await callSubmovieGuard(payload);
+
+    if (!data.ok) {
+      if (sameContext()) showGuardNotice(anchor, data);
+
+      const error = new Error(data.message);
+      error.limitNoticeShown = true;
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    if (!error.limitNoticeShown) {
+      const message =
+        error.code === 'functions/unauthenticated'
+          ? 'ログインしてください。'
+          : [
+              'functions/internal',
+              'functions/unavailable'
+            ].includes(error.code)
+            ? '送信できませんでした。通信とサーバー設定を確認してください。'
+            : error.message || '送信できませんでした。';
+
+      if (sameContext()) {
+        showGuardNotice(anchor, { message });
+      }
+
+      error.limitNoticeShown = true;
+    }
+
+    throw error;
+  }
+}
+
+// 同じファイルの送信やり直しでは、同じ投稿予約を使う
+async function reserveVideoGrant(file) {
+  const key =
+    'submovie-upload-request:' +
+    (auth.currentUser?.uid || '') + ':' +
+    JSON.stringify([
+      file.name,
+      file.size,
+      file.lastModified
+    ]);
+
+  let record = uploadGrantIds.get(file);
+
+  if (!record || record.key !== key) {
+    let id;
+
+    try {
+      id = localStorage.getItem(key);
+    } catch {}
+
+    if (!/^[a-f0-9-]{36}$/i.test(id || '')) {
+      id = crypto.randomUUID();
+    }
+
+    record = { id, key };
+    uploadGrantIds.set(file, record);
+
+    try {
+      localStorage.setItem(key, id);
+    } catch {}
+  }
+
+  return guardedWrite({
+    action: 'upload',
+    requestId: record.id,
+    name: file.name,
+    size: file.size,
+    contentType: file.type
+  }, saveBtn);
+}
+
+function forgetVideoGrant(file) {
+  const record = uploadGrantIds.get(file);
+
+  if (record) {
+    try {
+      localStorage.removeItem(record.key);
+    } catch {}
+
+    uploadGrantIds.delete(file);
+  }
+}
     const googleProvider = new GoogleAuthProvider();
 
    function escapeHtml(value) {
