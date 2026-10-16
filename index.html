@@ -6613,15 +6613,13 @@ commentSubmitBtn.addEventListener('click', async () => {
   syncTextCommentActions();
 
   try {
-    await addDoc(collection(db, 'comments'), {
-      videoId,
-      text,
-      author: getNickname(),
-      authorUid: user.uid,
-      type: 'normal',
-      createdAt: serverTimestamp(),
-      parentId: null
-    });
+    await guardedWrite({
+  action: 'post',
+  videoId,
+  text,
+  type: 'normal',
+  parentId: null
+}, commentInput);
 
     if (
       currentVideoId === videoId &&
@@ -6770,15 +6768,13 @@ danmakuSubmitBtn.addEventListener('click', async () => {
   syncDanmakuSubmitState();
 
   try {
-    await addDoc(collection(db, 'comments'), {
-      videoId,
-      text,
-      author: getNickname(),
-      authorUid: auth.currentUser.uid,
-      type: 'danmaku',
-      videoTime,
-      createdAt: serverTimestamp()
-    });
+    await guardedWrite({
+  action: 'post',
+  videoId,
+  text,
+  type: 'danmaku',
+  videoTime
+}, danmakuInput);
 
     if (
       currentVideoId === videoId &&
@@ -7079,13 +7075,15 @@ async function runCommentMenuAction(action, comment) {
       save: async () => {
         let removed;
 
-        await runTransaction(db, async transaction => {
-          const snapshot = await transaction.get(commentRef);
-          removed = snapshot.data();
-
-          checkOwnComment(removed, comment, user);
-          transaction.delete(commentRef);
-        });
+       await guardedWrite({
+  action: 'edit',
+  videoId: comment.videoId,
+  commentId: comment.id,
+  text,
+  expectedText: comment.text
+}, document.querySelector(
+  '.comment-action-dialog textarea'
+));
 
         // 過去に投稿済みの添付画像も、本人のファイルだけ削除
         if (
@@ -7097,6 +7095,7 @@ async function runCommentMenuAction(action, comment) {
             await deleteObject(ref(storage, removed.imagePath));
             commentImageUrlCache.delete(removed.imagePath);
           } catch (error) {
+          if (error.limitNoticeShown) return;
             console.warn('添付画像の削除失敗:', error);
           }
         }
@@ -7363,6 +7362,7 @@ function enhanceCommentNode(node, comment, isReply) {
     try {
       checkCommentSession(user);
     } catch (error) {
+      if (error.limitNoticeShown) return;
       status.textContent = error.message;
       return;
     }
@@ -7410,15 +7410,13 @@ function enhanceCommentNode(node, comment, isReply) {
         throw new Error('動画が切り替わりました。');
       }
 
-      await addDoc(collection(db, 'comments'), {
-        videoId,
-        text,
-        author: getNickname(),
-        authorUid: user.uid,
-        type: 'normal',
-        parentId: comment.id,
-        createdAt: serverTimestamp()
-      });
+     await guardedWrite({
+  action: 'post',
+  videoId,
+  text,
+  type: 'normal',
+  parentId: comment.id
+}, input);
 
       closeReply();
     } catch (error) {
