@@ -2889,6 +2889,86 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   background: #f5f5f5; color: #065fd4; cursor: pointer;
 }
 
+.comment-sort-modern {
+  position: relative;
+}
+
+#commentSortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#commentSortButton:hover {
+  background: #eee;
+}
+
+#commentSortButton:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+#commentSortMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  max-height: 50dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 8px 0;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 18px #0003;
+}
+
+#commentSortMenu[hidden],
+#commentSortSelect[hidden] {
+  display: none !important;
+}
+
+#commentSortMenu > button {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 18px;
+  border: 0;
+  background: transparent;
+  color: #111;
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+#commentSortMenu > button[aria-pressed="true"] {
+  background: #e8e8e8;
+}
+
+#commentSortMenu > button:hover {
+  background: #f2f2f2;
+}
+
+#commentSortMenu small {
+  display: block;
+  margin-top: 4px;
+  color: #606060;
+  font-size: 12px;
+  font-weight: normal;
+}
+
   </style>
 
 </head>
@@ -3050,18 +3130,54 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
           <!-- コメント -->
           <div class="comment-section">
-            <div class="comment-heading-row">
-              <h3>コメント</h3>
+           <div class="comment-heading-row">
+  <h3 id="commentCountHeading" aria-live="polite">コメント</h3>
 
-              <label class="comment-sort-control">
-                <span>☰ 並べ替え</span>
-                <select id="commentSortSelect" disabled>
-                  <option value="popular">人気順</option>
-                  <option value="newest">新しい順</option>
-                  <option value="oldest">古い順</option>
-                </select>
-              </label>
-            </div>
+  <div class="comment-sort-control comment-sort-modern">
+    <button
+      id="commentSortButton"
+      type="button"
+      aria-expanded="false"
+      aria-controls="commentSortMenu"
+      disabled
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round"
+           aria-hidden="true">
+        <path d="M3 6h18M3 12h12M3 18h6"/>
+      </svg>
+      並べ替え
+    </button>
+
+    <div id="commentSortMenu"
+         role="group"
+         aria-label="コメントの並び順"
+         hidden>
+      <button type="button" data-sort="popular">
+        人気順
+        <small>高評価の多いコメントから表示</small>
+      </button>
+
+      <button type="button" data-sort="newest">
+        新しい順
+        <small>最近投稿されたコメントから表示</small>
+      </button>
+
+      <button type="button" data-sort="oldest">
+        古い順
+        <small>先に投稿されたコメントから表示</small>
+      </button>
+    </div>
+
+    <!-- 既存の並び替え処理との接続用。削除しない -->
+    <select id="commentSortSelect" disabled hidden>
+      <option value="popular">人気順</option>
+      <option value="newest">新しい順</option>
+      <option value="oldest">古い順</option>
+    </select>
+  </div>
+</div>
 
             <div class="comment-input-area" id="commentComposer">
               <div class="comment-avatar" id="commentAvatar">U</div>
@@ -5170,7 +5286,7 @@ gridItem.addEventListener('click', event => {
           if (v.uploaderUid === currentUser.uid) return alert('自分のチャンネルは非表示にできません。');
           try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserNotInterested.push(v.uploaderUid); alert('このチャンネルの動画を今後おすすめに表示しません。'); applyFilterAndSort(); } catch { alert('設定に失敗しました。'); }
         });
-        
+
         gridItem.querySelector('.block-channel-btn').addEventListener('click', async (e) => {
     e.stopPropagation();dropdown.classList.remove('active');
       await blockUserWithDialog(v.uploaderUid);
@@ -6339,6 +6455,144 @@ function renderSortedComments() {
 }
 
 commentSortSelect.addEventListener('change', renderSortedComments);
+(() => {
+  const heading = document.getElementById('commentCountHeading');
+  const button = document.getElementById('commentSortButton');
+  const menu = document.getElementById('commentSortMenu');
+  const select = document.getElementById('commentSortSelect');
+
+  if (!heading || !button || !menu || !select) return;
+
+  const control = button.closest('.comment-sort-control');
+  const choices = [...menu.querySelectorAll('[data-sort]')];
+
+  function closeMenu(restoreFocus = false) {
+    menu.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+
+    if (restoreFocus) {
+      button.focus({ preventScroll: true });
+    }
+  }
+
+  function syncHeader() {
+    button.disabled = select.disabled;
+
+    const count = commentList.querySelectorAll('.comment-item').length;
+
+    heading.textContent = select.disabled
+      ? 'コメント'
+      : `${count.toLocaleString('ja-JP')} 件のコメント`;
+
+    choices.forEach(choice => {
+      choice.setAttribute(
+        'aria-pressed',
+        String(choice.dataset.sort === select.value)
+      );
+    });
+
+    if (select.disabled) closeMenu();
+  }
+
+  function openMenu() {
+    if (select.disabled) return;
+
+    menu.style.transform = '';
+    menu.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+
+    // 画面の左右からメニューがはみ出さないよう調整
+    const rect = menu.getBoundingClientRect();
+
+    const shift = Math.max(
+      12 - rect.left,
+      Math.min(0, window.innerWidth - 12 - rect.right)
+    );
+
+    menu.style.transform = `translateX(${shift}px)`;
+
+    const selected = choices.find(
+      choice => choice.dataset.sort === select.value
+    );
+
+    (selected || choices[0]).focus();
+  }
+
+  button.addEventListener('click', () => {
+    if (menu.hidden) openMenu();
+    else closeMenu();
+  });
+
+  choices.forEach(choice => {
+    choice.addEventListener('click', () => {
+      if (select.disabled) return;
+
+      select.value = choice.dataset.sort;
+
+      // サイトにある既存の並び替え処理を実行
+      select.dispatchEvent(
+        new Event('change', { bubbles: true })
+      );
+
+      syncHeader();
+      closeMenu(true);
+    });
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (!control.contains(event.target)) closeMenu();
+  });
+
+  document.addEventListener('focusin', event => {
+    if (!control.contains(event.target)) closeMenu();
+  });
+
+  control.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    }
+
+    if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+
+    event.preventDefault();
+
+    if (menu.hidden) {
+      openMenu();
+      return;
+    }
+
+    const index = choices.indexOf(document.activeElement);
+    const step = event.key === 'ArrowDown' ? 1 : -1;
+
+    choices[
+      (index + step + choices.length) % choices.length
+    ].focus();
+  });
+
+  window.addEventListener('resize', () => closeMenu());
+
+  control.closest('.comment-section')
+    ?.addEventListener('scroll', () => closeMenu(), true);
+
+  select.addEventListener('change', syncHeader);
+
+  // 投稿・返信・削除などに合わせて件数を更新
+  new MutationObserver(syncHeader).observe(commentList, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+
+  // 読み込み中や取得失敗時は並び替えを無効化
+  new MutationObserver(syncHeader).observe(select, {
+    attributes: true,
+    attributeFilter: ['disabled']
+  });
+
+  syncHeader();
+})();
 
 function loadComments() {
   if (unsubscribeComments) unsubscribeComments();
