@@ -6737,6 +6737,100 @@ const usesIOSSystemVolume =
     navigator.maxTouchPoints > 1
   );
 
+// PCの音量・ミュートを、次回起動時にも復元する。
+const VOLUME_STORAGE_KEY = 'submovie-player-volume-v1';
+const desktopVolumeQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+let restoringStoredVolume = false;
+let volumeStorageWarningShown = false;
+
+function usesPersistentVolume() {
+  return !usesIOSSystemVolume && desktopVolumeQuery.matches;
+}
+
+function parseStoredVolume(raw) {
+  try {
+    const settings = JSON.parse(raw);
+    if (!settings || settings.version !== 1 ||
+        typeof settings.volume !== 'number' ||
+        !Number.isFinite(settings.volume) ||
+        settings.volume < 0 || settings.volume > 1 ||
+        typeof settings.muted !== 'boolean') return null;
+
+    const remembered = settings.lastNonZeroVolume;
+    return {
+      volume: settings.volume,
+      muted: settings.muted,
+      lastNonZeroVolume:
+        typeof remembered === 'number' && Number.isFinite(remembered) &&
+        remembered > 0 && remembered <= 1
+          ? remembered : settings.volume > 0 ? settings.volume : 1
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readStoredVolume() {
+  try {
+    return parseStoredVolume(window.localStorage.getItem(VOLUME_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function persistVolumeSettings() {
+  if (!usesPersistentVolume() || restoringStoredVolume) return;
+  const value = video.volume;
+  if (!Number.isFinite(value) || value < 0 || value > 1) return;
+  if (value > 0) lastVolume = value;
+
+  const serialized = JSON.stringify({
+    version: 1,
+    volume: value,
+    muted: video.muted,
+    lastNonZeroVolume: lastVolume
+  });
+
+  try {
+    // 他タブから復元した同じ値を再保存せず、通知の往復を防ぐ。
+    if (window.localStorage.getItem(VOLUME_STORAGE_KEY) !== serialized) {
+      window.localStorage.setItem(VOLUME_STORAGE_KEY, serialized);
+    }
+  } catch (error) {
+    // 保存できない環境でも、音量の操作はそのまま使える。
+    if (!volumeStorageWarningShown) {
+      volumeStorageWarningShown = true;
+      console.warn('音量設定をブラウザに保存できませんでした:', error);
+    }
+  }
+}
+
+function restoreVolumeSettings(settings = readStoredVolume()) {
+  if (!usesPersistentVolume() || !settings) return;
+  restoringStoredVolume = true;
+  try {
+    lastVolume = settings.lastNonZeroVolume;
+    video.volume = settings.volume;
+    video.muted = settings.muted;
+    syncVolumeSlider();
+    sync();
+  } finally {
+    restoringStoredVolume = false;
+  }
+}
+
+video.addEventListener('volumechange', persistVolumeSettings);
+
+window.addEventListener('storage', event => {
+  if (event.key !== VOLUME_STORAGE_KEY || event.newValue === null) return;
+  restoreVolumeSettings(parseStoredVolume(event.newValue));
+});
+
+desktopVolumeQuery.addEventListener('change', () => {
+  restoreVolumeSettings();
+});
+
+
 // 音量バーの更新は、実際に音量設定が変わったときだけ行う
 function syncVolumeSlider() {
   if (usesIOSSystemVolume || adjustingVolume) return;
@@ -6840,6 +6934,7 @@ volume.addEventListener('blur', () => {
       lastVolume = video.volume;
       video.muted = true;
     }
+    persistVolumeSettings();
   });
 
   volume.addEventListener('input', () => {
@@ -6858,6 +6953,7 @@ volume.addEventListener('blur', () => {
   if (requestedVolume > 0) {
     lastVolume = requestedVolume;
   }
+  persistVolumeSettings();
 });
 
   // ドラッグ中は時刻を表示し、確定時に移動する
@@ -6912,6 +7008,8 @@ volume.addEventListener('blur', () => {
 
   // 標準の操作バーを、今回の操作バーに切り替える
   video.controls = false;
+  restoreVolumeSettings();
+  syncVolumeSlider();
   sync();
 
   // タイトル・高評価 → 弾幕入力 → アイコン・名前
