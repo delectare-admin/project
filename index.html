@@ -2872,6 +2872,23 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 }
 #videoWrapper #mobilePlaybackSettings .playback-speed-note:empty { display: none; }
 
+
+/* コレクションの保存とは別に、端末への動画ダウンロードを表示。 */
+#watchMoreMenu #downloadVideoBtn { color: #111; }
+#watchMoreMenu #downloadVideoBtn:disabled { color: #888; cursor: wait; }
+#videoDownloadProgress {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  margin: 8px 0; color: #606060; font-size: 13px; line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#videoDownloadProgress[hidden], #videoDownloadProgress button[hidden] { display: none !important; }
+#videoDownloadProgress[data-state="error"] { color: #b3261e; }
+#videoDownloadProgress button {
+  flex-shrink: 0; min-height: 36px; padding: 6px 12px;
+  border: 1px solid #ddd; border-radius: 18px;
+  background: #f5f5f5; color: #065fd4; cursor: pointer;
+}
+
   </style>
 
 </head>
@@ -3281,6 +3298,181 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     character => replacements[character]
   );
 }
+
+// 端末への保存。先頭形式の確認はマルウェア検査を代替しない。
+const VIDEO_DOWNLOAD_FORMATS = Object.freeze({
+  mp4: {mime: 'video/mp4', family: 'mp4', accepted: ['video/mp4']},
+  m4v: {mime: 'video/mp4', family: 'mp4', accepted: ['video/mp4', 'video/x-m4v']},
+  mov: {mime: 'video/quicktime', family: 'mp4', accepted: ['video/quicktime']},
+  webm: {mime: 'video/webm', family: 'webm', accepted: ['video/webm']}
+});
+const VIDEO_DOWNLOAD_MEMORY_LIMIT = 256 * 1024 * 1024;
+const VIDEO_DOWNLOAD_HEADER_BYTES = 64 * 1024;
+
+function makeVideoDownloadTarget(videoId, title) {
+  if (typeof videoId !== 'string' || !videoId.startsWith('videos/') ||
+      /[\u0000-\u001f\u007f]/.test(videoId)) {
+    throw new Error('保存する元動画を確認できませんでした。');
+  }
+  const extension = videoId.match(/\.([a-z0-9]+)$/i)?.[1].toLowerCase();
+  const format = Object.hasOwn(VIDEO_DOWNLOAD_FORMATS, extension || '')
+    ? VIDEO_DOWNLOAD_FORMATS[extension] : null;
+  if (!format) throw new Error('この形式の動画は保存に対応していません。MP4・M4V・MOV・WebMに対応しています。');
+
+  let name = String(title || '動画').normalize('NFKC')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069<>:"/\\|?*]/g, '_')
+    .replace(/\.(mp4|m4v|mov|webm)$/i, '')
+    .replace(/\.(?:exe|com|scr|msi|bat|cmd|ps1|vbs|js|jar|lnk|html?|svg|zip|rar|7z)(?=\.|$)/gi,
+      match => '_' + match.slice(1))
+    .slice(0, 100).replace(/[. ]+$/g, '').trim();
+  if (!name) name = '動画';
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(name)) name = '動画_' + name;
+  return {videoId, extension, ...format, fileName: `${name}.${extension}`};
+}
+
+function allowedVideoDownloadMime(type, target) {
+  const mime = String(type || '').split(';')[0].trim().toLowerCase();
+  // 古いアップロードの汎用MIMEは、後段で実データの先頭を確認する。
+  return !mime || mime === 'application/octet-stream' || target.accepted.includes(mime);
+}
+
+function matchesVideoDownloadHeader(bytes, target) {
+  if (target.family === 'mp4') {
+    if (bytes.length < 16) return false;
+    const ascii = (start, length) => String.fromCharCode(...bytes.slice(start, start + length));
+    if (ascii(4, 4) !== 'ftyp') return false;
+    const boxSize = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0);
+    if (boxSize < 16 || boxSize > bytes.length || boxSize % 4 !== 0) return false;
+    const brands = [ascii(8, 4)];
+    for (let offset = 16; offset + 4 <= boxSize; offset += 4) brands.push(ascii(offset, 4));
+    return brands.some(brand => /^(isom|iso[2-9]|mp4[12]|avc1|hvc1|hev1|dash|M4V |qt  )$/.test(brand));
+  }
+  if (target.family === 'webm') {
+    if (bytes.length < 8 || bytes[0] !== 0x1a || bytes[1] !== 0x45 ||
+        bytes[2] !== 0xdf || bytes[3] !== 0xa3) return false;
+    // EBMLヘッダー内のDocTypeがwebmであることを確認する。
+    for (let i = 4; i + 7 <= bytes.length; i++) {
+      if (bytes[i] !== 0x42 || bytes[i + 1] !== 0x82 || bytes[i + 2] !== 0x84) continue;
+      if (String.fromCharCode(...bytes.slice(i + 3, i + 7)) === 'webm') return true;
+    }
+  }
+  return false;
+}
+
+function checkVideoDownloadAbort(signal) {
+  if (signal.aborted) throw new DOMException('保存をキャンセルしました。', 'AbortError');
+}
+
+async function saveVideoDownload(target, fileHandle, signal, onProgress) {
+  checkVideoDownloadAbort(signal);
+  const videoRef = ref(storage, target.videoId);
+  const metadata = await getMetadata(videoRef);
+  checkVideoDownloadAbort(signal);
+  const size = Number(metadata.size);
+  if (metadata.fullPath !== target.videoId || metadata.bucket !== videoRef.bucket ||
+      !Number.isSafeInteger(size) || size <= 0 || !allowedVideoDownloadMime(metadata.contentType, target)) {
+    throw new Error('動画ファイルの種類や保存先を確認できませんでした。');
+  }
+  if (!fileHandle && size > VIDEO_DOWNLOAD_MEMORY_LIMIT) {
+    throw new Error('このブラウザでは256MBを超える動画の保存に対応していません。大きな動画はPC版Chrome・Edgeの保存機能を使用してください。');
+  }
+  if (fileHandle && !fileHandle.name.toLowerCase().endsWith('.' + target.extension)) {
+    throw new Error(`保存するファイル名の拡張子を「.${target.extension}」にしてください。`);
+  }
+
+  const rawUrl = await getDownloadURL(videoRef);
+  checkVideoDownloadAbort(signal);
+  const url = new URL(rawUrl);
+  const match = url.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+  if (url.origin !== 'https://firebasestorage.googleapis.com' || url.username || url.password ||
+      !match || decodeURIComponent(match[1]) !== videoRef.bucket || decodeURIComponent(match[2]) !== target.videoId) {
+    throw new Error('動画のダウンロード先を確認できませんでした。');
+  }
+
+  const response = await fetch(url.href, {
+    method: 'GET', credentials: 'omit', redirect: 'error',
+    referrerPolicy: 'no-referrer', signal
+  });
+  if (!response.ok || !response.body || !allowedVideoDownloadMime(response.headers.get('content-type'), target)) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error('動画データを取得できませんでした。');
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+  let verified = false;
+  let writer = null;
+  let complete = false;
+  let lastPercent = -1;
+
+  try {
+    while (true) {
+      checkVideoDownloadAbort(signal);
+      const {done, value} = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > size || (!fileHandle && received > VIDEO_DOWNLOAD_MEMORY_LIMIT)) {
+        throw new Error('動画の容量が取得前の情報と一致しないため、保存を中止しました。');
+      }
+      if (!verified) {
+        chunks.push(value);
+        if (received < Math.min(size, VIDEO_DOWNLOAD_HEADER_BYTES)) continue;
+        const header = new Uint8Array(Math.min(received, VIDEO_DOWNLOAD_HEADER_BYTES));
+        let offset = 0;
+        for (const chunk of chunks) {
+          const part = chunk.subarray(0, header.length - offset);
+          header.set(part, offset); offset += part.length;
+          if (offset === header.length) break;
+        }
+        if (!matchesVideoDownloadHeader(header, target)) {
+          throw new Error('対応する動画形式を確認できなかったため保存しませんでした。');
+        }
+        verified = true;
+        if (fileHandle) {
+          writer = await fileHandle.createWritable();
+          for (const chunk of chunks) {checkVideoDownloadAbort(signal); await writer.write(chunk);}
+          chunks.length = 0;
+        }
+      } else if (writer) {
+        await writer.write(value);
+      } else {
+        chunks.push(value);
+      }
+      const percent = Math.min(99, Math.floor(received / size * 100));
+      if (percent !== lastPercent) {lastPercent = percent; onProgress(percent);}
+    }
+    checkVideoDownloadAbort(signal);
+    if (!verified || received !== size) throw new Error('動画の取得が完了しなかったため保存を中止しました。');
+    if (writer) {
+      await writer.close();
+      complete = true;
+      return 'saved';
+    }
+    const blob = new Blob(chunks, {type: target.mime});
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = target.fileName;
+    link.hidden = true;
+    document.body.appendChild(link);
+    try {
+      link.click();
+      complete = true;
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    }
+    return 'started';
+  } finally {
+    if (!complete) {
+      await reader.cancel().catch(() => {});
+      if (writer) await writer.abort().catch(() => {});
+    }
+    reader.releaseLock();
+    chunks.length = 0;
+  }
+}
+
 
     function statsDocId(path) { return path.replace(/\//g, '__'); }
 
@@ -9195,7 +9387,79 @@ navHistoryBtn.addEventListener('click', event => {
   menu.setAttribute('role', 'group');
   menu.setAttribute('aria-label', 'その他の操作');
 
-  menu.append(save, report);
+  const download = document.createElement('button');
+  download.id = 'downloadVideoBtn';
+  download.type = 'button';
+  download.textContent = '⬇ 動画を保存';
+  download.title = 'この端末に動画ファイルを保存（無料）';
+  download.setAttribute('aria-label', '動画を端末に保存・無料');
+  menu.append(save, report, download);
+
+  const downloadStatus = document.createElement('div');
+  downloadStatus.id = 'videoDownloadProgress';
+  downloadStatus.hidden = true;
+  downloadStatus.setAttribute('role', 'status');
+  const downloadMessage = document.createElement('span');
+  const cancelDownload = document.createElement('button');
+  cancelDownload.type = 'button';
+  cancelDownload.textContent = 'キャンセル';
+  cancelDownload.setAttribute('aria-label', '動画の保存をキャンセル');
+  cancelDownload.hidden = true;
+  downloadStatus.append(downloadMessage, cancelDownload);
+  meta.after(downloadStatus);
+
+  let downloadController = null;
+  cancelDownload.addEventListener('click', () => downloadController?.abort());
+
+  download.addEventListener('click', async () => {
+    if (downloadController || !document.body.classList.contains('watch-mode')) return;
+    const controller = new AbortController();
+    downloadController = controller;
+    download.disabled = true;
+    downloadStatus.hidden = false;
+    downloadStatus.dataset.state = 'working';
+    cancelDownload.hidden = false;
+    try {
+      const target = makeVideoDownloadTarget(currentVideoId, title.textContent);
+      downloadMessage.textContent = `「${target.fileName}」の保存を準備しています…`;
+      let handle = null;
+      // 先に保存先を選ぶことで、大きな動画をメモリへ丸ごと保持せず保存できる。
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          handle = await window.showSaveFilePicker({
+            id: 'submovie-video-download',
+            suggestedName: target.fileName,
+            types: [{description: '動画ファイル', accept: {[target.mime]: ['.' + target.extension]}}],
+            excludeAcceptAllOption: true
+          });
+        } catch (error) {
+          if (!['SecurityError', 'NotSupportedError'].includes(error.name)) throw error;
+        }
+      }
+      const result = await saveVideoDownload(target, handle, controller.signal, percent => {
+        downloadMessage.textContent = `「${target.fileName}」を取得中… ${percent}%`;
+      });
+      downloadStatus.dataset.state = 'done';
+      downloadMessage.textContent = result === 'saved'
+        ? `「${target.fileName}」を保存しました。`
+        : `「${target.fileName}」のダウンロードを開始しました。`;
+    } catch (error) {
+      if (error.name === 'AbortError' || controller.signal.aborted) {
+        downloadMessage.textContent = '動画の保存をキャンセルしました。';
+        downloadStatus.dataset.state = 'done';
+      } else {
+        console.error('動画の端末保存に失敗:', error);
+        downloadStatus.dataset.state = 'error';
+        downloadMessage.textContent = error instanceof TypeError
+          ? '動画を取得できませんでした。通信状態を確認してください。'
+          : error.message || '動画を保存できませんでした。';
+      }
+    } finally {
+      cancelDownload.hidden = true;
+      download.disabled = false;
+      downloadController = null;
+    }
+  });
   document.body.appendChild(menu);
 
   actions.append(like, dislike, share, more);
