@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-l4V71+h4WUfXetsdNoIo7jtugx6AtKSxYy+t0tbSU5I=' 'sha256-aVBFQ9I2ZZlwlbaPbSMSOkmEbOpt8RT9/3Z9G3qMr6o=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-SXeWbzyPyVLA/KRb2x/AaO9lJ8k06VkrotNqIRU6ptY=' 'sha256-aVBFQ9I2ZZlwlbaPbSMSOkmEbOpt8RT9/3Z9G3qMr6o=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -5903,6 +5903,10 @@ function stopMainPlayback() {
   releaseBrowseMiniPlayer({ resume: false });
   // 古い動画の再生処理を無効にする
   playbackGeneration++;
+  if (unsubscribeComments) {
+    unsubscribeComments();
+    unsubscribeComments = null;
+  }
 
   // エラー時に元の動画へ戻す処理を解除
   mainVideo.onerror = null;
@@ -5995,15 +5999,31 @@ if (!hlsUrl) {
 
 } else if (window.Hls && window.Hls.isSupported()) {
   const player = new window.Hls({
-    maxBufferLength: 30,
-    maxMaxBufferLength: 60,
-    backBufferLength: 30,
-    startFragPrefetch: true
+    maxBufferLength: 15,
+    maxMaxBufferLength: 30,
+    backBufferLength: 15,
+    maxBufferSize: 12 * 1000 * 1000,
+    startFragPrefetch: false,
+    startLevel: 0
   });
 
   hlsInstance = player;
 
-  player.on(window.Hls.Events.MANIFEST_PARSED, play);
+  player.on(window.Hls.Events.MANIFEST_PARSED, () => {
+    if (thisPlayback !== playbackGeneration) return;
+    const compact = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+    const heightLimit = compact || navigator.connection?.saveData ? 360 : 720;
+    // HLSは帯域順のレベル番号で上限を指定する。先頭から上限内の範囲を使う。
+    // 低画質がない場合は最小帯域のレベルを使い、存在しない画質は生成しない。
+    let cap = 0;
+    for (let i = 0; i < player.levels.length; i++) {
+      const height = player.levels[i].height;
+      if (!Number.isFinite(height) || height <= 0 || height > heightLimit) break;
+      cap = i;
+    }
+    if (player.levels.length) player.autoLevelCapping = cap;
+    play();
+  });
 
   player.on(window.Hls.Events.ERROR, (_event, data) => {
     if (thisPlayback !== playbackGeneration) return;
@@ -8281,12 +8301,39 @@ updateWatchDanmakuCount(
    // 同じコメントIDの弾幕は、画面内に1つだけ表示する
 const danmakuNodes = new Map();
 const DANMAKU_SECONDS = 5;
+let indexedDanmakuSource = null;
+let indexedDanmaku = [];
+
+function activeDanmakuAt(currentTime) {
+  if (!Number.isFinite(currentTime)) return [];
+  // コメント購読側は更新ごとに新しい配列を作る。
+  if (indexedDanmakuSource !== videoComments) {
+    indexedDanmakuSource = videoComments;
+    indexedDanmaku = videoComments.filter(comment =>
+      comment.id && typeof comment.videoTime === 'number' &&
+      Number.isFinite(comment.videoTime)
+    ).sort((a, b) => a.videoTime - b.videoTime);
+  }
+  function upperBound(time) {
+    let left = 0;
+    let right = indexedDanmaku.length;
+    while (left < right) {
+      const middle = Math.floor((left + right) / 2);
+      if (indexedDanmaku[middle].videoTime <= time) left = middle + 1;
+      else right = middle;
+    }
+    return left;
+  }
+  return indexedDanmaku.slice(
+    upperBound(currentTime - DANMAKU_SECONDS), upperBound(currentTime)
+  );
+}
 
 let danmakuFrame = 0;
 let danmakuVideoId = null;
 
 function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
-  if (!videoFeatureEnabled('danmaku')) {
+  if (!videoFeatureEnabled('danmaku') || danmakuContainer.style.visibility === 'hidden') {
     if (danmakuNodes.size) {
       danmakuContainer.replaceChildren();
       danmakuNodes.clear();
@@ -8302,7 +8349,7 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
 
   const visibleIds = new Set();
 
-  for (const comment of videoComments) {
+  for (const comment of activeDanmakuAt(currentTime)) {
     const start = comment.videoTime;
 
     if (
@@ -8342,7 +8389,8 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
       danmakuNodes.set(id, node);
     }
 
-    node.textContent = comment.text || '';
+    const text = comment.text || '';
+    if (node.textContent !== text) node.textContent = text;
 
     const progress = elapsed / DANMAKU_SECONDS;
 
@@ -12285,7 +12333,8 @@ bell.hidden = !signedIn || !onNotificationScreen;
     quality.replaceChildren();
 
     if (levels.length) {
-      quality.add(new Option('自動', '-1'));
+      const autoHeight = levels[player.autoLevelCapping]?.height;
+      quality.add(new Option(autoHeight ? `自動（最大${autoHeight}p）` : '自動', '-1'));
       QUALITY_HEIGHTS.forEach(height => {
         // 同じ解像度の配信が複数ある場合は、帯域の小さい方を使う。
         const candidates = levels.map((level, index) => ({level, index}))
