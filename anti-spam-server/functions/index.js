@@ -65,6 +65,21 @@ function textValue(value, max, name) {
   return value.trim();
 }
 
+// クライアントの任意のCSS・画像URLは保存しない。許可した文字設定だけを受け付ける。
+function readDanmakuStyle(value) {
+  if (value === undefined) return null; // 旧クライアントも投稿可能
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !['color', 'position', 'size'].includes(key)) ||
+      typeof value.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(value.color) ||
+      !['top', 'middle', 'bottom'].includes(value.position) ||
+      typeof value.size !== 'number' || !Number.isFinite(value.size) ||
+      value.size < 1 || value.size > 5) {
+    throw new HttpsError('invalid-argument', '弾幕の色・位置・サイズを確認してください。');
+  }
+  return { color: value.color.toUpperCase(), position: value.position,
+    size: Math.round(value.size * 10) / 10 };
+}
+
 function validId(value) {
   return typeof value === 'string' &&
     /^[A-Za-z0-9_-]{1,128}$/.test(value);
@@ -388,6 +403,8 @@ exports.submovieGuard = onCall({
     '本文'
   );
 
+  const danmakuStyle = type === 'danmaku' ? readDanmakuStyle(d.danmakuStyle) : null;
+
   await getPolicy(d.videoId, type, text);
 
   // コメント1件につき合計5回まで編集
@@ -578,6 +595,7 @@ exports.submovieGuard = onCall({
 
     if (type === 'danmaku') {
       post.videoTime = d.videoTime;
+      if (danmakuStyle) post.danmakuStyle = danmakuStyle;
     } else {
       post.parentId = parentId;
       post.editCount = 0;

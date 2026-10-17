@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-SXeWbzyPyVLA/KRb2x/AaO9lJ8k06VkrotNqIRU6ptY=' 'sha256-aVBFQ9I2ZZlwlbaPbSMSOkmEbOpt8RT9/3Z9G3qMr6o=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-mtKEFQN10xVmG8YDrF0grqEP6LoYbrHOy5/8vjlEPzw=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3312,6 +3312,89 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
   </style>
 
+<style id="danmakuCustomizationStyles">
+/* 弾幕カスタマイズ。外部フォント・画像・UIライブラリーは読み込まない。 */
+#danmakuCustomizeDialog {
+  box-sizing: border-box; width: min(520px, calc(100vw - 24px));
+  max-width: none; max-height: calc(100dvh - 24px); margin: auto;
+  padding: 0; border: 1px solid rgba(255,255,255,.16); border-radius: 20px;
+  color: #f4f4f4; background: rgba(27,29,33,.91);
+  box-shadow: 0 18px 70px rgba(0,0,0,.38); backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px); font: 14px/1.5 system-ui, sans-serif;
+  overflow: hidden; color-scheme: dark; overscroll-behavior: contain;
+}
+#danmakuCustomizeDialog[open] { display: flex; flex-direction: column; }
+#danmakuCustomizeDialog::backdrop { background: rgba(0,0,0,.28); }
+#danmakuCustomizeDialog *, #danmakuCustomizeDialog *::before,
+#danmakuCustomizeDialog *::after { box-sizing: border-box; }
+#danmakuCustomizeDialog button, #danmakuCustomizeDialog input { font: inherit; }
+#danmakuCustomizeDialog button { cursor: pointer; border: 0; color: inherit; }
+#danmakuCustomizeDialog button:disabled { cursor: default; opacity: .43; }
+#danmakuCustomizeDialog :focus-visible { outline: 2px solid #9dcfff; outline-offset: 3px; }
+#danmakuCustomizeDialog .dc-heading { position:static; inset:auto; width:auto; height:auto; min-height:0; border:0; box-shadow:none; background:transparent; color:inherit; display:flex; align-items:center; justify-content:space-between; padding:14px 18px; gap:12px; flex-shrink:0; }
+.dc-heading strong { font-size:16px; letter-spacing:.02em; }
+#danmakuCustomizeDialog .dc-close { display:grid; place-items:center; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.08); font-size:23px; line-height:1; }
+.dc-preview { position:relative; flex-shrink:0; height:76px; margin:0 18px 14px; overflow:hidden; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(0,0,0,.27); }
+.dc-preview > span { position:absolute; left:50%; white-space:nowrap; font-weight:700; text-shadow:1px 1px 2px #000,-1px -1px 2px #000; transform:translate(-50%,-50%); max-width:none; line-height:1.2; }
+.dc-body { display:grid; grid-template-columns:82px minmax(0,1fr); border-top:1px solid rgba(255,255,255,.1); min-height:0; overflow:hidden; }
+.dc-tabs { display:flex; flex-direction:column; gap:4px; padding:12px 8px; border-right:1px solid rgba(255,255,255,.1); overflow-y:auto; scrollbar-width:thin; }
+#danmakuCustomizeDialog .dc-tab { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-height:48px; padding:10px 4px; border-radius:10px; background:transparent; color:#c9ccd1; }
+#danmakuCustomizeDialog .dc-tab[aria-selected=true] { color:#b7dcff; background:rgba(126,187,255,.16); font-weight:700; }
+.dc-tab small { font-size:9px; }
+.dc-content { min-width:0; overflow:auto; padding:16px 20px; scrollbar-width:thin; }
+.dc-panel[hidden] { display:none !important; }
+.dc-wheel { --dc-hue:0; position:relative; width:212px; height:212px; max-width:100%; aspect-ratio:1; margin:0 auto 14px; border-radius:50%; touch-action:none; background:conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+.dc-wheel::before { content:''; position:absolute; inset:19px; border-radius:50%; background:#25282d; }
+.dc-wheel-handle { position:absolute; width:13px; height:13px; border:2px solid white; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 1px rgba(0,0,0,.65); pointer-events:none; }
+.dc-sv { position:absolute; width:60%; height:60%; left:20%; top:20%; touch-action:none; border:1px solid rgba(255,255,255,.23); background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),hsl(var(--dc-hue) 100% 50%); }
+.dc-sv-handle { position:absolute; width:13px; height:13px; border:2px solid #fff; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 1px #333; pointer-events:none; }
+.dc-color-row { display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:12px; }
+.dc-current-color { width:28px; height:28px; border:1px solid rgba(255,255,255,.4); border-radius:8px; flex-shrink:0; }
+#danmakuCustomizeDialog .dc-hex { width:108px; padding:6px 9px; border:1px solid #666; border-radius:8px; background:rgba(0,0,0,.17); color:white; font-family:ui-monospace,monospace; text-transform:uppercase; }
+#danmakuCustomizeDialog .dc-hex[aria-invalid=true] { border-color:#ffa8a8; }
+.dc-swatches { display:flex; flex-wrap:wrap; justify-content:center; gap:2px; }
+#danmakuCustomizeDialog .dc-swatch { display:grid; place-items:center; width:32px; height:34px; background:transparent; border-radius:7px; }
+.dc-swatch span { width:20px; height:20px; border:1px solid rgba(255,255,255,.45); border-radius:50%; }
+#danmakuCustomizeDialog .dc-swatch[aria-pressed=true] { outline:1px solid #b7dcff; }
+.dc-label { margin:0 0 16px; color:#c9ccd1; font-size:13px; }
+.dc-position-options { display:grid; gap:10px; }
+#danmakuCustomizeDialog .dc-position { display:flex; align-items:center; gap:14px; width:100%; padding:12px; border:1px solid rgba(255,255,255,.15); border-radius:12px; background:rgba(255,255,255,.04); }
+#danmakuCustomizeDialog .dc-position[aria-pressed=true] { border-color:#9dcfff; background:rgba(126,187,255,.13); color:#c8e5ff; }
+.dc-position-icon { position:relative; display:block; width:44px; height:29px; border:1px solid #7a818b; border-radius:4px; }
+.dc-position-icon::after { content:''; position:absolute; height:3px; left:10px; right:10px; border-radius:2px; background:currentColor; }
+[data-position=top] .dc-position-icon::after { top:5px; }
+[data-position=middle] .dc-position-icon::after { top:12px; }
+[data-position=bottom] .dc-position-icon::after { bottom:5px; }
+.dc-size-value { display:block; margin:10px 0 16px; font-size:40px; font-weight:600; line-height:1.2; }
+.dc-size-control { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+#danmakuCustomizeDialog .dc-size-step { flex:0 0 36px; height:36px; border-radius:50%; background:rgba(255,255,255,.1); font-size:22px; }
+#danmakuCustomizeDialog .dc-size-range { min-width:0; width:100%; height:36px; padding:0; accent-color:#b7dcff; cursor:pointer; }
+.dc-size-ticks { display:flex; justify-content:space-between; padding:0 49px; color:#aeb4bd; font-size:12px; }
+.dc-size-ticks .dc-default { color:#dcecff; }
+.dc-error { min-height:16px; margin:5px 0 0; color:#ffb4b4; font-size:11px; text-align:center; }
+.dc-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:12px 18px; border-top:1px solid rgba(255,255,255,.1); }
+#danmakuCustomizeDialog .dc-reset { padding:9px 14px; border-radius:20px; background:transparent; }
+#danmakuCustomizeDialog .dc-done { padding:9px 22px; border-radius:20px; color:#16232f; background:#b7dcff; font-weight:700; }
+@media(max-width:480px) {
+ .dc-body { grid-template-columns:66px minmax(0,1fr); }
+ .dc-content { padding:14px 12px; }
+ .dc-tabs { padding:10px 5px; }
+ #danmakuCustomizeDialog .dc-tab { font-size:12px; white-space:nowrap; }
+ .dc-wheel { width:min(212px,calc(100vw - 140px)); height:auto; }
+ .dc-wheel::before { inset:9%; }
+ .dc-heading { padding:12px 14px; }
+ .dc-preview { margin:0 14px 12px; }
+ .dc-swatches { gap:0; }
+ #danmakuCustomizeDialog .dc-swatch { width:30px; }
+}
+@media(max-height:480px) {
+ .dc-preview { height:46px; margin-bottom:8px; }
+ .dc-heading { padding-top:8px; padding-bottom:8px; }
+ .dc-footer { padding-top:8px; padding-bottom:8px; }
+}
+@media(prefers-reduced-transparency:reduce) { #danmakuCustomizeDialog { background:#25282d; backdrop-filter:none; } }
+
+</style>
 </head>
 <body>
 
@@ -4351,6 +4434,39 @@ updateVideoClickLabel();
     const danmakuInput = document.getElementById('danmakuInput');
     const danmakuSubmitBtn = document.getElementById('danmakuSubmitBtn');
     let videoComments = [];
+
+// 弾幕カスタマイズ v1。古い弾幕には見た目を追加せず、そのまま表示する。
+const DANMAKU_STYLE_KEY = 'submovie.danmaku.style.v1';
+function normalizeDanmakuStyle(value) {
+  const data = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return {
+    color: typeof data.color === 'string' && /^#[0-9a-f]{6}$/i.test(data.color)
+      ? data.color.toUpperCase() : '#FFFFFF',
+    position: ['top', 'middle', 'bottom'].includes(data.position) ? data.position : 'middle',
+    size: typeof data.size === 'number' && Number.isFinite(data.size)
+      ? Math.round(Math.max(1, Math.min(5, data.size)) * 10) / 10 : 3
+  };
+}
+let danmakuDraftStyle = (() => {
+  try { return normalizeDanmakuStyle(JSON.parse(localStorage.getItem(DANMAKU_STYLE_KEY))); }
+  catch { return normalizeDanmakuStyle(null); }
+})();
+function getDanmakuDraftStyle() { return { ...danmakuDraftStyle }; }
+function applyDanmakuStyle(node, value) {
+  // 新旧どちらのコメントも受け付け、任意のCSSやURLは解釈しない。
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const style = normalizeDanmakuStyle(value);
+  const key = `${style.color}/${style.position}/${style.size}`;
+  if (node.dataset.danmakuStyle !== key) {
+    node.dataset.danmakuStyle = key;
+    node.style.color = style.color;
+    node.style.fontSize = `max(10px, calc(var(--danmaku-base-size, 24px) * ${0.4 + style.size * 0.2}))`;
+    const lane = Number(node.dataset.danmakuLane || 0) % 3 - 1;
+    node.style.top = `${({ top: 15, middle: 50, bottom: 85 })[style.position] + lane * 5}%`;
+  }
+  return true;
+}
+
     let lastTime = 0;
 
     const commentInput = document.getElementById('commentInput');
@@ -7105,7 +7221,8 @@ danmakuSubmitBtn.addEventListener('click', async () => {
       videoId,
       text,
       type: 'danmaku',
-      videoTime
+      videoTime,
+      danmakuStyle: getDanmakuDraftStyle()
     }, danmakuInput);
 
     if (
@@ -8384,6 +8501,7 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
       }
 
       node.style.top = `${hash % 70}%`;
+      node.dataset.danmakuLane = String(hash);
 
       danmakuContainer.appendChild(node);
       danmakuNodes.set(id, node);
@@ -8392,10 +8510,11 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
     const text = comment.text || '';
     if (node.textContent !== text) node.textContent = text;
 
+    const customStyled = applyDanmakuStyle(node, comment.danmakuStyle);
     const progress = elapsed / DANMAKU_SECONDS;
 
     node.style.left = `${(1 - progress) * 100}%`;
-    node.style.transform = `translateX(${-progress * 100}%)`;
+    node.style.transform = `translateX(${-progress * 100}%)${customStyled ? ' translateY(-50%)' : ''}`;
   }
 
   // シーク先で不要になった弾幕や、削除されたコメントを消す
@@ -12748,6 +12867,256 @@ bell.hidden = !signedIn || !onNotificationScreen;
   anchor.after(inputArea);
 })();
 
+
+function setupDanmakuCustomization() {
+  const input = document.getElementById('danmakuInput');
+  const tool = document.getElementById('danmakuCustomizeBtn');
+  const wrapper = document.getElementById('videoWrapper');
+  const stage = document.getElementById('danmakuContainer');
+  if (!input || !tool || !wrapper || !stage || document.getElementById('danmakuCustomizeDialog')) return;
+
+  const dialog = document.createElement('dialog');
+  dialog.id = 'danmakuCustomizeDialog';
+  dialog.setAttribute('aria-labelledby', 'dcTitle');
+  dialog.innerHTML = `
+    <header class="dc-heading"><strong id="dcTitle">弾幕カスタマイズ</strong>
+      <button type="button" class="dc-close" aria-label="カスタマイズを閉じる">×</button></header>
+    <div class="dc-preview" aria-label="弾幕プレビュー"><span></span></div>
+    <div class="dc-body">
+      <nav class="dc-tabs" role="tablist" aria-label="カスタマイズ項目" aria-orientation="vertical">
+        <button type="button" id="dcColorTab" class="dc-tab" role="tab" aria-selected="true" aria-controls="dcColorPanel" data-tab="color">カラー</button>
+        <button type="button" id="dcPositionTab" class="dc-tab" role="tab" aria-selected="false" aria-controls="dcPositionPanel" tabindex="-1" data-tab="position">位置</button>
+        <button type="button" id="dcSizeTab" class="dc-tab" role="tab" aria-selected="false" aria-controls="dcSizePanel" tabindex="-1" data-tab="size">サイズ</button>
+        <button type="button" class="dc-tab" role="tab" disabled aria-disabled="true" aria-selected="false">スタンプ<small>準備中</small></button>
+      </nav>
+      <div class="dc-content">
+        <section class="dc-panel" id="dcColorPanel" role="tabpanel" aria-labelledby="dcColorTab" data-panel="color">
+          <div class="dc-wheel" role="slider" tabindex="0" aria-label="色相" aria-valuemin="0" aria-valuemax="360" aria-valuenow="0">
+            <span class="dc-wheel-handle"></span>
+            <div class="dc-sv" role="group" tabindex="0" aria-label="鮮やかさと明るさ。左右・上下キーで調整"><span class="dc-sv-handle"></span></div>
+          </div>
+          <div class="dc-color-row"><span class="dc-current-color" aria-hidden="true"></span>
+            <label for="dcHex">色コード</label><input type="text" id="dcHex" class="dc-hex" maxlength="7" spellcheck="false" autocomplete="off" inputmode="text" value="#FFFFFF"></div>
+          <div class="dc-swatches" aria-label="基本色"></div><p class="dc-error" role="status"></p>
+        </section>
+        <section class="dc-panel" id="dcPositionPanel" role="tabpanel" aria-labelledby="dcPositionTab" data-panel="position" hidden>
+          <p class="dc-label">弾幕を流す位置</p>
+          <div class="dc-position-options">
+            <button type="button" class="dc-position" data-position="top" aria-pressed="false"><span class="dc-position-icon" aria-hidden="true"></span>上</button>
+            <button type="button" class="dc-position" data-position="middle" aria-pressed="true"><span class="dc-position-icon" aria-hidden="true"></span>中</button>
+            <button type="button" class="dc-position" data-position="bottom" aria-pressed="false"><span class="dc-position-icon" aria-hidden="true"></span>下</button>
+          </div>
+        </section>
+        <section class="dc-panel" id="dcSizePanel" role="tabpanel" aria-labelledby="dcSizeTab" data-panel="size" hidden>
+          <label for="dcSize">文字のサイズ</label><output class="dc-size-value" for="dcSize">3.0</output>
+          <div class="dc-size-control"><button type="button" class="dc-size-step" data-size-step="-0.1" aria-label="サイズを小さくする">−</button>
+            <input type="range" id="dcSize" class="dc-size-range" min="1" max="5" step="0.1" value="3" aria-label="弾幕のサイズ">
+            <button type="button" class="dc-size-step" data-size-step="0.1" aria-label="サイズを大きくする">＋</button></div>
+          <div class="dc-size-ticks" aria-hidden="true"><span>1</span><span>2</span><span class="dc-default">3</span><span>4</span><span>5</span></div>
+        </section>
+      </div>
+    </div>
+    <footer class="dc-footer"><button type="button" class="dc-reset">リセット</button><button type="button" class="dc-done">完了</button></footer>`;
+  wrapper.appendChild(dialog);
+  tool.disabled = false;
+  tool.title = '弾幕をカスタマイズ';
+  tool.setAttribute('aria-label', '弾幕をカスタマイズ');
+  tool.setAttribute('aria-haspopup', 'dialog');
+  tool.setAttribute('aria-controls', dialog.id);
+  tool.setAttribute('aria-expanded', 'false');
+
+  const wheel = dialog.querySelector('.dc-wheel');
+  const sv = dialog.querySelector('.dc-sv');
+  const hex = dialog.querySelector('.dc-hex');
+  const size = dialog.querySelector('.dc-size-range');
+  const sample = dialog.querySelector('.dc-preview span');
+  const error = dialog.querySelector('.dc-error');
+  const tabs = [...dialog.querySelectorAll('[data-tab]')];
+  const positionButtons = [...dialog.querySelectorAll('[data-position]')];
+  let storageTimer = 0;
+  let hue = 0;
+  let saturation = 0;
+  let value = 1;
+
+  function rgbToHsv(color) {
+    const components = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16) / 255);
+    const [r, g, b] = components;
+    const high = Math.max(...components), low = Math.min(...components), delta = high - low;
+    let nextHue = hue;
+    if (delta) {
+      if (high === r) nextHue = 60 * (((g - b) / delta) % 6);
+      else if (high === g) nextHue = 60 * ((b - r) / delta + 2);
+      else nextHue = 60 * ((r - g) / delta + 4);
+    }
+    return [((nextHue % 360) + 360) % 360, high ? delta / high : 0, high];
+  }
+  function hsvToHex() {
+    const chroma = value * saturation;
+    const x = chroma * (1 - Math.abs((hue / 60) % 2 - 1));
+    const low = value - chroma;
+    const parts = hue < 60 ? [chroma, x, 0] : hue < 120 ? [x, chroma, 0]
+      : hue < 180 ? [0, chroma, x] : hue < 240 ? [0, x, chroma]
+      : hue < 300 ? [x, 0, chroma] : [chroma, 0, x];
+    return '#' + parts.map(n => Math.round((n + low) * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+  function persist() {
+    clearTimeout(storageTimer);
+    try { localStorage.setItem(DANMAKU_STYLE_KEY, JSON.stringify(danmakuDraftStyle)); } catch { /* 保存不可でもその場の設定は使える */ }
+  }
+  function changed() {
+    danmakuDraftStyle = normalizeDanmakuStyle(danmakuDraftStyle);
+    render();
+    clearTimeout(storageTimer);
+    storageTimer = setTimeout(persist, 200);
+  }
+  function setColor(color) {
+    if (!/^#[0-9a-f]{6}$/i.test(color)) return;
+    danmakuDraftStyle.color = color.toUpperCase();
+    [hue, saturation, value] = rgbToHsv(danmakuDraftStyle.color);
+    error.textContent = '';
+    hex.removeAttribute('aria-invalid');
+    changed();
+  }
+  function render() {
+    const style = danmakuDraftStyle;
+    wheel.style.setProperty('--dc-hue', String(hue));
+    const angle = hue * Math.PI / 180;
+    const marker = wheel.querySelector('.dc-wheel-handle');
+    marker.style.left = `${50 + Math.sin(angle) * 45.5}%`;
+    marker.style.top = `${50 - Math.cos(angle) * 45.5}%`;
+    wheel.setAttribute('aria-valuenow', String(Math.round(hue)));
+    wheel.setAttribute('aria-valuetext', `${Math.round(hue)}度`);
+    const squareMarker = sv.querySelector('.dc-sv-handle');
+    squareMarker.style.left = `${saturation * 100}%`;
+    squareMarker.style.top = `${(1 - value) * 100}%`;
+    sv.setAttribute('aria-label', `鮮やかさ${Math.round(saturation * 100)}%、明るさ${Math.round(value * 100)}%。左右・上下キーで調整`);
+    dialog.querySelector('.dc-current-color').style.backgroundColor = style.color;
+    if (dialog.ownerDocument.activeElement !== hex) hex.value = style.color;
+    for (const button of dialog.querySelectorAll('[data-color]')) button.setAttribute('aria-pressed', String(button.dataset.color === style.color));
+    for (const button of positionButtons) button.setAttribute('aria-pressed', String(button.dataset.position === style.position));
+    size.value = String(style.size);
+    size.setAttribute('aria-valuetext', `${style.size.toFixed(1)}`);
+    dialog.querySelector('.dc-size-value').textContent = style.size.toFixed(1);
+    for (const button of dialog.querySelectorAll('[data-size-step]')) button.disabled = Number(button.dataset.sizeStep) < 0 ? style.size <= 1 : style.size >= 5;
+    sample.textContent = input.value.trim().slice(0, 40) || '弾幕をカスタマイズ';
+    sample.style.color = style.color;
+    sample.style.fontSize = `${20 * (0.4 + style.size * 0.2)}px`;
+    sample.style.top = `${({ top: 25, middle: 50, bottom: 75 })[style.position]}%`;
+  }
+  function selectTab(tab) {
+    tabs.forEach(button => {
+      const selected = button.dataset.tab === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+    dialog.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== tab; });
+  }
+  tabs.forEach((button, index) => {
+    button.addEventListener('click', () => selectTab(button.dataset.tab));
+    button.addEventListener('keydown', event => {
+      const direction = ['ArrowDown', 'ArrowRight'].includes(event.key) ? 1 : ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 0;
+      if (!direction && !['Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + direction + tabs.length) % tabs.length;
+      selectTab(tabs[next].dataset.tab);
+      tabs[next].focus();
+    });
+  });
+  positionButtons.forEach(button => button.addEventListener('click', () => {
+    danmakuDraftStyle.position = button.dataset.position;
+    changed();
+  }));
+  size.addEventListener('input', () => { danmakuDraftStyle.size = Number(size.value); changed(); });
+  dialog.querySelectorAll('[data-size-step]').forEach(button => button.addEventListener('click', () => {
+    danmakuDraftStyle.size += Number(button.dataset.sizeStep); changed();
+  }));
+  hex.addEventListener('input', () => {
+    if (/^#[0-9a-f]{6}$/i.test(hex.value.trim())) setColor(hex.value.trim());
+  });
+  hex.addEventListener('change', () => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex.value.trim())) {
+      error.textContent = '#と6桁の色コードを入力してください。'; hex.setAttribute('aria-invalid', 'true');
+    } else { hex.value = danmakuDraftStyle.color; }
+  });
+  const colors = [['#FFFFFF','白'],['#FF4545','赤'],['#FF91B5','ピンク'],['#FFD84D','黄'],['#59DB8B','緑'],['#55D8F0','水色'],['#6595FF','青'],['#BA8CFF','紫'],['#000000','黒']];
+  for (const [color, name] of colors) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'dc-swatch'; button.dataset.color = color;
+    button.setAttribute('aria-label', name); button.setAttribute('aria-pressed', 'false');
+    const swatch = document.createElement('span'); swatch.style.backgroundColor = color;
+    button.appendChild(swatch); button.addEventListener('click', () => setColor(color));
+    dialog.querySelector('.dc-swatches').appendChild(button);
+  }
+  const clamp = n => Math.max(0, Math.min(1, n));
+  function bindDrag(element, update) {
+    let pointer = null;
+    element.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || (element === wheel && sv.contains(event.target))) return;
+      event.preventDefault(); event.stopPropagation(); pointer = event.pointerId;
+      element.focus({ preventScroll:true }); element.setPointerCapture(pointer); update(event);
+    });
+    element.addEventListener('pointermove', event => { if (pointer === event.pointerId) { event.preventDefault(); update(event); } });
+    const end = event => { if (pointer === event.pointerId) { pointer = null; persist(); } };
+    element.addEventListener('pointerup', end); element.addEventListener('pointercancel', end); element.addEventListener('lostpointercapture', end);
+  }
+  bindDrag(wheel, event => {
+    const box = wheel.getBoundingClientRect();
+    hue = (Math.atan2(event.clientX - box.left - box.width / 2, -(event.clientY - box.top - box.height / 2)) * 180 / Math.PI + 360) % 360;
+    danmakuDraftStyle.color = hsvToHex(); changed();
+  });
+  bindDrag(sv, event => {
+    const box = sv.getBoundingClientRect();
+    saturation = clamp((event.clientX - box.left) / box.width); value = clamp(1 - (event.clientY - box.top) / box.height);
+    danmakuDraftStyle.color = hsvToHex(); changed();
+  });
+  wheel.addEventListener('keydown', event => {
+    if (event.target !== wheel || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 10 : 1;
+    hue = event.key === 'Home' ? 0 : event.key === 'End' ? 359 : (hue + (['ArrowLeft','ArrowDown'].includes(event.key) ? -step : step) + 360) % 360;
+    danmakuDraftStyle.color = hsvToHex(); changed();
+  });
+  sv.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+    event.preventDefault(); event.stopPropagation();
+    const step = event.shiftKey ? 0.1 : 0.01;
+    saturation = clamp(saturation + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0));
+    value = clamp(value + (event.key === 'ArrowUp' ? step : event.key === 'ArrowDown' ? -step : 0));
+    danmakuDraftStyle.color = hsvToHex(); changed();
+  });
+  tool.addEventListener('click', event => {
+    event.preventDefault(); event.stopPropagation();
+    if (dialog.open) return;
+    // 移動先のPiPや全画面でも、プレイヤーと同じドキュメントに置く。
+    if (dialog.parentNode !== wrapper) wrapper.appendChild(dialog);
+    render(); dialog.showModal(); tool.setAttribute('aria-expanded', 'true');
+  });
+  dialog.querySelector('.dc-close').addEventListener('click', () => dialog.close());
+  dialog.querySelector('.dc-done').addEventListener('click', () => { dialog.close(); input.focus({ preventScroll:true }); });
+  dialog.querySelector('.dc-reset').addEventListener('click', () => {
+    danmakuDraftStyle = normalizeDanmakuStyle(null); [hue, saturation, value] = rgbToHsv(danmakuDraftStyle.color); changed();
+  });
+  dialog.addEventListener('click', event => {
+    event.stopPropagation();
+    if (event.target !== dialog) return;
+    const box = dialog.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+  });
+  dialog.addEventListener('keydown', event => event.stopPropagation());
+  dialog.addEventListener('close', () => { persist(); tool.setAttribute('aria-expanded', 'false'); });
+  input.addEventListener('input', () => { if (dialog.open) render(); });
+  window.addEventListener('pagehide', persist);
+  const updateStageSize = () => {
+    const width = stage.getBoundingClientRect().width;
+    if (width > 0) stage.style.setProperty('--danmaku-base-size', `${Math.max(14, Math.min(24, width / 28))}px`);
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(updateStageSize).observe(stage);
+  else window.addEventListener('resize', updateStageSize);
+  [hue, saturation, value] = rgbToHsv(danmakuDraftStyle.color);
+  updateStageSize(); render();
+}
+setupDanmakuCustomization();
+
 </script>
 
 <script>
@@ -12767,12 +13136,9 @@ bell.hidden = !signedIn || !onNotificationScreen;
     tool.id = 'danmakuCustomizeBtn';
     tool.className = 'danmaku-tool';
     tool.type = 'button';
-    tool.disabled = true;
-    tool.title = '弾幕カスタマイズ（準備中）';
-    tool.setAttribute(
-      'aria-label',
-      '弾幕カスタマイズ（準備中）'
-    );
+    tool.disabled = false;
+    tool.title = '弾幕をカスタマイズ';
+    tool.setAttribute('aria-label', '弾幕をカスタマイズ');
 
     tool.innerHTML = `
       <svg viewBox="0 0 24 24"
