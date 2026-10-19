@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-mtKEFQN10xVmG8YDrF0grqEP6LoYbrHOy5/8vjlEPzw=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-T+i4xJfUVfcNKHkuiOrz3yWklqfWzBtTX8Kyl6JFo9E=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3393,6 +3393,25 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
  .dc-footer { padding-top:8px; padding-bottom:8px; }
 }
 @media(prefers-reduced-transparency:reduce) { #danmakuCustomizeDialog { background:#25282d; backdrop-filter:none; } }
+
+</style>
+<style id="danmakuPcCustomizationStyles">
+/* PC弾幕カスタマイズの位置と操作だけを調整。スマホの既存CSSは変更しない。 */
+#danmakuCustomizeDialog[data-pc-anchored] {
+  position:fixed; inset:auto; margin:0; width:min(410px,calc(100vw - 24px));
+  z-index:2147483000; border-radius:14px;
+}
+#danmakuCustomizeDialog[data-pc-anchored] .dc-heading { padding:10px 14px; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-preview { height:52px; margin:0 14px 10px; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-body { grid-template-columns:72px minmax(0,1fr); }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-tabs { padding:10px 6px; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-tab { min-height:42px; padding:8px 2px; font-size:13px; white-space:nowrap; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-content { padding:12px 14px; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-wheel { width:190px; height:190px; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-wheel::before { inset:9%; }
+/* 四角の角や選択マーカーが、リング内周へ接触しない大きさ。 */
+#danmakuCustomizeDialog[data-pc-anchored] .dc-sv { width:50%; height:50%; left:25%; top:25%; }
+#danmakuCustomizeDialog[data-pc-anchored] .dc-footer { padding:8px 14px; }
 
 </style>
 </head>
@@ -12998,7 +13017,7 @@ function setupDanmakuCustomization() {
     size.setAttribute('aria-valuetext', `${style.size.toFixed(1)}`);
     dialog.querySelector('.dc-size-value').textContent = style.size.toFixed(1);
     for (const button of dialog.querySelectorAll('[data-size-step]')) button.disabled = Number(button.dataset.sizeStep) < 0 ? style.size <= 1 : style.size >= 5;
-    sample.textContent = input.value.trim().slice(0, 40) || '弾幕をカスタマイズ';
+    sample.textContent = input.value.trim().slice(0, 40) || (pcCustomizer.matches ? '見本' : '弾幕をカスタマイズ');
     sample.style.color = style.color;
     sample.style.fontSize = `${20 * (0.4 + style.size * 0.2)}px`;
     sample.style.top = `${({ top: 25, middle: 50, bottom: 75 })[style.position]}%`;
@@ -13084,12 +13103,111 @@ function setupDanmakuCustomization() {
     value = clamp(value + (event.key === 'ArrowUp' ? step : event.key === 'ArrowDown' ? -step : 0));
     danmakuDraftStyle.color = hsvToHex(); changed();
   });
+  // PC弾幕カスタマイズ・ポップアップ v2
+  const pcCustomizer = window.matchMedia('(min-width: 769px) and (hover: hover) and (pointer: fine)');
+  let pcPositionFrame = 0;
+  const pcDocuments = new WeakSet();
+  function pcPanelOpen() { return dialog.open && dialog.hasAttribute('data-pc-anchored'); }
+  function resetPcPlacement() {
+    cancelAnimationFrame(pcPositionFrame);
+    pcPositionFrame = 0;
+    dialog.removeAttribute('data-pc-anchored');
+    dialog.removeAttribute('aria-modal');
+    ['left','top','max-height'].forEach(name => dialog.style.removeProperty(name));
+    if (dialog.parentNode !== wrapper) wrapper.appendChild(dialog);
+  }
+  function positionPcPanel() {
+    pcPositionFrame = 0;
+    if (!pcPanelOpen()) return;
+    const owner = dialog.ownerDocument;
+    const view = owner.defaultView;
+    if (!view || !tool.isConnected || !pcCustomizer.matches) { dialog.close(); return; }
+    const videoBox = wrapper.getBoundingClientRect();
+    const toolBox = tool.getBoundingClientRect();
+    const pad = 10, gap = 8;
+    const width = view.innerWidth, height = view.innerHeight;
+    const sameDocument = tool.ownerDocument === owner;
+    // 全画面のときは、コンテナー内を基準にする。
+    const fullscreen = owner.fullscreenElement || owner.webkitFullscreenElement;
+    const useVideoEdge = !sameDocument || (fullscreen && !fullscreen.contains(tool));
+    const anchor = useVideoEdge ? {
+      left:videoBox.left + 10, top:videoBox.bottom - 12, bottom:videoBox.bottom - 12
+    } : toolBox;
+    if (!useVideoEdge && (anchor.bottom < 0 || anchor.top > height || toolBox.width === 0)) { dialog.close(); return; }
+    const availableAbove = Math.max(0,anchor.top - pad - gap);
+    const availableBelow = Math.max(0,height - anchor.bottom - pad - gap);
+    const above = availableAbove >= 240 || availableAbove >= availableBelow;
+    let available = above ? availableAbove : availableBelow;
+    // 通常は再生画面の上端から工具の直上までに収める。
+    if (above && videoBox.top >= pad && anchor.top - videoBox.top >= 300) {
+      available = Math.min(available,anchor.top - videoBox.top - gap);
+    }
+    dialog.style.maxHeight = `${Math.max(0,Math.min(540,available))}px`;
+    const box = dialog.getBoundingClientRect();
+    const left = Math.max(pad,Math.min(anchor.left,width - box.width - pad));
+    const proposedTop = above ? anchor.top - gap - box.height : anchor.bottom + gap;
+    const top = Math.max(pad,Math.min(proposedTop,height - box.height - pad));
+    const leftValue = `${Math.round(left)}px`, topValue = `${Math.round(top)}px`;
+    if (dialog.style.left !== leftValue) dialog.style.left = leftValue;
+    if (dialog.style.top !== topValue) dialog.style.top = topValue;
+  }
+  function queuePcPosition() {
+    if (pcPanelOpen() && !pcPositionFrame) pcPositionFrame = requestAnimationFrame(positionPcPanel);
+  }
+  function bindPcDocument(owner) {
+    if (!owner || pcDocuments.has(owner)) return;
+    pcDocuments.add(owner);
+    owner.addEventListener('pointerdown', event => {
+      if (!pcPanelOpen() || dialog.contains(event.target) || tool.contains(event.target)) return;
+      // パネル外は通常の操作を通す。動画へのクリックは従来どおり再生・停止。
+      dialog.close();
+    },true);
+    owner.addEventListener('keydown', event => {
+      if (!pcPanelOpen() || event.key !== 'Escape') return;
+      event.preventDefault(); event.stopPropagation(); dialog.close(); tool.focus({preventScroll:true});
+    },true);
+    owner.addEventListener('scroll',queuePcPosition,{capture:true,passive:true});
+    owner.defaultView?.addEventListener('resize',queuePcPosition);
+    owner.defaultView?.addEventListener('popstate',() => { if (pcPanelOpen()) dialog.close(); });
+    for (const eventName of ['fullscreenchange','webkitfullscreenchange']) owner.addEventListener(eventName,() => {
+      if (!pcPanelOpen()) return;
+      const full = owner.fullscreenElement || owner.webkitFullscreenElement;
+      const parent = full?.contains(wrapper) ? wrapper : owner.body;
+      if (dialog.parentNode !== parent) parent.appendChild(dialog);
+      queuePcPosition();
+    });
+  }
+  function openPcPanel() {
+    // 通常画面では動画の外へ出すことで、パネル操作がプレーヤーへ伝わらない。
+    const owner = wrapper.ownerDocument;
+    const full = owner.fullscreenElement || owner.webkitFullscreenElement;
+    const parent = full?.contains(wrapper) ? wrapper : tool.ownerDocument.body;
+    if (dialog.parentNode !== parent) parent.appendChild(dialog);
+    dialog.setAttribute('data-pc-anchored','');
+    dialog.setAttribute('aria-modal','false');
+    dialog.style.left = '0px'; dialog.style.top = '0px';
+    bindPcDocument(dialog.ownerDocument);
+    dialog.show();
+    positionPcPanel();
+  }
+  pcCustomizer.addEventListener('change',() => {
+    // 表示方式の切り替え時はいったん閉じる。次回はその端末の既存方式で開く。
+    if (dialog.open) dialog.close();
+    else resetPcPlacement();
+    render();
+  });
+  if ('ResizeObserver' in window) new ResizeObserver(queuePcPosition).observe(dialog);
+
   tool.addEventListener('click', event => {
     event.preventDefault(); event.stopPropagation();
-    if (dialog.open) return;
-    // 移動先のPiPや全画面でも、プレイヤーと同じドキュメントに置く。
-    if (dialog.parentNode !== wrapper) wrapper.appendChild(dialog);
-    render(); dialog.showModal(); tool.setAttribute('aria-expanded', 'true');
+    if (dialog.open) { if (pcPanelOpen()) dialog.close(); return; }
+    render();
+    if (pcCustomizer.matches) openPcPanel();
+    else {
+      resetPcPlacement();
+      dialog.showModal();
+    }
+    tool.setAttribute('aria-expanded', 'true');
   });
   dialog.querySelector('.dc-close').addEventListener('click', () => dialog.close());
   dialog.querySelector('.dc-done').addEventListener('click', () => { dialog.close(); input.focus({ preventScroll:true }); });
@@ -13103,7 +13221,11 @@ function setupDanmakuCustomization() {
     if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
   });
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  dialog.addEventListener('close', () => { persist(); tool.setAttribute('aria-expanded', 'false'); });
+  dialog.addEventListener('close', () => {
+    persist();
+    if (dialog.open) return;
+    resetPcPlacement(); tool.setAttribute('aria-expanded', 'false');
+  });
   input.addEventListener('input', () => { if (dialog.open) render(); });
   window.addEventListener('pagehide', persist);
   const updateStageSize = () => {
