@@ -12,7 +12,7 @@ const path=require('node:path');
 const {createHash,randomUUID}=require('node:crypto');
 initializeApp();
 const BUCKET='testo-movie-site.firebasestorage.app';
-const REGION='asia-northeast1';
+const REGION='us-east1';
 const options={region:REGION,memory:'1GiB',cpu:1,timeoutSeconds:540,
   minInstances:0,maxInstances:1,concurrency:1};
 const ffmpeg=require('ffmpeg-static');
