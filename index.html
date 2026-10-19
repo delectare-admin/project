@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-T+i4xJfUVfcNKHkuiOrz3yWklqfWzBtTX8Kyl6JFo9E=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-S9zhc0WZ9b45XIG7Mry7Al/ZmrVH7xKM369hUJ40WT8=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3684,7 +3684,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
           <div class="form-area">
             <div class="input-group"><label>タイトル (必須)</label><input type="text" id="videoTitleInput"></div>
             <div class="input-group"><label>説明</label><textarea id="uploadDescInput" placeholder="動画の説明を入力"></textarea></div>
-            <div class="input-group"><label>サムネイル画像 (任意)</label><input type="file" id="thumbInput" accept="image/*"></div>
+            <div class="input-group"><label>サムネイル画像 (任意)</label><input type="file" id="thumbInput" accept="image/*"><p style="font-size:12px;color:#666">未設定の場合は、動画内のランダムな場面から自動生成します。</p></div>
             <div class="input-group">
               <label>カテゴリー</label>
               <select id="videoCategoryInput">
@@ -5336,6 +5336,157 @@ onAuthStateChanged(auth, secureAuthChanged);
 
     let allVideos = []; let currentSort = 'newest';
 
+// Thumbnail/Search upgrade v1 — all matching is local; no request per keystroke.
+const searchDocumentCache = new WeakMap();
+let searchIndexSource = null;
+let searchIndex = null;
+let searchRenderVersion = 0;
+function normalizeVideoSearch(value) {
+  return String(value || '').normalize('NFKC').toLocaleLowerCase('ja-JP')
+    .replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/[\p{P}\p{S}\s]+/gu, ' ').trim();
+}
+function videoSearchDocument(video) {
+  let entry = searchDocumentCache.get(video);
+  if (!entry) {
+    entry = { video, title:normalizeVideoSearch(video.title),
+      author:normalizeVideoSearch(video.uploaderName), category:normalizeVideoSearch(video.category),
+      description:normalizeVideoSearch(String(video.desc || '').slice(0, 6000)) };
+    searchDocumentCache.set(video, entry);
+  }
+  return entry;
+}
+function isVideoSearchVisible(video) {
+  return !currentUserBlocks.includes(video.uploaderUid) &&
+    !currentUserNotInterested.includes(video.uploaderUid) &&
+    !subMovieIsMuted(video.title, video.desc, video.uploaderName);
+}
+function rankVideoSearch(videos, queryText) {
+  const query = normalizeVideoSearch(String(queryText).slice(0, 200));
+  if (!query) return videos.filter(isVideoSearchVisible);
+  const tokens = [...new Set(query.split(' '))].slice(0, 12);
+  if (searchIndexSource !== allVideos) {
+    searchIndexSource = allVideos;
+    searchIndex = new Fuse(allVideos.map(videoSearchDocument), {
+      keys:[{name:'title',weight:.65},{name:'author',weight:.2},
+        {name:'category',weight:.1},{name:'description',weight:.05}],
+      includeScore:true, ignoreLocation:true, threshold:.28, minMatchCharLength:3
+    });
+  }
+  // Every space-separated term must match; fuzzy matches are only a fallback.
+  const fuzzy = tokens.map(token => token.length < 3 ? new Map() : new Map(
+    searchIndex.search(token).map(hit => [hit.item.video, hit.score || 0])
+  ));
+  const fields = [['title',60],['author',32],['category',18],['description',7]];
+  const ranked = [];
+  for (const video of videos) {
+    if (!isVideoSearchVisible(video)) continue;
+    const entry = videoSearchDocument(video);
+    let score = 0, matched = true;
+    for (let i=0; i<tokens.length; i++) {
+      const token = tokens[i];
+      let best = 0;
+      for (const [field,weight] of fields) {
+        if (entry[field].includes(token)) {
+          best = Math.max(best, weight + (entry[field] === token ? 14 : entry[field].startsWith(token) ? 5 : 0));
+        }
+      }
+      if (!best && fuzzy[i].has(video)) best = 3 + 5 * (1 - fuzzy[i].get(video));
+      if (!best) { matched = false; break; }
+      score += best;
+    }
+    if (!matched) continue;
+    if (entry.title === query) score += 180;
+    else if (entry.title.includes(query)) score += 75;
+    if (entry.author === query) score += 40;
+    ranked.push({video,score});
+  }
+  ranked.sort((a,b) => b.score-a.score ||
+    (Date.parse(b.video.uploadedAt)||0)-(Date.parse(a.video.uploadedAt)||0) ||
+    a.video.itemRef.fullPath.localeCompare(b.video.itemRef.fullPath));
+  return ranked.map(item => item.video);
+}
+function videoSearchSuggestions(queryText, count=7) {
+  const seen = new Set();
+  return rankVideoSearch(allVideos, queryText).filter(video => {
+    const title = normalizeVideoSearch(video.title);
+    if (seen.has(title)) return false;
+    seen.add(title); return true;
+  }).slice(0,count);
+}
+
+// A local File is decoded once on upload; visitors never decode originals for cards.
+async function createAutomaticThumbnail(file) {
+  const video = document.createElement('video');
+  const url = URL.createObjectURL(file);
+  video.muted = true; video.playsInline = true; video.preload = 'auto';
+  video.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px;pointer-events:none';
+  document.body.appendChild(video);
+  const waitFor = (eventName, start) => new Promise((resolve,reject) => {
+    const cleanup = () => { clearTimeout(timer); video.removeEventListener(eventName,done); video.removeEventListener('error',failed); };
+    const done = () => { cleanup(); resolve(); };
+    const failed = () => { cleanup(); reject(new Error('このブラウザでは画像を取り出せませんでした。サーバーで補完します。')); };
+    const timer = setTimeout(failed, 12000);
+    video.addEventListener(eventName,done,{once:true}); video.addEventListener('error',failed,{once:true});
+    try { start?.(); } catch (error) { cleanup(); reject(error); }
+  });
+  try {
+    await waitFor('loadedmetadata', () => { video.src = url; video.load(); });
+    if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error('動画の長さを読み取れませんでした。');
+    const time = Math.max(0, Math.min(Math.max(0,video.duration-.001), video.duration*(.1+Math.random()*.8)));
+    if (time>0) await waitFor('seeked', () => { video.currentTime = time; });
+    if (video.readyState < 2) await waitFor('loadeddata');
+    if (!video.videoWidth || !video.videoHeight) throw new Error('動画サイズを読み取れませんでした。');
+    const canvas = document.createElement('canvas'); canvas.width=640; canvas.height=360;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('画像を生成できませんでした。');
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,640,360);
+    const scale=Math.min(640/video.videoWidth,360/video.videoHeight);
+    const width=video.videoWidth*scale, height=video.videoHeight*scale;
+    ctx.drawImage(video,(640-width)/2,(360-height)/2,width,height);
+    const blob = await new Promise((resolve,reject) => {
+      const timeout=setTimeout(() => reject(new Error('画像生成がタイムアウトしました。')),8000);
+      canvas.toBlob(value => { clearTimeout(timeout); value ? resolve(value) : reject(new Error('画像の保存に失敗しました。')); },'image/jpeg',.82);
+    });
+    return new File([blob],'auto-thumbnail.jpg',{type:'image/jpeg'});
+  } finally {
+    video.pause(); video.removeAttribute('src'); video.load(); video.remove(); URL.revokeObjectURL(url);
+  }
+}
+const thumbnailRefreshAttempts = new Map();
+let thumbnailRefreshTimer = 0;
+function scheduleThumbnailRefresh() {
+  if (thumbnailRefreshTimer) return;
+  thumbnailRefreshTimer = setTimeout(refreshPendingThumbnails,15000);
+}
+async function refreshPendingThumbnails() {
+  thumbnailRefreshTimer = 0;
+  if (document.hidden) { scheduleThumbnailRefresh(); return; }
+  const paths = [...new Set([...document.querySelectorAll('[data-pending-thumbnail]')]
+    .filter(node => { const r=node.getBoundingClientRect(); return r.width && r.bottom>0 && r.top<innerHeight+300; })
+    .map(node => node.dataset.pendingThumbnail))].slice(0,6);
+  for (const fullPath of paths) {
+    const previous=thumbnailRefreshAttempts.get(fullPath) || {count:0,next:0};
+    if (previous.count>=4 || Date.now()<previous.next) continue;
+    thumbnailRefreshAttempts.set(fullPath,{count:previous.count+1,next:Date.now()+[15000,45000,120000,300000][previous.count]});
+    try {
+      const metadata = await getMetadata(ref(storage,fullPath));
+      const thumbUrl = metadata.customMetadata?.thumbUrl;
+      if (!thumbUrl || !/^https:\/\//i.test(thumbUrl)) continue;
+      const entry=allVideos.find(video => video.itemRef.fullPath===fullPath);
+      if (entry) { entry.thumbUrl=thumbUrl; entry.originalCustomMetadata=metadata.customMetadata; saveVideoListCache(allVideos); }
+      document.querySelectorAll('[data-pending-thumbnail]').forEach(node => {
+        if (node.dataset.pendingThumbnail!==fullPath) return;
+        const img=document.createElement('img'); img.src=thumbUrl; img.alt='';
+        img.className=node.className; img.loading='lazy'; img.decoding='async'; node.replaceWith(img);
+      });
+    } catch (error) { console.warn('サムネイルの確認を次回に延期しました:',error.code || 'network'); }
+  }
+  if ([...document.querySelectorAll('[data-pending-thumbnail]')].some(node =>
+    (thumbnailRefreshAttempts.get(node.dataset.pendingThumbnail)?.count || 0)<4)) scheduleThumbnailRefresh();
+}
+
+
   async function fetchVideoEntries() {
   const res = await listAll(ref(storage, 'videos/'));
   const items = res.items.slice().reverse();
@@ -5517,69 +5668,102 @@ async function loadVideoList(prefetched = null) {
 }
 
   async function applyFilterAndSort() {
-    if (currentFeed === 'trending') {
-    await renderTrendingVideos();
-    return;
-  }
-
-  // 他の画面に移動したら、人気画面の操作欄を外す
-  document.getElementById('trendingControls')?.remove();
-  if (currentFeed === 'mypage') {
-    renderMyPage();
-    return;
-  }
-      const keyword = searchInput.value.trim().toLowerCase();
-      let list = allVideos.filter(v => !currentUserBlocks.includes(v.uploaderUid) && !currentUserNotInterested.includes(v.uploaderUid));
-      const categoryFilterBar = document.getElementById('categoryFilterBar');
-      const sortControlsArea = document.getElementById('sortControlsArea');
-      const pageTitleHeading = document.getElementById('pageTitleHeading');
-      if (currentFeed === 'history') {
-        categoryFilterBar.style.display = 'none'; sortControlsArea.style.display = 'none'; pageTitleHeading.style.display = 'block'; pageTitleHeading.textContent = 'アーカイブ（履歴）';
-        list = watchHistory.map(id => list.find(v => v.itemRef.fullPath === id)).filter(v => v);
-      } else if (currentFeed === 'saved') {
-        categoryFilterBar.style.display = 'none'; sortControlsArea.style.display = 'none'; pageTitleHeading.style.display = 'block'; pageTitleHeading.textContent = '保存した動画';
-        list = currentUserSaved.map(id => list.find(v => v.itemRef.fullPath === id)).filter(v => v);
-      } else {
-        categoryFilterBar.style.display = 'flex'; sortControlsArea.style.display = 'flex'; pageTitleHeading.style.display = 'none';
-        if (currentFeed === 'subscriptions') list = list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
-        if (currentCategory !== 'すべて') list = list.filter(v => v.category === currentCategory);
-      }
-      if (keyword) {
-        const fuse = new Fuse(list, { keys: ['title', 'uploaderName', 'category'], threshold: 0.4 });
-        list = fuse.search(keyword).map(res => res.item);
-      }
-      if (currentFeed === 'history') { renderGrid(list, videoGrid); }
-      else if (currentSort === 'popular') {
-        const withScore = await Promise.all(list.map(async (v) => {
-          try { const statsSnap = await getDoc(doc(db, 'videoStats', statsDocId(v.itemRef.fullPath))); const data = statsSnap.exists() ? statsSnap.data() : { views: 0, likes: 0 }; return { ...v, score: (data.views || 0) + (data.likes || 0) * 3 }; } catch { return { ...v, score: 0 }; }
-        }));
-        withScore.sort((a, b) => b.score - a.score); renderGrid(withScore, videoGrid);
-      } else { renderGrid(list, videoGrid); }
+    const version=++searchRenderVersion;
+    if (currentFeed==='trending') { await renderTrendingVideos(); return; }
+    document.getElementById('trendingControls')?.remove();
+    if (currentFeed==='mypage') { renderMyPage(); return; }
+    const keyword=searchInput.value.trim();
+    let list=allVideos.filter(isVideoSearchVisible);
+    const categoryFilterBar=document.getElementById('categoryFilterBar');
+    const sortControlsArea=document.getElementById('sortControlsArea');
+    const pageTitleHeading=document.getElementById('pageTitleHeading');
+    if (currentFeed==='history') {
+      categoryFilterBar.style.display='none'; sortControlsArea.style.display='none';
+      pageTitleHeading.style.display='block'; pageTitleHeading.textContent='アーカイブ（履歴）';
+      list=watchHistory.map(id => list.find(v => v.itemRef.fullPath===id)).filter(Boolean);
+    } else if (currentFeed==='saved') {
+      categoryFilterBar.style.display='none'; sortControlsArea.style.display='none';
+      pageTitleHeading.style.display='block'; pageTitleHeading.textContent='保存した動画';
+      list=currentUserSaved.map(id => list.find(v => v.itemRef.fullPath===id)).filter(Boolean);
+    } else {
+      categoryFilterBar.style.display='flex'; sortControlsArea.style.display='flex'; pageTitleHeading.style.display='none';
+      if (currentFeed==='subscriptions') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
+      if (currentCategory!=='すべて') list=list.filter(v => v.category===currentCategory);
     }
+    if (!sortNewestBtn.dataset.originalLabel) sortNewestBtn.dataset.originalLabel=sortNewestBtn.textContent;
+    sortNewestBtn.textContent=keyword ? '関連度順' : sortNewestBtn.dataset.originalLabel;
+    if (keyword) list=rankVideoSearch(list,keyword);
+    if (currentFeed==='history' || currentSort!=='popular') { renderGrid(list,videoGrid); return; }
+    // An explicit popularity selection sorts the matching set. Limit concurrent reads.
+    const withScore=new Array(list.length); let next=0;
+    async function worker() {
+      while(next<list.length && version===searchRenderVersion) {
+        const index=next++, v=list[index];
+        try {
+          const snapshot=await getDoc(doc(db,'videoStats',statsDocId(v.itemRef.fullPath)));
+          const stats=snapshot.exists() ? snapshot.data() : {};
+          withScore[index]={...v,score:(Number(stats.views)||0)+(Number(stats.likes)||0)*3};
+        } catch { withScore[index]={...v,score:0}; }
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(4,list.length)},worker));
+    if (version!==searchRenderVersion) return;
+    withScore.sort((a,b) => b.score-a.score);
+    renderGrid(withScore,videoGrid);
+  }
 
     function executeSearch() {
-      document.body.classList.remove('watch-mode'); homeScreen.style.display = 'block'; channelScreen.style.display = 'none'; watchScreen.style.display = 'none';
-      if(searchSuggestions) searchSuggestions.style.display = 'none';
-      applyFilterAndSort();
+      if(searchSuggestions) searchSuggestions.style.display='none';
+      currentFeed='all'; currentCategory='すべて'; currentSort='newest';
+      sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
+      setActiveNav('all');
+      categoryFilterBar.querySelectorAll('.category-btn').forEach(button =>
+        button.classList.toggle('active',button.dataset.cat==='すべて'));
+      goHome();
     }
-    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); executeSearch(); } });
-    document.getElementById('searchBtn').addEventListener('click', executeSearch);
+    searchInput.addEventListener('keydown',event => {
+      if (event.isComposing || event.keyCode===229) return;
+      if (event.key==='Escape') { searchSuggestions.style.display='none'; return; }
+      if (event.key==='ArrowDown' && searchSuggestions.style.display==='block') {
+        event.preventDefault(); searchSuggestions.querySelector('.suggest-item')?.focus();
+      }
+      if (event.key==='Enter') { event.preventDefault(); executeSearch(); }
+    });
+    document.getElementById('searchBtn').addEventListener('click',executeSearch);
 
     const searchSuggestions = document.getElementById('searchSuggestions');
-    searchInput.addEventListener('input', (e) => {
-      const keyword = e.target.value.trim();
-      if (!keyword) { searchSuggestions.style.display = 'none'; return; }
-      const fuse = new Fuse(allVideos, { keys: ['title'], threshold: 0.4 });
-      const suggestions = fuse.search(keyword).slice(0, 5).map(res => res.item);
-      if (suggestions.length === 0) { searchSuggestions.style.display = 'none'; return; }
-      searchSuggestions.innerHTML = suggestions.map(v => `<div class="suggest-item" data-title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</div>`).join('');
-      searchSuggestions.style.display = 'block';
+    searchInput.setAttribute('autocomplete','off');
+    searchInput.setAttribute('aria-controls','searchSuggestions');
+    searchSuggestions.setAttribute('aria-label','検索候補');
+    searchInput.addEventListener('input', () => {
+      const keyword=searchInput.value.trim();
+      searchSuggestions.replaceChildren();
+      const suggestions=keyword ? videoSearchSuggestions(keyword) : [];
+      for (const video of suggestions) {
+        const button=document.createElement('button'); button.type='button';
+        button.className='suggest-item'; button.dataset.title=video.title;
+        button.textContent=video.title;
+        button.style.cssText='display:block;width:100%;text-align:left;border:0;background:transparent;font:inherit;color:inherit';
+        searchSuggestions.appendChild(button);
+      }
+      searchSuggestions.style.display=suggestions.length ? 'block' : 'none';
+      searchInput.setAttribute('aria-expanded',String(!!suggestions.length));
     });
-    searchSuggestions.addEventListener('click', (e) => {
-      const item = e.target.closest('.suggest-item');
-      if (!item) return;
-      searchInput.value = item.dataset.title; executeSearch();
+    searchSuggestions.addEventListener('click',event => {
+      const item=event.target.closest('.suggest-item'); if (!item) return;
+      searchInput.value=item.dataset.title; executeSearch(); searchInput.focus();
     });
+    searchSuggestions.addEventListener('keydown',event => {
+      const buttons=[...searchSuggestions.querySelectorAll('.suggest-item')];
+      const index=buttons.indexOf(document.activeElement);
+      if (event.key==='Escape') { searchSuggestions.style.display='none'; searchInput.focus(); }
+      if (event.key==='ArrowDown' || event.key==='ArrowUp') {
+        event.preventDefault();
+        const next=index+(event.key==='ArrowDown'?1:-1);
+        if (next<0) searchInput.focus(); else buttons[Math.min(buttons.length-1,next)]?.focus();
+      }
+    });
+
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.header-search-bar')) searchSuggestions.style.display = 'none';
       if (!e.target.closest('.grid-menu-wrapper')) document.querySelectorAll('.grid-dropdown.active').forEach(m => m.classList.remove('active'));
@@ -5625,27 +5809,18 @@ async function loadVideoList(prefetched = null) {
     sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
 
     function thumbnailHtml(v, className = 'thumbnail-img') {
-  if (v.thumbUrl) {
-    const img = document.createElement('img');
-
-    img.src = v.thumbUrl;
-    img.className = className;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-
-    return img.outerHTML;
-  }
-
-  // 生成前でも動画本体を読み込まない
-  return `
-    <div
-      class="${className}"
-      style="display:grid;place-items:center;background:#eee;color:#666"
-      aria-label="サムネイル準備中"
-    >▶</div>
-  `;
-}
+      const node=document.createElement(v.thumbUrl ? 'img' : 'div');
+      node.className=className;
+      if (v.thumbUrl) {
+        node.src=v.thumbUrl; node.alt=''; node.loading='lazy'; node.decoding='async';
+      } else {
+        node.dataset.pendingThumbnail=v.itemRef.fullPath;
+        node.style.cssText='display:grid;place-items:center;background:#eee;color:#666';
+        node.setAttribute('aria-label','サムネイル準備中'); node.textContent='▶';
+        scheduleThumbnailRefresh();
+      }
+      return node.outerHTML;
+    }
 
 // 同じ投稿者の情報を短時間に何度も取得しない
 const homeProfileCache = new Map();
@@ -8622,7 +8797,7 @@ mainVideo.addEventListener('emptied', () => {
 
       if (!selectedFile) return;
       const uploadFile = selectedFile;
-      const thumbFile = thumbInput.files?.[0] || null;
+      let thumbFile = thumbInput.files?.[0] || null;
       let uploadDetails;
 
       try {
@@ -8652,6 +8827,12 @@ mainVideo.addEventListener('emptied', () => {
       saveBtn.textContent = '投稿上限を確認中…';
 
       try {
+        if (!thumbFile) {
+          saveBtn.textContent='サムネイルを自動生成中…';
+          try { thumbFile=await createAutomaticThumbnail(uploadFile); }
+          catch(error) { console.warn('自動サムネイルをサーバーで補完します:',error.message); }
+          checkUploadSession();
+        }
         const uploadGrant = await reserveVideoGrant(uploadFile);
         checkUploadSession();
         let finalThumbUrl = '';
@@ -9621,6 +9802,7 @@ volume.addEventListener('blur', () => {
     });
 
     searchInput.value = keyword;
+    currentSort='newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
     goHome();
   }
 
@@ -9629,10 +9811,23 @@ volume.addEventListener('blur', () => {
 
     const filter = input.value.trim().toLocaleLowerCase();
     const matches = history.filter(
-      word => word.toLocaleLowerCase().includes(filter)
+      word => normalizeVideoSearch(word).includes(normalizeVideoSearch(filter))
     );
+    const candidates=filter ? videoSearchSuggestions(input.value) : [];
+    if (candidates.length) {
+      const heading=document.createElement('p'); heading.className='search-history-empty';
+      heading.textContent='検索候補'; historyList.appendChild(heading);
+      for (const video of candidates) {
+        const row=document.createElement('div'); row.className='search-history-row';
+        const button=document.createElement('button'); button.type='button';
+        button.className='search-history-term'; button.textContent=video.title;
+        button.addEventListener('click',() => runSearch(video.title));
+        row.appendChild(button); historyList.appendChild(row);
+      }
+    }
 
     if (!matches.length) {
+      if (candidates.length) return;
       const empty = document.createElement('p');
       empty.className = 'search-history-empty';
       empty.textContent = filter
@@ -11298,19 +11493,13 @@ async function renderTrendingVideos() {
 
     const keyword = searchInput.value.trim().toLowerCase();
 
-    const ranked = allVideos
+    const ranked = rankVideoSearch(allVideos,keyword)
       .filter(v =>
         !currentUserBlocks.includes(v.uploaderUid) &&
         !currentUserNotInterested.includes(v.uploaderUid)
       )
       .filter(v =>
         genre === 'すべて' || v.category === genre
-      )
-      .filter(v =>
-        !keyword ||
-        `${v.title} ${v.uploaderName}`
-          .toLowerCase()
-          .includes(keyword)
       )
       .map(v => ({
         ...v,
