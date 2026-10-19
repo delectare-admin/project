@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-S9zhc0WZ9b45XIG7Mry7Al/ZmrVH7xKM369hUJ40WT8=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-5cdNUwAGk/0W0SI8jl42Zw5/Qz31JAc4JIcGBptgXzs=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3414,6 +3414,62 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 #danmakuCustomizeDialog[data-pc-anchored] .dc-footer { padding:8px 14px; }
 
 </style>
+<style id="pcSearchResultsStyles">
+/* PC search results only. Home, phone cards, player and PiP keep their existing styles. */
+#pcSearchResultsHeader { display:none; }
+@media (min-width:769px) {
+  #homeScreen.pc-search-results { max-width:1440px; }
+  #homeScreen.pc-search-results #pcSearchResultsHeader {
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    margin:2px 24px 22px; color:#606060;
+  }
+  #pcSearchResultsHeader[hidden] { display:none !important; }
+  #pcSearchResultsHeading { margin:0 0 4px; font-size:15px; font-weight:500; color:#0f0f0f; overflow-wrap:anywhere; }
+  #pcSearchResultsCount { font-size:12px; }
+  #pcSearchFilterButton {
+    display:flex; align-items:center; gap:8px; flex-shrink:0; min-height:40px; padding:8px 14px;
+    border:0; border-radius:22px; background:transparent; color:#0f0f0f; font:inherit; font-size:14px; cursor:pointer;
+  }
+  #pcSearchFilterButton:hover,#pcSearchFilterButton[aria-expanded="true"] { background:#e9e9e9; }
+  #pcSearchFilterButton svg { width:22px; height:22px; }
+  #homeScreen.pc-search-results:not(.search-filters-open) #categoryFilterBar,
+  #homeScreen.pc-search-results:not(.search-filters-open) #sortControlsArea { display:none !important; }
+  #homeScreen.pc-search-results #videoGrid { display:flex; flex-direction:column; gap:24px; }
+  #homeScreen.pc-search-results #videoGrid .grid-item {
+    --search-thumb-width:42%; display:grid; grid-template-columns:var(--search-thumb-width) minmax(0,1fr);
+    column-gap:22px; align-items:start; min-width:0; width:100%;
+  }
+  #homeScreen.pc-search-results #videoGrid .grid-item > .video-page-link { display:block; width:100%; grid-column:1; grid-row:1; }
+  #homeScreen.pc-search-results #videoGrid .thumbnail-img { display:block; width:100%; height:auto; aspect-ratio:16/9; border-radius:12px; object-fit:cover; }
+  #homeScreen.pc-search-results #videoGrid .grid-item-info { grid-column:2; grid-row:1; margin:0; gap:6px; min-width:0; }
+  #homeScreen.pc-search-results #videoGrid .grid-item-text { min-width:0; }
+  #homeScreen.pc-search-results #videoGrid .grid-title {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    white-space:normal; font-size:20px; font-weight:500; line-height:1.4; padding:0;
+  }
+  #homeScreen.pc-search-results #videoGrid .search-result-meta { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; margin-top:6px; color:#606060; font-size:12px; }
+  #homeScreen.pc-search-results #videoGrid .home-video-stats { font-size:12px; gap:10px; }
+  #homeScreen.pc-search-results #videoGrid .home-author-row { display:flex; align-items:center; flex-wrap:nowrap; gap:9px; margin-top:16px; }
+  #homeScreen.pc-search-results #videoGrid .home-channel-avatar { width:28px; height:28px; flex:0 0 28px; font-size:12px; }
+  #homeScreen.pc-search-results #videoGrid .grid-author { font-size:12px; }
+  #homeScreen.pc-search-results #videoGrid .search-result-description {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    margin:12px 0 0; font-size:13px; line-height:1.6; color:#606060; overflow-wrap:anywhere;
+  }
+  #homeScreen.pc-search-results #videoGrid .search-result-description:empty { display:none; }
+  #homeScreen.pc-search-results #videoGrid .search-result-category { display:inline-block; margin-top:12px; color:#606060; background:#eee; border-radius:4px; padding:2px 6px; font-size:11px; }
+  #homeScreen.pc-search-results #videoGrid .grid-menu-btn-yt { visibility:visible; min-width:32px; min-height:32px; padding:0; font-size:24px; }
+  #homeScreen.pc-search-results #videoGrid .delete-video-btn { right:calc(100% - var(--search-thumb-width) + 8px); }
+  #homeScreen.pc-search-results #videoGrid .empty-list-msg { margin:44px 0; }
+}
+@media (min-width:769px) and (max-width:1000px) {
+  #homeScreen.pc-search-results #videoGrid .grid-item { --search-thumb-width:40%; column-gap:16px; }
+  #homeScreen.pc-search-results #videoGrid .grid-title { font-size:17px; }
+  #homeScreen.pc-search-results #videoGrid .home-author-row { margin-top:10px; }
+  #homeScreen.pc-search-results #videoGrid .search-result-description { margin-top:8px; }
+}
+
+</style>
 </head>
 <body>
 
@@ -3462,6 +3518,15 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
     <!-- ホーム画面 -->
     <div id="homeScreen" class="home-container">
+      <div id="pcSearchResultsHeader" hidden>
+        <div><h2 id="pcSearchResultsHeading"></h2><span id="pcSearchResultsCount" role="status" aria-live="polite"></span></div>
+        <button type="button" id="pcSearchFilterButton" aria-expanded="false" aria-controls="categoryFilterBar sortControlsArea">
+          フィルタ
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <path d="M3 6h7m4 0h7M3 12h12m4 0h2M3 18h3m4 0h11"/><circle cx="12" cy="6" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>
+          </svg>
+        </button>
+      </div>
       <h2 id="pageTitleHeading" class="page-title-heading">履歴</h2>
       <div class="category-filter-bar" id="categoryFilterBar">
         <button class="category-btn active" data-cat="すべて">すべて</button>
@@ -5346,6 +5411,124 @@ function normalizeVideoSearch(value) {
     .replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
     .replace(/[\p{P}\p{S}\s]+/gu, ' ').trim();
 }
+// Japanese reading search v2. Data: Unicode Unihan; see assets/search-readings-LICENSE.txt.
+let searchReadings = null, searchReadingsPromise = null, searchReadingsRetryAt = 0;
+let searchSuggestionVersion = 0;
+const searchReadingLattices = new Map();
+const searchReadingPatterns = new Map();
+async function ensureSearchReadings() {
+  if (searchReadings) return;
+  if (searchReadingsPromise) return searchReadingsPromise;
+  if (Date.now()<searchReadingsRetryAt) return;
+  searchReadingsPromise=(async() => {
+    const controller=new AbortController();
+    const timer=setTimeout(() => controller.abort(),8000);
+    try {
+      const url=new URL('./assets/search-japanese-readings-v2.json',location.href);
+      const response=await fetch(url,{signal:controller.signal,credentials:'same-origin'});
+      if (!response.ok) throw new Error('readings-http-'+response.status);
+      const payload=await response.json(), readings=Object.create(null);
+      if (!payload.readings || typeof payload.readings!=='object') throw new Error('readings-invalid');
+      for (const [character,values] of Object.entries(payload.readings)) {
+        if ([...character].length!==1 || !Array.isArray(values)) continue;
+        const choices=values.filter(value => typeof value==='string' && value.length<=40)
+          .map(normalizeVideoSearch).filter(Boolean);
+        if (choices.length) readings[character]=[...new Set(choices)].slice(0,32);
+      }
+      searchReadings=readings; searchReadingLattices.clear();
+    } catch(error) {
+      searchReadingsRetryAt=Date.now()+30000;
+      console.warn('読み検索の補助データを読み込めませんでした。通常の文字検索は続けます。',error.message);
+    } finally { clearTimeout(timer); searchReadingsPromise=null; }
+  })();
+  return searchReadingsPromise;
+}
+function readingChoices(character,nextCharacter='') {
+  const readings=searchReadings?.[character];
+  if (!readings) return [character];
+  const result=[character,...readings];
+  // Restore stems before okurigana, e.g. 美(うつくしい)+しき -> うつく+しき.
+  if (/^[ぁ-ゖ]$/.test(nextCharacter)) {
+    for (const reading of readings) {
+      for (let i=Math.max(1,reading.length-3); i<reading.length; i++) {
+        if (reading[i]===nextCharacter) result.push(reading.slice(0,i));
+      }
+    }
+  }
+  return [...new Set(result)];
+}
+function searchReadingLattice(text) {
+  if (searchReadingLattices.has(text)) return searchReadingLattices.get(text);
+  const chars=[...text];
+  const lattice=chars.map((character,index) => readingChoices(character,chars[index+1]));
+  searchReadingLattices.set(text,lattice);
+  if (searchReadingLattices.size>800) searchReadingLattices.delete(searchReadingLattices.keys().next().value);
+  return lattice;
+}
+function queryReadingForms(token) {
+  if (!searchReadings || token.length>32) return [];
+  let forms=[''];
+  const chars=[...token];
+  for (let i=0; i<chars.length; i++) {
+    const choices=readingChoices(chars[i],chars[i+1]).filter(value => !/\p{Script=Han}/u.test(value));
+    if (!choices.length) return [];
+    const next=[];
+    for (const form of forms) for (const choice of choices) next.push(form+choice);
+    forms=[...new Set(next)].slice(0,24);
+  }
+  return forms.filter(form => form.length>=2 && form.length<=40);
+}
+function readingLatticeContains(lattice,pattern) {
+  // Shift-And over reading alternatives: no cartesian expansion of title readings.
+  let compiled=searchReadingPatterns.get(pattern);
+  if (!compiled) {
+    const chars=[...pattern],wide=chars.length>30, masks=Object.create(null);
+    chars.forEach((character,index) => {
+      const bit=wide ? 1n<<BigInt(index) : 1<<index;
+      masks[character]=(masks[character] || (wide?0n:0)) | bit;
+    });
+    compiled={masks,wide,last:wide?1n<<BigInt(chars.length-1):1<<(chars.length-1)};
+    searchReadingPatterns.set(pattern,compiled);
+    if (searchReadingPatterns.size>128) searchReadingPatterns.delete(searchReadingPatterns.keys().next().value);
+  }
+  const {masks,wide,last}=compiled;
+  if (wide) {
+    let state=0n;
+    for (const choices of lattice) {
+      let merged=0n;
+      for (const choice of choices) {
+        let current=state;
+        for (const character of choice) {
+          current=((current<<1n)|1n)&(masks[character]||0n);
+          if (current&last) return true;
+        }
+        merged|=current;
+      }
+      state=merged;
+    }
+  } else {
+    let state=0;
+    for (const choices of lattice) {
+      let merged=0;
+      for (const choice of choices) {
+        let current=state;
+        for (const character of choice) {
+          current=((current<<1)|1)&(masks[character]||0);
+          if (current&last) return true;
+        }
+        merged|=current;
+      }
+      state=merged;
+    }
+  }
+  return false;
+}
+function phoneticSearchMatch(text,forms) {
+  if (!forms.length) return false;
+  const lattice=searchReadingLattice(text);
+  return forms.some(form => readingLatticeContains(lattice,form));
+}
+
 function videoSearchDocument(video) {
   let entry = searchDocumentCache.get(video);
   if (!entry) {
@@ -5374,6 +5557,7 @@ function rankVideoSearch(videos, queryText) {
     });
   }
   // Every space-separated term must match; fuzzy matches are only a fallback.
+  const readingForms=tokens.map(queryReadingForms);
   const fuzzy = tokens.map(token => token.length < 3 ? new Map() : new Map(
     searchIndex.search(token).map(hit => [hit.item.video, hit.score || 0])
   ));
@@ -5389,6 +5573,13 @@ function rankVideoSearch(videos, queryText) {
       for (const [field,weight] of fields) {
         if (entry[field].includes(token)) {
           best = Math.max(best, weight + (entry[field] === token ? 14 : entry[field].startsWith(token) ? 5 : 0));
+        }
+      }
+      if (best<36 && readingForms[i].length) {
+        for (const [field,weight] of [['title',36],['author',20],['category',12],['description',4]]) {
+          if (best>=weight) continue;
+          const readable=entry[field].slice(0,field==='description'?600:300);
+          if (phoneticSearchMatch(readable,readingForms[i])) best=weight;
         }
       }
       if (!best && fuzzy[i].has(video)) best = 3 + 5 * (1 - fuzzy[i].get(video));
@@ -5413,6 +5604,52 @@ function videoSearchSuggestions(queryText, count=7) {
     if (seen.has(title)) return false;
     seen.add(title); return true;
   }).slice(0,count);
+}
+
+const desktopSearchMedia=window.matchMedia('(min-width:769px)');
+desktopSearchMedia.addEventListener('change',() => {
+  if (currentFeed==='all' && searchInput.value.trim()) applyFilterAndSort();
+});
+function syncDesktopSearchLayout(list=null) {
+  const active=currentFeed==='all' && !!searchInput.value.trim();
+  homeScreen.classList.toggle('pc-search-results',active);
+  const header=document.getElementById('pcSearchResultsHeader');
+  header.hidden=!active;
+  const heading=document.getElementById('pcSearchResultsHeading');
+  heading.textContent='「'+searchInput.value.trim().slice(0,200)+'」の検索結果';
+  const count=document.getElementById('pcSearchResultsCount');
+  count.textContent=Array.isArray(list) ? list.length.toLocaleString('ja-JP')+'件' : '検索中…';
+  if (!active) {
+    homeScreen.classList.remove('search-filters-open');
+    document.getElementById('pcSearchFilterButton').setAttribute('aria-expanded','false');
+  }
+}
+document.getElementById('pcSearchFilterButton').addEventListener('click',() => {
+  const expanded=homeScreen.classList.toggle('search-filters-open');
+  document.getElementById('pcSearchFilterButton').setAttribute('aria-expanded',String(expanded));
+});
+function decorateSearchResult(card,video) {
+  const info=card.querySelector('.grid-item-info');
+  const text=card.querySelector('.grid-item-text');
+  const title=text?.querySelector('.grid-title')?.closest('a');
+  const authorRow=text?.querySelector('.home-author-row');
+  const avatar=info?.querySelector('.home-channel-avatar');
+  const stats=authorRow?.querySelector('.home-video-stats');
+  if (!text || !title || !authorRow || !avatar || !stats) return;
+  // Move existing interactive nodes; keep links, channel navigation, counters and menus.
+  const metadata=document.createElement('div'); metadata.className='search-result-meta';
+  const date=document.createElement('time'); date.className='search-result-date';
+  const timestamp=Date.parse(video.uploadedAt);
+  if (Number.isFinite(timestamp)) {
+    date.dateTime=new Date(timestamp).toISOString();
+    date.textContent=new Date(timestamp).toLocaleDateString('ja-JP')+' 投稿';
+  }
+  metadata.append(stats,date); authorRow.prepend(avatar);
+  const description=document.createElement('p'); description.className='search-result-description';
+  description.textContent=String(video.desc || '').replace(/\s+/g,' ').trim().slice(0,500);
+  const category=document.createElement('span'); category.className='search-result-category';
+  category.textContent=video.category || 'その他';
+  text.append(metadata,authorRow,description,category);
 }
 
 // A local File is decoded once on upload; visitors never decode originals for cards.
@@ -5669,10 +5906,12 @@ async function loadVideoList(prefetched = null) {
 
   async function applyFilterAndSort() {
     const version=++searchRenderVersion;
+    syncDesktopSearchLayout();
     if (currentFeed==='trending') { await renderTrendingVideos(); return; }
     document.getElementById('trendingControls')?.remove();
     if (currentFeed==='mypage') { renderMyPage(); return; }
     const keyword=searchInput.value.trim();
+    if (keyword) { await ensureSearchReadings(); if (version!==searchRenderVersion) return; }
     let list=allVideos.filter(isVideoSearchVisible);
     const categoryFilterBar=document.getElementById('categoryFilterBar');
     const sortControlsArea=document.getElementById('sortControlsArea');
@@ -5713,6 +5952,7 @@ async function loadVideoList(prefetched = null) {
   }
 
     function executeSearch() {
+      searchSuggestionVersion++;
       if(searchSuggestions) searchSuggestions.style.display='none';
       currentFeed='all'; currentCategory='すべて'; currentSort='newest';
       sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
@@ -5735,8 +5975,12 @@ async function loadVideoList(prefetched = null) {
     searchInput.setAttribute('autocomplete','off');
     searchInput.setAttribute('aria-controls','searchSuggestions');
     searchSuggestions.setAttribute('aria-label','検索候補');
-    searchInput.addEventListener('input', () => {
+    searchInput.addEventListener('focus',() => { ensureSearchReadings(); });
+    searchInput.addEventListener('input', async () => {
+      const request=++searchSuggestionVersion;
       const keyword=searchInput.value.trim();
+      if (keyword) await ensureSearchReadings();
+      if (request!==searchSuggestionVersion || keyword!==searchInput.value.trim()) return;
       searchSuggestions.replaceChildren();
       const suggestions=keyword ? videoSearchSuggestions(keyword) : [];
       for (const video of suggestions) {
@@ -5765,7 +6009,7 @@ async function loadVideoList(prefetched = null) {
     });
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.header-search-bar')) searchSuggestions.style.display = 'none';
+      if (!e.target.closest('.header-search-bar')) { searchSuggestionVersion++; searchSuggestions.style.display = 'none'; }
       if (!e.target.closest('.grid-menu-wrapper')) document.querySelectorAll('.grid-dropdown.active').forEach(m => m.classList.remove('active'));
     });
 
@@ -6080,6 +6324,7 @@ async function fillHomeCard(card, v) {
     ));
   }
       
+      if (container===videoGrid) syncDesktopSearchLayout(list);
       if (list.length === 0) {
         const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
         container.innerHTML = `<p class="empty-list-msg" style="grid-column:1/-1;">${msg}</p>`; return;
@@ -6179,6 +6424,7 @@ gridItem.addEventListener('click', event => {
       container.appendChild(gridItem);
       if (container === videoGrid) {
           decorateHomeCard(gridItem, v);
+          if (homeScreen.classList.contains('pc-search-results') && desktopSearchMedia.matches) decorateSearchResult(gridItem,v);
         }
       });
     }
@@ -9806,7 +10052,10 @@ volume.addEventListener('blur', () => {
     goHome();
   }
 
-  function renderHistory() {
+  async function renderHistory() {
+    const typed=input.value;
+    if (typed.trim()) await ensureSearchReadings();
+    if (input.value!==typed) return;
     historyList.replaceChildren();
 
     const filter = input.value.trim().toLocaleLowerCase();
