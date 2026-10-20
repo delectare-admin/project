@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-5cdNUwAGk/0W0SI8jl42Zw5/Qz31JAc4JIcGBptgXzs=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-fp5JpqIcAGaZhxT1XwyLMQXzmKuGeR+SohlWnLloAtE=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3470,6 +3470,289 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 }
 
 </style>
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<style id="subscriptionAppearanceStyles">
+/* Registered channels: the same controls on desktop and phone. */
+#subscriptionChannelStrip[hidden], #subscriptionChannelStrip [hidden] { display:none !important; }
+#subscriptionChannelStrip { margin:0 24px 20px; min-width:0; }
+.subscription-strip-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 14px; }
+#subscriptionSelectionTitle { margin:0; min-width:0; font-size:20px; line-height:1.5; overflow-wrap:anywhere; }
+#subscriptionOpenChannel { flex:0 0 auto; min-height:40px; padding:8px 14px; border:0; border-radius:22px; background:#f2f2f2; color:#065fd4; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.subscription-channel-list { display:flex; align-items:flex-start; gap:14px; width:100%; box-sizing:border-box; padding:4px 4px 8px; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; scroll-padding:4px; }
+.subscription-channel { display:flex; flex:0 0 80px; flex-direction:column; align-items:center; gap:9px; width:80px; min-height:100px; padding:4px; border:0; border-radius:12px; background:transparent; color:#0f0f0f; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.subscription-avatar { position:relative; display:grid; place-items:center; width:60px; height:60px; box-sizing:border-box; flex:0 0 auto; overflow:hidden; border-radius:50%; background:#e9e9e9; color:#606060; font-size:23px; font-weight:600; outline:2px solid transparent; outline-offset:3px; }
+.subscription-avatar img { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.subscription-name { display:block; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:12px; line-height:1.5; }
+.subscription-all-icon { background:#f2f2f2; color:#0f0f0f; font-size:13px; }
+.subscription-channel[aria-pressed="true"] .subscription-avatar { outline-color:#0f0f0f; }
+.subscription-channel[aria-pressed="true"] .subscription-name { font-weight:700; }
+.subscription-channel:hover, #subscriptionOpenChannel:hover { background:#e9e9e9; }
+.subscription-channel:focus-visible, #subscriptionOpenChannel:focus-visible { outline:2px solid #065fd4; outline-offset:2px; }
+#subscriptionChannelStatus { margin:10px 0 0; color:#606060; font-size:14px; }
+@media (max-width:768px) {
+  #subscriptionChannelStrip { margin:0 12px 14px; }
+  .subscription-strip-heading { margin-bottom:10px; gap:8px; }
+  #subscriptionSelectionTitle { font-size:17px; }
+  #subscriptionOpenChannel { max-width:48%; padding:8px 12px; font-size:12px; }
+  .subscription-channel-list { gap:8px; }
+  .subscription-channel { flex-basis:72px; width:72px; min-height:96px; }
+  .subscription-avatar { width:56px; height:56px; }
+}
+/* Mobile system appearance. Player surfaces and media keep their original colors. */
+@media (max-width:768px), (hover:none) and (pointer:coarse) {
+@media (prefers-color-scheme:dark) {
+
+:root { color-scheme:dark; background:#0f0f0f; }
+:root body { background:#0f0f0f !important; color:#f1f1f1 !important; }
+:root body :is(input:not([type=range]):not([type=color]):not([type=checkbox]):not([type=radio]), textarea, select):not(#videoWrapper *):not(#danmakuCustomizeDialog *) { color:#f1f1f1 !important; background-color:#181818 !important; border-color:#555 !important; }
+:root body :is(input,textarea)::placeholder { color:#aaa; opacity:1; }
+:root body .channel-header { border-color:#3f3f3f !important; }
+:root body :is(.channel-meta-stats,#customizeModal p,#uploadModal p,#watchMoreMenu button) { color:#aaa !important; }
+:root body .subscription-channel { color:#f1f1f1 !important; }
+:root body .subscription-avatar { background:#303030; color:#ddd; }
+:root body .subscription-all-icon { background:#272727; color:#f1f1f1; }
+:root body .subscription-channel[aria-pressed="true"] .subscription-avatar { outline-color:#f1f1f1; }
+:root body :is(#navHomeBtn,#navSubscriptionsBtn) img { filter:invert(1); }
+:root body #watchScreen .danmaku-framed #danmakuSubmitBtn { background:#272727 !important; border-color:#555 !important; color:#3ea6ff !important; }
+:root body .comment-content .comment-author { color:#f1f1f1; }
+:root body #watchMoreMenu #reportBtn { color:#ff8a80 !important; }
+:root body #watchMoreMenu :is(#saveVideoBtn,#blockChannelMenuBtn) { color:#3ea6ff !important; }
+:root body #danmakuInput { color:#f1f1f1 !important; background:transparent !important; }
+:root body .danmaku-input-area { background:#181818 !important; border-color:#555 !important; }
+:root body .danmaku-input-area :is(#danmakuCustomizeBtn,#danmakuSubmitBtn) { background:#272727 !important; border-color:#555 !important; color:#3ea6ff !important; }
+:root body .danmaku-input-area #danmakuCustomizeBtn:disabled { color:#aaa !important; }
+:root body {background-color:#0f0f0f !important; color:#f1f1f1 !important;}
+:root header {background-color:#212121 !important;}
+:root .header-search-bar input {border:1px solid #3f3f3f !important;}
+:root .header-search-bar button {background-color:#181818 !important; border:1px solid #3f3f3f !important;}
+:root .header-search-bar button:hover {background-color:#303030 !important;}
+:root .search-suggestions {background-color:#212121 !important; border:1px solid #3f3f3f !important;}
+:root .suggest-item {color:#f1f1f1 !important;}
+:root .suggest-item:hover {background-color:#272727 !important;}
+:root .suggest-item::before {color:#aaa !important;}
+:root .create-btn {background-color:#272727 !important;}
+:root .create-btn:hover {background-color:#3f3f3f !important;}
+:root .dropdown-menu {background-color:#212121 !important;}
+:root .menu-item:hover {background-color:#272727 !important;}
+:root .side-nav {background-color:#212121 !important;}
+:root .nav-item {color:#f1f1f1 !important;}
+:root .nav-item:hover {background-color:#272727 !important;}
+:root .nav-item.active {background-color:#272727 !important;}
+:root .category-btn {background-color:#272727 !important; color:#f1f1f1 !important;}
+:root .category-btn:hover {background-color:#3f3f3f !important;}
+:root .category-btn.active {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .modal-content {background-color:#212121 !important;}
+:root .modal-header {border-bottom:1px solid #3f3f3f !important;}
+:root .close-btn {color:#aaa !important;}
+:root .upload-icon-circle {background-color:#272727 !important; color:#aaa !important;}
+:root .select-file-btn {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .input-group label {color:#aaa !important;}
+:root .input-group input[type="text"],
+:root .input-group input[type="file"],
+:root .input-group input[type="email"],
+:root .input-group input[type="password"],
+:root .input-group textarea,
+:root .input-group select {border:1px solid #3f3f3f !important;}
+:root .preview-area {background-color:#0f0f0f !important;}
+:root .modal-footer {border-top:1px solid #3f3f3f !important;}
+:root .save-btn:disabled {background-color:#555555 !important;}
+:root .auth-error {color:#ff8a80 !important;}
+:root .auth-switch {color:#aaa !important;}
+:root .auth-switch a {color:#3ea6ff !important;}
+:root .sort-btn {background-color:#272727 !important; color:#aaa !important;}
+:root .sort-btn.active {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .empty-list-msg {color:#aaa !important;}
+:root .grid-item .grid-author {color:#aaa !important;}
+:root .grid-menu-btn-yt {color:#f1f1f1 !important;}
+:root .grid-dropdown {background:#212121 !important; border:1px solid #3f3f3f !important;}
+:root .grid-dropdown-item {color:#f1f1f1 !important;}
+:root .grid-dropdown-item:hover {background-color:#272727 !important;}
+:root .related-heading {color:#f1f1f1 !important;}
+:root .related-item:hover {background:#272727 !important;}
+:root .related-item .info-author {color:#aaa !important;}
+:root .uploader-name {color:#f1f1f1 !important;}
+:root .uploader-sub-count {color:#aaa !important;}
+:root #viewCount {color:#aaa !important;}
+:root .rate-btn {background-color:#272727 !important;}
+:root .rate-btn:hover {background-color:#3f3f3f !important;}
+:root .rate-btn.active-like {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .rate-btn.active-dislike {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .subscribe-btn {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+:root .subscribe-btn:hover {background-color:#e5e5e5 !important;}
+:root .subscribe-btn.subscribed {background-color:#272727 !important; color:#f1f1f1 !important;}
+:root .subscribe-btn.subscribed:hover {background-color:#3f3f3f !important;}
+:root .danmaku-input-area input {border:1px solid #3f3f3f !important;}
+:root .danmaku-input-area button:disabled {background-color:#555555 !important;}
+:root .nickname-area label {color:#aaa !important;}
+:root .nickname-area input {border:1px solid #3f3f3f !important;}
+:root .channel-badge {color:#aaa !important;}
+:root .comment-section {border-top:1px solid #3f3f3f !important;}
+:root .comment-input-area textarea,
+:root .reply-input-area textarea {border-bottom:1px solid #3f3f3f !important;}
+:root .comment-input-area textarea:focus,
+:root .reply-input-area textarea:focus {border-bottom:2px solid #f1f1f1 !important;}
+:root .comment-input-area button:disabled {background-color:#555555 !important;}
+:root .comment-content .comment-date {color:#aaa !important;}
+:root .comment-content .comment-text {color:#f1f1f1 !important;}
+:root .comment-action-btn {color:#aaa !important;}
+:root .comment-action-btn:hover {background-color:#272727 !important;}
+:root .comment-action-btn.active {color:#f1f1f1 !important;}
+:root .reply-input-area button:disabled {background-color:#555555 !important;}
+:root .manage-list-item {border:1px solid #3f3f3f !important; background-color:#212121 !important;}
+:root .manage-list-date {color:#aaa !important;}
+:root .manage-btn {background-color:#272727 !important;}
+:root .manage-btn:hover {background-color:#3f3f3f !important;}
+:root .manage-btn-delete {color:#ff8a80 !important;}
+:root .share-link-box input {border:1px solid #3f3f3f !important; background-color:#0f0f0f !important;}
+:root .share-btn-copy {background-color:#f1f1f1 !important; color:#0f0f0f !important;}
+@media (max-width: 768px) {
+:root .side-nav {border-top:1px solid #3f3f3f !important;}
+:root .grid-item {border-bottom:1px solid #3f3f3f !important;}
+}
+:root #videoDescriptionBox {background:#272727 !important; color:#f1f1f1 !important;}
+:root .comment-sort-control {color:#f1f1f1 !important;}
+:root #commentSortSelect {border:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
+@media (max-width: 768px) {
+:root body.watch-mode #mobileWatchSearchBtn {color:#f1f1f1 !important;}
+}
+:root #mobileSearchDialog {background:#212121 !important; color:#f1f1f1 !important;}
+:root #mobileSearchDialog .mobile-search-form {border-bottom:1px solid #3f3f3f !important;}
+:root #mobileSearchDialog .mobile-search-field {background:#272727 !important;}
+:root #mobileSearchText {color:#f1f1f1 !important;}
+:root #mobileSearchHistory .search-history-row {border-bottom:1px solid #3f3f3f !important;}
+:root #mobileSearchHistory .search-history-delete {color:#3ea6ff !important;}
+:root #mobileSearchHistory .search-history-empty {color:#aaa !important;}
+@media (max-width: 768px) {
+:root body > header #mobileWatchSearchBtn {color:#f1f1f1 !important;}
+}
+:root #mySettingsBtn:not([hidden]) {color:#f1f1f1 !important;}
+:root .my-status {color:#aaa !important;}
+:root .my-actions button,
+:root .my-section-head button {border:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
+:root .my-actions button:first-child {background:#303030 !important; border-color:#303030 !important;}
+:root .my-video-card > span {color:#aaa !important;}
+:root .my-empty {color:#aaa !important;}
+:root #mySettingsDialog {background:#212121 !important; color:#f1f1f1 !important;}
+:root #mySettingsClose {color:#f1f1f1 !important;}
+@media (max-width: 768px) {
+:root #mobileCommentsPreview {background:#303030 !important; color:#f1f1f1 !important;}
+:root #mobileCommentsCount {color:#aaa !important;}
+:root .mobile-comment-preview-arrow {color:#aaa !important;}
+:root #mobileCommentsExcerpt {color:#ddd !important;}
+}
+:root #mobileCommentsSheet {background:#212121 !important; color:#f1f1f1 !important;}
+:root .mobile-comments-sheet-header {border-bottom:1px solid #3f3f3f !important;}
+:root #mobileCommentsClose {color:#f1f1f1 !important;}
+:root #mobileCommentsSheet .comment-heading-row {background:#212121 !important;}
+@media (max-width: 768px) {
+:root #mobileDescriptionSummary {color:#aaa !important;}
+:root #mobileDescriptionOpen {color:#f1f1f1 !important;}
+}
+:root #mobileDescriptionSheet {background:#212121 !important; color:#f1f1f1 !important;}
+:root .mobile-description-header {border-bottom:1px solid #3f3f3f !important;}
+:root #mobileDescriptionClose {color:#f1f1f1 !important;}
+:root #mobileDescriptionMeta {color:#aaa !important;}
+:root #watchScreen .danmaku-input-area.danmaku-framed {border:1px solid #555555 !important; background:#212121 !important;}
+:root #watchScreen .danmaku-framed .danmaku-tool,
+:root #watchScreen .danmaku-framed #danmakuSubmitBtn {background:#272727 !important;}
+:root #watchScreen .danmaku-framed .danmaku-tool {border-right:1px solid #555555 !important;}
+:root #watchScreen .danmaku-framed #danmakuSubmitBtn {border-left:1px solid #555555 !important;}
+:root #watchScreen .danmaku-framed button:disabled {color:#aaa !important;}
+:root #mySettingsDialog details {border-top:1px solid #3f3f3f !important;}
+:root #mySettingsDialog .content-filter-settings p {color:#aaa !important;}
+:root #mySettingsDialog .blocked-user-row {border-bottom:1px solid #3f3f3f !important;}
+:root #mySettingsDialog .blocked-user-row button,
+:root #saveMutedWordsBtn {border:1px solid #3f3f3f !important; background:#272727 !important; color:#3ea6ff !important;}
+:root #videoGrid .home-author-row .grid-author {color:#aaa !important;}
+:root #videoGrid .home-video-stats {color:#aaa !important;}
+@media (min-width: 769px) {
+:root #watchScreen #desktopVideoDescription {border:1px solid #3f3f3f !important; background:#272727 !important; color:#f1f1f1 !important;}
+:root #watchScreen #desktopDescriptionToggle {color:#f1f1f1 !important;}
+}
+:root .comment-media {color:#aaa !important;}
+:root #commentComposer #commentCancelBtn {color:#f1f1f1 !important;}
+:root #commentComposer #commentCancelBtn:hover {background:#383838 !important;}
+:root #commentComposeStatus {color:#ffb4ab !important;}
+:root .video-interaction-settings {border:1px solid #3f3f3f !important;}
+:root .video-settings-help {color:#aaa !important;}
+:root .video-interaction-notice {color:#aaa !important;}
+:root #watchMoreMenu #downloadVideoBtn {color:#f1f1f1 !important;}
+:root #watchMoreMenu #downloadVideoBtn:disabled {color:#aaa !important;}
+:root #videoDownloadProgress {color:#aaa !important;}
+:root #videoDownloadProgress[data-state="error"] {color:#ffb4ab !important;}
+:root #videoDownloadProgress button {border:1px solid #3f3f3f !important; background:#272727 !important; color:#3ea6ff !important;}
+:root #commentSortButton {color:#f1f1f1 !important;}
+:root #commentSortButton:hover {background:#303030 !important;}
+:root #commentSortMenu {border:1px solid #3f3f3f !important; background:#212121 !important;}
+:root #commentSortMenu > button {color:#f1f1f1 !important;}
+:root #commentSortMenu > button[aria-pressed="true"] {background:#383838 !important;}
+:root #commentSortMenu > button:hover {background:#272727 !important;}
+:root #commentSortMenu small {color:#aaa !important;}
+:root .comment-more > summary:hover {background:#303030 !important;}
+:root .comment-more-menu {border:1px solid #3f3f3f !important; background:#212121 !important;}
+:root .comment-more-menu button {color:#f1f1f1 !important;}
+:root .comment-more-menu button:hover {background:#303030 !important;}
+:root .comment-pin-label {color:#aaa !important;}
+:root .reply-compose-actions button:first-child {color:#f1f1f1 !important;}
+:root .reply-compose-status {color:#ffb4ab !important;}
+:root .comment-action-dialog {background:#212121 !important; color:#f1f1f1 !important;}
+:root .comment-action-dialog p {color:#ffb4ab !important;}
+:root .comment-dialog-actions button[type="submit"] {background:#f1f1f1 !important; color:#0f0f0f !important;}
+:root #browseMiniPlayer {background:#212121 !important; color:#f1f1f1 !important;}
+:root #browseMiniDetails {background:#212121 !important;}
+:root #browseMiniAuthor {color:#aaa !important;}
+:root .replies-thread-toggle,
+:root .reply-page-actions button {color:#3ea6ff !important;}
+:root .replies-thread-toggle:hover,
+:root .reply-page-actions button:hover {background:#173044 !important;}
+:root .replies-list {border-left:1px solid #3f3f3f !important;}
+@media (min-width:769px) {
+:root #homeScreen.pc-search-results #pcSearchResultsHeader {color:#aaa !important;}
+:root #pcSearchResultsHeading {color:#f1f1f1 !important;}
+:root #pcSearchFilterButton {color:#f1f1f1 !important;}
+:root #pcSearchFilterButton:hover,
+:root #pcSearchFilterButton[aria-expanded="true"] {background:#383838 !important;}
+:root #homeScreen.pc-search-results #videoGrid .search-result-meta {color:#aaa !important;}
+:root #homeScreen.pc-search-results #videoGrid .search-result-description {color:#aaa !important;}
+:root #homeScreen.pc-search-results #videoGrid .search-result-category {color:#aaa !important; background:#303030 !important;}
+}
+:root #blockConfirmationDialog {background:#212121 !important; color:#f1f1f1 !important;}
+:root #blockConfirmationDialog button[value="ok"] {background:#f1f1f1 !important; color:#0f0f0f !important;}
+:root #nearLoginNotice {border:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
+:root #nearLoginNotice p {color:#aaa !important;}
+:root #nearLoginNotice .notice-close {color:#aaa !important;}
+:root #nearLoginNotice .notice-login {background:#f1f1f1 !important; color:#0f0f0f !important;}
+:root #subscribeBtn {background:#f1f1f1 !important; color:#0f0f0f !important;}
+:root #subscribeBtn.subscribed {background:#383838 !important; color:#f1f1f1 !important;}
+:root .watch-layout-v3 #mobileDescriptionSummary {color:#aaa !important;}
+:root .watch-layout-v3 #mobileDescriptionOpen {color:#f1f1f1 !important;}
+:root #watchMoreButton {background:#303030 !important; color:#f1f1f1 !important;}
+:root #watchMoreMenu {border:1px solid #3f3f3f !important; background:#212121 !important;}
+:root #watchMoreMenu > button:hover,
+:root #watchMoreMenu > button:focus-visible {background:#272727 !important;}
+:root #notificationBell {color:#f1f1f1 !important;}
+:root #notificationBell.has-unread::after {border:2px solid #3f3f3f !important;}
+:root #notificationPanel {border:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
+:root #notificationPanel .notification-heading {background:#212121 !important; border-bottom:1px solid #3f3f3f !important;}
+:root #notificationList > button {border-bottom:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
+:root #notificationList > button.unread {background:#173044 !important;}
+:root #notificationList small {color:#aaa !important;}
+:root #notificationStatus {color:#aaa !important;}
+:root .mobile-danmaku-below {background:#212121 !important;}
+:root : -webkit-full-screen,
+:root .pseudo-fullscreen
+    ) {background:#f1f1f1 !important;}
+:root #subscriptionOpenChannel {background:#272727 !important; color:#3ea6ff !important;}
+:root .subscription-channel {color:#f1f1f1 !important;}
+:root .subscription-all-icon {background:#272727 !important; color:#f1f1f1 !important;}
+:root .subscription-channel:hover,
+:root #subscriptionOpenChannel:hover {background:#383838 !important;}
+:root #subscriptionChannelStatus {color:#aaa !important;}
+}
+}
+
+</style>
 </head>
 <body>
 
@@ -3527,6 +3810,14 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
           </svg>
         </button>
       </div>
+      <section id="subscriptionChannelStrip" hidden aria-labelledby="subscriptionSelectionTitle">
+        <div class="subscription-strip-heading">
+          <h2 id="subscriptionSelectionTitle">登録チャンネル</h2>
+          <button type="button" id="subscriptionOpenChannel" hidden>チャンネルに移動</button>
+        </div>
+        <div class="subscription-channel-list" role="group" aria-label="登録チャンネルを選ぶ"></div>
+        <p id="subscriptionChannelStatus" role="status" hidden></p>
+      </section>
       <h2 id="pageTitleHeading" class="page-title-heading">履歴</h2>
       <div class="category-filter-bar" id="categoryFilterBar">
         <button class="category-btn active" data-cat="すべて">すべて</button>
@@ -4600,6 +4891,7 @@ function applyDanmakuStyle(node, value) {
     navHomeBtn.addEventListener('click', returnToHomeList);
     navSubscriptionsBtn.addEventListener('click', () => {
       if (!currentUser) return alert('登録したチャンネルを見るにはログインしてください。');
+      selectedSubscriptionUid = ''; resetSubscriptionFilters();
       currentFeed = 'subscriptions'; setActiveNav('subscriptions'); goHome();
     });
     navHistoryBtn.addEventListener('click', () => { currentFeed = 'history'; setActiveNav('history'); goHome(); });
@@ -5117,6 +5409,11 @@ async function secureAuthChanged(user) {
   currentUserNotInterested = [];
   currentUserSubscriptions = [];
   currentUserSaved = [];
+  selectedSubscriptionUid = '';
+  subscriptionStripKey = '';
+  subscriptionStripVersion++;
+  document.getElementById('subscriptionChannelStrip').hidden = true;
+  document.querySelector('#subscriptionChannelStrip .subscription-channel-list').replaceChildren();
 
   if (user && !user.isAnonymous) {
     let channelName = 'ゲストチャンネル';
@@ -5260,6 +5557,7 @@ async function secureSubscribe() {
     if (result.active) {
       currentUserSubscriptions.push(channelUid);
     }
+    syncSubscriptionStrip();
 
     if (subscribeBtn.dataset.targetUid === channelUid) {
       subscribeBtn.textContent =
@@ -5652,6 +5950,159 @@ function decorateSearchResult(card,video) {
   text.append(metadata,authorRow,description,category);
 }
 
+// Subscription channel strip v1: reuse existing subscriptions and public profile cache.
+let selectedSubscriptionUid = '';
+let subscriptionStripKey = '';
+let subscriptionStripVersion = 0;
+const subscriptionStripProfiles = new Map();
+
+function resetSubscriptionFilters() {
+  searchInput.value = '';
+  const mobileInput = document.getElementById('mobileSearchText');
+  if (mobileInput) mobileInput.value = '';
+  searchSuggestionVersion++;
+  if (searchSuggestions) searchSuggestions.style.display = 'none';
+  currentCategory = 'すべて';
+  document.querySelectorAll('#categoryFilterBar .category-btn').forEach(button => {
+    button.classList.toggle('active', button.dataset.cat === 'すべて');
+  });
+}
+
+function syncSubscriptionStrip() {
+  const section = document.getElementById('subscriptionChannelStrip');
+  if (!section) return;
+  const active = currentFeed === 'subscriptions' && !!currentUser;
+  section.hidden = !active;
+  if (!active) return;
+  const uids = cleanStringList(currentUserSubscriptions)
+    .filter(uid => !uid.includes('/') && !currentUserBlocks.includes(uid));
+  if (!uids.includes(selectedSubscriptionUid)) selectedSubscriptionUid = '';
+  const accountUid = currentUser.uid;
+  const key = JSON.stringify([accountUid, uids]);
+  const row = section.querySelector('.subscription-channel-list');
+  const status = document.getElementById('subscriptionChannelStatus');
+  if (subscriptionStripKey !== key) {
+    subscriptionStripKey = key;
+    const version = ++subscriptionStripVersion;
+    row.replaceChildren();
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'subscription-channel subscription-all';
+    all.dataset.channelUid = '';
+    const allIcon = document.createElement('span');
+    allIcon.className = 'subscription-avatar subscription-all-icon';
+    allIcon.setAttribute('aria-hidden', 'true');
+    allIcon.textContent = 'すべて';
+    const allLabel = document.createElement('span');
+    allLabel.className = 'subscription-name';
+    allLabel.textContent = 'すべて';
+    all.append(allIcon, allLabel);
+    row.appendChild(all);
+    const items = uids.map(uid => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'subscription-channel';
+      button.dataset.channelUid = uid;
+      const avatar = document.createElement('span');
+      avatar.className = 'subscription-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span');
+      label.className = 'subscription-name';
+      button.append(avatar, label);
+      row.appendChild(button);
+      function fill(profile) {
+        const name = String(profile.channelName ||
+          allVideos.find(video => video.uploaderUid === uid)?.uploaderName || 'チャンネル');
+        subscriptionStripProfiles.set(uid, { channelName: name });
+        avatar.replaceChildren();
+        const letter = document.createElement('span');
+        letter.textContent = [...name][0] || '人';
+        avatar.appendChild(letter);
+        const raw = profile.avatarUrl;
+        if (typeof raw === 'string' && raw) {
+          try {
+            const url = new URL(raw, location.href);
+            if (['https:', 'http:'].includes(url.protocol)) {
+              const image = document.createElement('img');
+              image.alt = '';
+              image.loading = 'lazy';
+              image.decoding = 'async';
+              image.addEventListener('error', () => image.remove(), { once: true });
+              image.src = url.href;
+              avatar.appendChild(image);
+            }
+          } catch { /* A missing/invalid avatar retains the initial. */ }
+        }
+        label.textContent = name;
+        button.title = name;
+        button.setAttribute('aria-label', name + 'の動画を表示');
+        updateSubscriptionSelection();
+      }
+      fill({});
+      return { uid, button, fill };
+    });
+    let next = 0;
+    async function worker() {
+      while (next < items.length && version === subscriptionStripVersion) {
+        const item = items[next++];
+        try {
+          const profile = await getHomeProfile(item.uid);
+          if (version !== subscriptionStripVersion || key !== subscriptionStripKey ||
+              currentUser?.uid !== accountUid || !item.button.isConnected) return;
+          item.fill(profile);
+        } catch (error) {
+          console.warn('登録チャンネルのプロフィールを取得できませんでした:', error);
+        }
+      }
+    }
+    void Promise.all(Array.from({ length: Math.min(4, items.length) }, worker));
+  }
+  status.textContent = uids.length ? '' : '登録したチャンネルはまだありません。';
+  status.hidden = !!uids.length;
+  updateSubscriptionSelection();
+}
+
+function updateSubscriptionSelection() {
+  const section = document.getElementById('subscriptionChannelStrip');
+  if (!section) return;
+  section.querySelectorAll('.subscription-channel').forEach(button => {
+    const selected = button.dataset.channelUid === selectedSubscriptionUid;
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  const heading = document.getElementById('subscriptionSelectionTitle');
+  const name = subscriptionStripProfiles.get(selectedSubscriptionUid)?.channelName || 'チャンネル';
+  heading.textContent = selectedSubscriptionUid ? name + 'の動画' : '登録チャンネル';
+  document.getElementById('subscriptionOpenChannel').hidden = !selectedSubscriptionUid;
+}
+
+document.getElementById('subscriptionChannelStrip').addEventListener('click', event => {
+  const button = event.target.closest('.subscription-channel');
+  if (!button) return;
+  selectedSubscriptionUid = button.dataset.channelUid;
+  resetSubscriptionFilters();
+  void applyFilterAndSort();
+});
+document.getElementById('subscriptionOpenChannel').addEventListener('click', () => {
+  if (selectedSubscriptionUid) void showMyProfile(selectedSubscriptionUid);
+});
+
+// System appearance v1: never store or override the OS preference.
+(() => {
+  const handheld = matchMedia('(max-width: 768px), (hover: none) and (pointer: coarse)');
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  function syncSystemAppearance() {
+    if (meta) meta.content = handheld.matches && dark.matches ? '#0f0f0f' : '#ffffff';
+  }
+  for (const media of [handheld, dark]) {
+    if (media.addEventListener) media.addEventListener('change', syncSystemAppearance);
+    else media.addListener(syncSystemAppearance);
+  }
+  document.addEventListener('visibilitychange', syncSystemAppearance);
+  window.addEventListener('pageshow', syncSystemAppearance);
+  syncSystemAppearance();
+})();
+
 // A local File is decoded once on upload; visitors never decode originals for cards.
 async function createAutomaticThumbnail(file) {
   const video = document.createElement('video');
@@ -5907,6 +6358,7 @@ async function loadVideoList(prefetched = null) {
   async function applyFilterAndSort() {
     const version=++searchRenderVersion;
     syncDesktopSearchLayout();
+    syncSubscriptionStrip();
     if (currentFeed==='trending') { await renderTrendingVideos(); return; }
     document.getElementById('trendingControls')?.remove();
     if (currentFeed==='mypage') { renderMyPage(); return; }
@@ -5926,7 +6378,7 @@ async function loadVideoList(prefetched = null) {
       list=currentUserSaved.map(id => list.find(v => v.itemRef.fullPath===id)).filter(Boolean);
     } else {
       categoryFilterBar.style.display='flex'; sortControlsArea.style.display='flex'; pageTitleHeading.style.display='none';
-      if (currentFeed==='subscriptions') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
+      if (currentFeed==='subscriptions') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid) && (!selectedSubscriptionUid || v.uploaderUid === selectedSubscriptionUid));
       if (currentCategory!=='すべて') list=list.filter(v => v.category===currentCategory);
     }
     if (!sortNewestBtn.dataset.originalLabel) sortNewestBtn.dataset.originalLabel=sortNewestBtn.textContent;
