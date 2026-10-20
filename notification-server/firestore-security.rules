@@ -39,48 +39,9 @@ service cloud.firestore {
     }
 
     match /comments/{commentId} {
-      function validNewComment() {
-        let d = request.resource.data;
-
-        return d.keys().hasAll([
-            'videoId', 'text', 'author', 'authorUid', 'type', 'createdAt'
-          ])
-          && d.keys().hasOnly([
-            'videoId', 'text', 'author', 'authorUid', 'type',
-            'createdAt', 'parentId', 'videoTime'
-          ])
-          && d.authorUid == request.auth.uid
-          && d.videoId is string
-          && d.videoId.size() > 0 && d.videoId.size() <= 1024
-          && d.author is string
-          && d.author.size() > 0 && d.author.size() <= 200
-          && d.text is string && d.text.size() > 0
-          && d.createdAt == request.time
-          && (
-            (
-              d.type == 'normal'
-              && d.text.size() <= 2000
-              && !('videoTime' in d)
-              && (
-                d.get('parentId', null) == null
-                || (
-                  d.parentId is string
-                  && d.parentId.size() > 0
-                  && d.parentId.size() <= 128
-                )
-              )
-            )
-            || (
-              d.type == 'danmaku'
-              && d.text.size() <= 200
-              && d.videoTime is number && d.videoTime >= 0
-              && d.get('parentId', null) == null
-            )
-          );
-      }
-
       allow read: if true;
-      allow create: if signedIn() && validNewComment();
+      // All comment creation and text edits go through the authenticated guard.
+      allow create: if false;
       allow update: if validVoteUpdate();
       allow delete: if signedIn()
         && resource.data.authorUid == request.auth.uid;
@@ -241,5 +202,50 @@ service cloud.firestore {
 
       allow read, update, delete: if false;
     }
+
+    // Upload state can be observed by its owner. Tickets and limits remain server-owned.
+    match /videoUploadTickets/{ticketId} {
+      allow get: if signedIn() && resource.data.uid == request.auth.uid;
+      allow list, create, update, delete: if false;
+    }
+    match /videoUploadSessions/{id} { allow read, write: if false; }
+    match /videoUploadDays/{id} { allow read, write: if false; }
+    match /commentRateLimits/{uid} { allow read, write: if false; }
+
+    match /commentReports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'commentId','videoId','commentAuthorUid','reportedBy','reason','createdAt','status'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'commentId','videoId','commentAuthorUid','reportedBy','reason','createdAt','status'
+        ])
+        && request.resource.data.commentId is string
+        && request.resource.data.commentId.matches('[A-Za-z0-9_-]{1,128}')
+        && reportId == request.resource.data.commentId + '__' + request.auth.uid
+        && request.resource.data.reportedBy == request.auth.uid
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 2000
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/comments/$(request.resource.data.commentId))
+        && get(/databases/$(database)/documents/comments/$(request.resource.data.commentId)).data.type == 'normal'
+        && get(/databases/$(database)/documents/comments/$(request.resource.data.commentId)).data.authorUid == request.resource.data.commentAuthorUid
+        && get(/databases/$(database)/documents/comments/$(request.resource.data.commentId)).data.videoId == request.resource.data.videoId
+        && request.resource.data.commentAuthorUid != request.auth.uid;
+      allow read, update, delete: if false;
+    }
+    match /userNotifications/{uid}/items/{itemId} {
+      allow read: if isMe(uid);
+      allow update: if isMe(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow create, delete: if false;
+    }
+    // Notification bookkeeping is never accessible to browsers.
+    match /notificationVideoIndex/{id} { allow read, write: if false; }
+    match /notificationProcessedComments/{id} { allow read, write: if false; }
+    match /notificationDanmakuTotals/{id} { allow read, write: if false; }
   }
 }

@@ -1,0 +1,55 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function ownsExistingFile() {
+      return signedIn() && resource.metadata.uploaderUid == request.auth.uid;
+    }
+    function newOwnerIsMe() {
+      return signedIn() && request.resource.metadata.uploaderUid == request.auth.uid;
+    }
+    // Only a server-created GCS resumable session can receive private source bytes.
+    // No Firebase download token is issued for this upload path.
+    match /video-uploads/{userId}/{fileName} {
+      allow read, write: if false;
+    }
+    // Existing public videos remain readable. Browsers can never replace their bytes.
+    match /videos/{filePath=**} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+    match /thumbnails/{filePath=**} {
+      allow read: if true;
+      allow create: if resource == null && newOwnerIsMe()
+        && request.resource.size > 0 && request.resource.size <= 10485760
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+      allow update: if ownsExistingFile() && newOwnerIsMe()
+        && request.resource.size > 0 && request.resource.size <= 10485760
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+      allow delete: if ownsExistingFile();
+    }
+    match /avatars/{userId} {
+      allow read: if true;
+      allow create, update: if signedIn() && request.auth.uid == userId
+        && request.resource.size > 0 && request.resource.size <= 10485760
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+    match /commentImages/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if signedIn() && request.auth.uid == userId
+        && resource.metadata.uploaderUid == userId;
+    }
+    match /hls/{filePath=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /thumbnail-jobs/{filePath=**} {
+      allow read, write: if false;
+    }
+  }
+}

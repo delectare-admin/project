@@ -1,2 +1,4 @@
 node_modules/
 *.log
+.media-bin/
+.media-download.tar.xz

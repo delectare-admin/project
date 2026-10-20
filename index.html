@@ -5,13 +5,13 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-fp5JpqIcAGaZhxT1XwyLMQXzmKuGeR+SohlWnLloAtE=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-MukkB7CxHIwZNu02J67ZoO2hMrQ5NHUj8VsNJ6Cetg0=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
     media-src 'self' https: blob:;
     font-src 'self' data:;
-    connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://accounts.google.com https://testo-movie-site.firebaseapp.com https://asia-northeast1-testo-movie-site.cloudfunctions.net;
+    connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://accounts.google.com https://testo-movie-site.firebaseapp.com https://asia-northeast1-testo-movie-site.cloudfunctions.net https://us-east1-testo-movie-site.cloudfunctions.net;
     frame-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
     child-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
     worker-src 'self' blob:;
@@ -4034,6 +4034,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
         <p>アップロードする動画ファイルを選択してください</p>
         <input type="file" id="fileInput" accept="video/*" style="display:none;">
         <button id="selectFileBtn" class="select-file-btn">ファイルを選択</button>
+        <p class="upload-security-help">1本256GB・12時間以内。送信後、動画の形式と長さを確認してから公開します。</p>
       </div>
       <div id="step2Area" class="step-2-area">
         <div class="details-layout">
@@ -4348,10 +4349,69 @@ async function guardedWrite(payload, anchor) {
   }
 }
 
+// Upload security v3: trusted metadata, bounded chunks, private verification before publication.
+const UPLOAD_MAX_BYTES = 256000000000;
+const UPLOAD_MAX_SECONDS = 43200;
+const UPLOAD_TYPES = new Set(['mp4','m4v','mpeg4','mov','mpg','mpeg','mpeg1','mpeg2','mpegps','avi','wmv','flv','3gp','3gpp','3g2','webm','mkv']);
+function validateUploadChoice(file) {
+  if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>UPLOAD_MAX_BYTES)throw new Error('動画は1本256GB以下にしてください。空のファイルは投稿できません。');
+  if(!UPLOAD_TYPES.has(file.name.split('.').pop().toLowerCase()))throw new Error('対応する動画形式を選んでください（MP4・MOV・WebMなど）。');
+}
+const UPLOAD_CHUNK_ENDPOINT='https://us-east1-testo-movie-site.cloudfunctions.net/submovieUploadChunk';
+async function uploadPut(ticketId,total,start,body,checkSession) {
+ checkSession();
+ const token=await auth.currentUser.getIdToken();checkSession();
+ return new Promise((resolve,reject)=>{
+  const uri=new URL(UPLOAD_CHUNK_ENDPOINT);uri.searchParams.set('ticketId',ticketId);
+  uri.searchParams.set('op',body?'chunk':'status');if(body)uri.searchParams.set('start',String(start));
+  const xhr=new XMLHttpRequest();xhr.open('POST',uri.href);xhr.withCredentials=false;xhr.timeout=130000;
+  xhr.setRequestHeader('Authorization','Bearer '+token);xhr.setRequestHeader('Content-Type','application/octet-stream');
+  xhr.onload=()=>{let value;try{value=JSON.parse(xhr.responseText);}catch{};
+   if(xhr.status!==200||!value||!Number.isSafeInteger(value.offset)||value.offset<0||value.offset>total)return reject(new Error(value?.error||'動画を送信できませんでした。'));
+   resolve(value.offset);
+  };
+  xhr.onerror=()=>reject(new Error('動画送信の通信が途切れました。'));
+  xhr.ontimeout=()=>reject(new Error('動画送信がタイムアウトしました。'));
+  xhr.send(body||null);
+ });
+}
+async function sendPrivateVideo(file,ticketId,checkSession,onProgress) {
+ let offset=await uploadPut(ticketId,file.size,0,null,checkSession),failures=0;
+ const chunkBytes=4*1024*1024;
+ while(offset<file.size) {
+  checkSession();
+  const end=Math.min(offset+chunkBytes,file.size),previous=offset;
+  try {
+   offset=await uploadPut(ticketId,file.size,offset,file.slice(offset,end),checkSession);
+   if(offset<=previous)throw new Error('動画の送信が進んでいません。');
+   failures=0;
+  }catch(error){
+   if(++failures>3)throw new Error('動画の送信を再開できませんでした。通信状態を確認してから、保存を再度押してください。');
+   await new Promise(resolve=>setTimeout(resolve,500*2**failures));checkSession();
+   offset=await uploadPut(ticketId,file.size,0,null,checkSession);
+  }
+  onProgress(Math.floor(offset/file.size*100));
+ }
+}
+function waitForVideoInspection(ticketId,uid) {
+ return new Promise((resolve,reject)=>{
+  let stop=()=>{},offAuth=()=>{},done=false;
+  const timer=setTimeout(()=>finish(new Error('検査はサーバーで続いています。完了した動画は一覧に表示されます。少し待って再読み込みしてください。')),10*60*1000);
+  function finish(error,value){if(done)return;done=true;clearTimeout(timer);stop();offAuth();error?reject(error):resolve(value);}
+  stop=onSnapshot(doc(db,'videoUploadTickets',ticketId),snapshot=>{
+   if(auth.currentUser?.uid!==uid)return finish(new Error('ログイン状態が変わりました。'));
+   const state=snapshot.data();if(!snapshot.exists())return finish(new Error('投稿予約を確認できませんでした。'));
+   if(state.status==='ready')finish(null,state.publishedObjectName);
+   else if(state.status==='rejected')finish(new Error(state.rejectionMessage||'動画の形式を確認できませんでした。'));
+  },()=>finish(new Error('動画の検査状況を取得できませんでした。ルールの更新と通信を確認してください。')));
+  offAuth=onAuthStateChanged(auth,user=>{if(user?.uid!==uid)finish(new Error('ログイン状態が変わりました。'));});
+ });
+}
+
 // 同じファイルの送信やり直しでは、同じ投稿予約を使う
 async function reserveVideoGrant(file) {
   const key =
-    'submovie-upload-request:' +
+    'submovie-upload-request-v3:' +
     (auth.currentUser?.uid || '') + ':' +
     JSON.stringify([
       file.name,
@@ -4382,6 +4442,7 @@ async function reserveVideoGrant(file) {
 
   return guardedWrite({
     action: 'upload',
+    policyVersion: 3,
     requestId: record.id,
     name: file.name,
     size: file.size,
@@ -8483,9 +8544,9 @@ async function runCommentMenuAction(action, comment) {
 
           validateVideoMetadataSize(next);
 
-          await updateMetadata(videoRef, {
-            customMetadata: next
-          });
+          await guardedWrite({action:'pinComment',videoId:comment.videoId,
+            commentId:next.pinnedCommentId,expectedCommentId:cm.pinnedCommentId||''
+          },document.querySelector('.comment-action-dialog form'));
 
           if (currentVideoId === comment.videoId) {
             ++commentPinRequest;
@@ -9495,6 +9556,7 @@ mainVideo.addEventListener('emptied', () => {
 
       if (!selectedFile) return;
       const uploadFile = selectedFile;
+      try { validateUploadChoice(uploadFile); } catch(error) { showGuardNotice(saveBtn,{message:error.message}); return; }
       let thumbFile = thumbInput.files?.[0] || null;
       let uploadDetails;
 
@@ -9532,6 +9594,7 @@ mainVideo.addEventListener('emptied', () => {
           checkUploadSession();
         }
         const uploadGrant = await reserveVideoGrant(uploadFile);
+        if(uploadGrant.policyVersion!==3||!uploadGrant.publishedObjectName)throw new Error('サーバーの安全性更新が完了していません。更新後に再試行してください。');
         checkUploadSession();
         let finalThumbUrl = '';
 
@@ -9549,32 +9612,23 @@ mainVideo.addEventListener('emptied', () => {
           checkUploadSession();
         }
 
-        const storageRef = ref(storage, uploadGrant.objectName);
-        const metadata = {
-          contentType: uploadGrant.contentType,
-          customMetadata: {
-            ...uploadDetails,
-            thumbUrl: finalThumbUrl,
-            uploadTicketId: uploadGrant.ticketId
-          }
-        };
-        validateVideoMetadataSize(metadata.customMetadata);
-
-        const uploadTask = uploadBytesResumable(storageRef, uploadFile, metadata);
-        await new Promise((resolve, reject) => {
-          uploadTask.on('state_changed', snapshot => {
-            const percent = Math.floor(
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-            );
-            saveBtn.textContent = '動画送信中… ' + percent + '%';
-          }, reject, resolve);
+        const {uploaderUid:ignoredUid,uploaderName:ignoredName,...publicDetails}=uploadDetails;
+        const start = await guardedWrite({action:'startUpload',ticketId:uploadGrant.ticketId,
+          details:{...publicDetails,thumbUrl:finalThumbUrl}
+        },saveBtn);
+        checkUploadSession();
+        await sendPrivateVideo(uploadFile,uploadGrant.ticketId,checkUploadSession,percent=>{
+          saveBtn.textContent='動画送信中… '+percent+'%';
         });
 
         // 保存が完了したら次回は新しい投稿として数える。
         forgetVideoGrant(uploadFile);
 
         try {
-          const uploadedRef = uploadTask.snapshot.ref;
+          saveBtn.textContent='動画の形式と長さを確認中…';
+          const publishedName=await waitForVideoInspection(uploadGrant.ticketId,uploadUser.uid);
+          checkUploadSession();
+          const uploadedRef = ref(storage,publishedName);
           const [downloadURL, savedMetadata] = await Promise.all([
             getDownloadURL(uploadedRef), getMetadata(uploadedRef)
           ]);
@@ -9591,13 +9645,12 @@ mainVideo.addEventListener('emptied', () => {
               uploaderUid: uploadUser.uid,
               thumbUrl: finalThumbUrl,
               uploadedAt: savedMetadata.timeCreated,
-              originalCustomMetadata: savedMetadata.customMetadata || metadata.customMetadata
+              originalCustomMetadata: savedMetadata.customMetadata || uploadDetails
             });
           }
           await loadVideoList();
         } catch (error) {
-          console.error('公開後の動画表示失敗:', error);
-          alert('動画の保存は完了しました。表示できない場合はページを再読み込みしてください。');
+          showGuardNotice(saveBtn,{message:error.message||'動画の検査状況を確認できませんでした。'});
         }
       } catch (error) {
         if (!error.limitNoticeShown) {
@@ -9940,7 +9993,8 @@ await uploadBytes(thumbRef, thumbFile, {
         const latestVideoMetadata = await getMetadata(editTarget.itemRef);
         const newCustomMetadata = { ...latestVideoMetadata.customMetadata, ...editDetails, thumbUrl: newThumbUrl };
         validateVideoMetadataSize(newCustomMetadata);
-        await updateMetadata(editTarget.itemRef, { customMetadata: newCustomMetadata });
+        const edited=await guardedWrite({action:'editVideo',videoId:editTarget.itemRef.fullPath,details:{...editDetails,thumbUrl:newThumbUrl}},saveEditBtn);
+        Object.assign(newCustomMetadata,edited.customMetadata);
         editTarget.originalCustomMetadata = newCustomMetadata;
         if (currentVideoId === editTarget.itemRef.fullPath &&
             document.body.classList.contains('watch-mode')) {
