@@ -4,3 +4,4 @@ exclude:
   - vendor
   - Gemfile
   - Gemfile.lock
+  - streaming-server

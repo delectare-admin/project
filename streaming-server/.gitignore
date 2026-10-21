@@ -1,0 +1,9 @@
+functions/node_modules/
+functions/.media-bin/
+functions/.media-download.tar.xz
+.firebase/
+*debug.log
+.env
+.env.*
+*.pem
+*service-account*.json

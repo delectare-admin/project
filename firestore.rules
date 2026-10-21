@@ -2,6 +2,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Public catalog contains only whitelisted video metadata. Admin SDK writes it.
+    match /videoCatalog/{videoId} { allow read: if true; allow write: if false; }
+    match /performanceStatus/{statusId} { allow read: if true; allow write: if false; }
+    match /streamingJobs/{id} { allow read, write: if false; }
+    match /streamingBudget/{id} { allow read, write: if false; }
+    match /streamingControl/{id} { allow read, write: if false; }
+
     function signedIn() {
       return request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "streaming",
+    "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log"]
+  }
+}
