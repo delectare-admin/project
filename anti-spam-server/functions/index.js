@@ -11,6 +11,10 @@ const {
 
 const { getStorage } = require('firebase-admin/storage');
 const { randomUUID } = require('node:crypto');
+const appCheckPolicy=require('./app-check-policy.cjs');
+const {getAppCheck}=require('firebase-admin/app-check');
+const {createAppCheckGate}=require('./app-check-gate.cjs');
+const {createRatingService}=require('./rating-service.cjs');
 const {validateReservation,POLICY_VERSION}=require('./upload-policy.cjs');
 const {cleanDetails,validateThumbnail}=require('./video-metadata.cjs');
 
@@ -21,6 +25,9 @@ const db = getFirestore();
 const bucket = getStorage().bucket(
   'testo-movie-site.firebasestorage.app'
 );
+
+const appCheckGate=createAppCheckGate({policy:appCheckPolicy,getAppCheck,log:event=>console.warn(event)});
+const rate=createRatingService({db,bucket,FieldValue,Timestamp,HttpsError});
 
 const DAY = 86400000;
 const JST = 32400000;
@@ -173,8 +180,10 @@ async function getPolicy(videoId, type, text) {
 
 exports.submovieGuard = onCall({
   region: 'asia-northeast1',
+  enforceAppCheck: appCheckPolicy.mode==='enforce',
   maxInstances: 10
 }, async request => {
+  if(!appCheckGate.callable(request))throw new HttpsError('unauthenticated','安全性を確認できませんでした。ページを再読み込みしてください。');
   const uid = request.auth?.uid;
 
   if (
@@ -188,6 +197,7 @@ exports.submovieGuard = onCall({
   }
 
   const d = request.data || {};
+  if(d.action==='vote')return rate(uid,d);
 
   // A GCS session is issued with fixed metadata and byte length. Unlike Firebase
   // browser uploads, this path does not automatically mint a download token.
@@ -663,6 +673,7 @@ exports.submovieGuard = onCall({
     } else {
       post.parentId = parentId;
       post.editCount = 0;
+      post.likes=0;post.dislikes=0;post.ratingSchemaVersion=2;post.ratingRevision=0;
     }
 
     tx.create(postRef, post);
@@ -675,4 +686,4 @@ const {onRequest}=require('firebase-functions/v2/https');
 const {getAuth}=require('firebase-admin/auth');
 const {createChunkHandler}=require('./upload-chunk.cjs');
 exports.submovieUploadChunk=onRequest({region:'us-east1',cors:['https://delectare-admin.github.io'],
- timeoutSeconds:120,memory:'256MiB',maxInstances:3,concurrency:4},createChunkHandler({db,bucket,getAuth}));
+ timeoutSeconds:120,memory:'256MiB',maxInstances:3,concurrency:4},createChunkHandler({db,bucket,getAuth,checkApp:appCheckGate.http}));

@@ -2,11 +2,12 @@
 // The resumable session URI stays server-only: clients cannot add download tokens
 // or replace trusted metadata in a final GCS upload request.
 const CHUNK_BYTES=4*1024*1024;
-function createChunkHandler({db,bucket,getAuth,fetchImpl=fetch}) {
+function createChunkHandler({db,bucket,getAuth,checkApp,fetchImpl=fetch}) {
  return async (request,response)=>{
   const fail=(code,message)=>response.status(code).json({error:message});
   try {
    if(request.method!=='POST')return fail(405,'POSTで送信してください。');
+   if(typeof checkApp!=='function'||!await checkApp(request))return fail(401,'安全性を確認できませんでした。ページを再読み込みしてください。');
    const authorization=request.get('Authorization')||'';
    if(!authorization.startsWith('Bearer '))return fail(401,'ログインしてください。');
    let user;try{user=await getAuth().verifyIdToken(authorization.slice(7),true);}catch{return fail(401,'ログインし直してください。');}

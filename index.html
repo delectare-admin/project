@@ -5,15 +5,15 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-MukkB7CxHIwZNu02J67ZoO2hMrQ5NHUj8VsNJ6Cetg0=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-i77TTjpwe0DOOBNTDMwXt3g0b+rAEOWyG4zzWv2QVT0=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
     media-src 'self' https: blob:;
     font-src 'self' data:;
-    connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://accounts.google.com https://testo-movie-site.firebaseapp.com https://asia-northeast1-testo-movie-site.cloudfunctions.net https://us-east1-testo-movie-site.cloudfunctions.net;
-    frame-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
-    child-src 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
+    connect-src 'self' https://*.googleapis.com https://www.gstatic.com https://apis.google.com https://accounts.google.com https://testo-movie-site.firebaseapp.com https://asia-northeast1-testo-movie-site.cloudfunctions.net https://us-east1-testo-movie-site.cloudfunctions.net https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
+    frame-src https://recaptcha.google.com/recaptcha/ 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
+    child-src https://recaptcha.google.com/recaptcha/ 'self' https://testo-movie-site.firebaseapp.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/;
     worker-src 'self' blob:;
     manifest-src 'self';
     object-src 'none';
@@ -4228,7 +4228,22 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
       measurementId: "G-HECH8H7WSL"
     };
 
+    import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken as getAppCheckToken} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js';
+    import {APP_CHECK_CONFIG} from './app-check-config.js';
+
     const app = initializeApp(firebaseConfig);
+// App Check starts before Firestore/Storage/Functions are used. The site key is public.
+let submovieAppCheck=null;
+if(APP_CHECK_CONFIG.siteKey){
+ try{submovieAppCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(APP_CHECK_CONFIG.siteKey),isTokenAutoRefreshEnabled:true});}
+ catch(error){console.warn('App Checkの初期化を確認してください。',error.code||'initialization');}
+}
+async function getSubmovieAppCheckToken(force=false){
+ if(!submovieAppCheck)return '';
+ try{return(await getAppCheckToken(submovieAppCheck,force)).token;}
+ catch(error){console.warn('App Checkの確認に失敗しました。',error.code||'verification');return '';}
+}
+
     const storage = getStorage(app);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -4361,11 +4376,12 @@ const UPLOAD_CHUNK_ENDPOINT='https://us-east1-testo-movie-site.cloudfunctions.ne
 async function uploadPut(ticketId,total,start,body,checkSession) {
  checkSession();
  const token=await auth.currentUser.getIdToken();checkSession();
+ const appToken=await getSubmovieAppCheckToken();checkSession();
  return new Promise((resolve,reject)=>{
   const uri=new URL(UPLOAD_CHUNK_ENDPOINT);uri.searchParams.set('ticketId',ticketId);
   uri.searchParams.set('op',body?'chunk':'status');if(body)uri.searchParams.set('start',String(start));
   const xhr=new XMLHttpRequest();xhr.open('POST',uri.href);xhr.withCredentials=false;xhr.timeout=130000;
-  xhr.setRequestHeader('Authorization','Bearer '+token);xhr.setRequestHeader('Content-Type','application/octet-stream');
+  xhr.setRequestHeader('Authorization','Bearer '+token);if(appToken)xhr.setRequestHeader('X-Firebase-AppCheck',appToken);xhr.setRequestHeader('Content-Type','application/octet-stream');
   xhr.onload=()=>{let value;try{value=JSON.parse(xhr.responseText);}catch{};
    if(xhr.status!==200||!value||!Number.isSafeInteger(value.offset)||value.offset<0||value.offset>total)return reject(new Error(value?.error||'動画を送信できませんでした。'));
    resolve(value.offset);
@@ -5399,58 +5415,19 @@ function displaySubscriberCount(uid, element, labeled = true) {
   subscriberCountListeners.set(element, unsubscribe);
 }
 
-async function toggleCommentVote(commentId, kind) {
-  const user = auth.currentUser;
-
-  if (!user || user.isAnonymous) {
-    return alert('評価するにはログインしてください。');
-  }
-
-  if (commentVotePending.has(commentId)) return;
-  commentVotePending.add(commentId);
-
-  try {
-    const reference = doc(db, 'comments', commentId);
-
-    await runTransaction(db, async tx => {
-      const snap = await tx.get(reference);
-
-      if (!snap.exists()) {
-        throw new Error('コメントが削除されています。');
-      }
-
-      const data = snap.data();
-      const oldLikes = data.likedUsers || [];
-      const oldDislikes = data.dislikedUsers || [];
-
-      const cancel = (
-        kind === 'like' ? oldLikes : oldDislikes
-      ).includes(user.uid);
-
-      const likedUsers = oldLikes.filter(uid => uid !== user.uid);
-      const dislikedUsers = oldDislikes.filter(uid => uid !== user.uid);
-
-      if (!cancel) {
-        (kind === 'like' ? likedUsers : dislikedUsers).push(user.uid);
-      }
-
-      tx.update(reference, {
-        likedUsers,
-        dislikedUsers,
-        likes:
-          (data.likes || 0) + likedUsers.length - oldLikes.length,
-        dislikes:
-          (data.dislikes || 0) + dislikedUsers.length - oldDislikes.length
-      });
-    });
-  } catch (error) {
-    console.error('コメント評価失敗:', error);
-    alert(
-      '評価を保存できませんでした。少し待ってから再度お試しください。'
-    );
-  } finally {
-    commentVotePending.delete(commentId);
-  }
+async function toggleCommentVote(commentId,kind){
+ const user=auth.currentUser;
+ if(!user||user.isAnonymous)return alert('評価するにはログインしてください。');
+ if(commentVotePending.has(commentId)||!privateRatingsReady)return;
+ const videoId=currentVideoId,serial=privateRatingSerial;
+ const value=selectedRating('comment',commentId)===kind?null:kind;
+ commentVotePending.add(commentId);refreshPrivateRatingButtons();
+ try{
+  const anchor=[...document.querySelectorAll('.like-comment-btn')].find(b=>b.dataset.id===commentId)||commentList;
+  const result=await guardedWrite({action:'vote',targetType:'comment',commentId,value,requestId:crypto.randomUUID()},anchor);
+  applyOwnRatingResult('comment',commentId,result,serial,user.uid,videoId);
+ }catch(error){if(!error.limitNoticeShown)alert('評価を保存できませんでした。通信とログイン状態を確認してください。');}
+ finally{commentVotePending.delete(commentId);refreshPrivateRatingButtons();}
 }
 
 async function secureAuthChanged(user) {
@@ -6969,6 +6946,7 @@ let hlsInstance = null;
 let playbackGeneration = 0;
 
 function stopMainPlayback() {
+  stopRatingWatches();
   releaseBrowseMiniPlayer({ resume: false });
   // 古い動画の再生処理を無効にする
   playbackGeneration++;
@@ -7715,20 +7693,54 @@ updateFullscreenBtn();
 
 let videoVoteBusy = false;
 let displayedVideoStats = null;
+// Counts are public; individual selections are read only from the current user's collection.
+let privateRatings=new Map(),privateRatingUid='',privateRatingVideo='',privateRatingsReady=true;
+let stopPrivateRatings=null,stopPublicRatings=null,privateRatingGeneration=0,privateRatingSerial=0,statsLoadVersion=0;
+function selectedRating(kind,targetId){
+ const user=auth.currentUser;if(!user||user.isAnonymous||user.uid!==privateRatingUid)return null;
+ return privateRatings.get(kind+':'+targetId)||null;
+}
+function refreshPrivateRatingButtons(){
+ if(displayedVideoStats)showVideoStats(displayedVideoStats.videoId,displayedVideoStats.data);
+ for(const button of document.querySelectorAll('.like-comment-btn, .dislike-comment-btn')){
+  const selected=selectedRating('comment',button.dataset.id),kind=button.classList.contains('like-comment-btn')?'like':'dislike';
+  button.classList.toggle('active',selected===kind);button.setAttribute('aria-pressed',String(selected===kind));
+  button.disabled=commentVotePending.has(button.dataset.id)||!!(auth.currentUser&&!auth.currentUser.isAnonymous&&!privateRatingsReady);
+ }
+}
+function startPrivateRatingWatch(videoId){
+ const user=auth.currentUser,uid=user&&!user.isAnonymous?user.uid:'';
+ if(privateRatingVideo===videoId&&privateRatingUid===uid&&stopPrivateRatings)return;
+ if(stopPrivateRatings)stopPrivateRatings();stopPrivateRatings=null;
+ const version=++privateRatingGeneration;privateRatingSerial++;privateRatings.clear();privateRatingUid=uid;privateRatingVideo=videoId;
+ privateRatingsReady=!uid||!videoId;refreshPrivateRatingButtons();
+ if(privateRatingsReady)return;
+ const q=query(collection(db,'userRatings',uid,'items'),where('videoKey','==',statsDocId(videoId)));
+ stopPrivateRatings=onSnapshot(q,snapshot=>{
+  if(version!==privateRatingGeneration||auth.currentUser?.uid!==uid||currentVideoId!==videoId)return;
+  const next=new Map();snapshot.forEach(row=>{const value=row.data();if(['video','comment'].includes(value.kind)&&typeof value.targetId==='string'&&['like','dislike'].includes(value.value))next.set(value.kind+':'+value.targetId,value.value);});
+  privateRatings=next;privateRatingSerial++;privateRatingsReady=true;refreshPrivateRatingButtons();
+ },()=>{if(version!==privateRatingGeneration)return;privateRatingsReady=false;privateRatings.clear();privateRatingSerial++;refreshPrivateRatingButtons();console.warn('自分の評価を取得できませんでした。ルールと通信を確認してください。');});
+}
+function stopRatingWatches(){
+ statsLoadVersion++;
+ if(stopPrivateRatings)stopPrivateRatings();if(stopPublicRatings)stopPublicRatings();stopPrivateRatings=stopPublicRatings=null;
+ privateRatingGeneration++;privateRatingSerial++;privateRatings.clear();privateRatingUid='';privateRatingVideo='';privateRatingsReady=true;
+}
+function applyOwnRatingResult(kind,targetId,result,serial,uid,videoId){
+ if(auth.currentUser?.uid!==uid||currentVideoId!==videoId||privateRatingUid!==uid||privateRatingSerial!==serial)return;
+ if(result.value===null)privateRatings.delete(kind+':'+targetId);else privateRatings.set(kind+':'+targetId,result.value);
+ refreshPrivateRatingButtons();
+}
+
 
 function showVideoStats(videoId, data) {
   if (currentVideoId !== videoId) return;
 
   displayedVideoStats = { videoId, data };
 
-  const user = auth.currentUser;
-  const uid = user && !user.isAnonymous ? user.uid : null;
-
-  hasLiked =
-    !!uid && (data.likedUsers || []).includes(uid);
-
-  hasDisliked =
-    !!uid && (data.dislikedUsers || []).includes(uid);
+  hasLiked=selectedRating('video',statsDocId(videoId))==='like';
+  hasDisliked=selectedRating('video',statsDocId(videoId))==='dislike';
 
   viewCountEl.textContent = `${data.views || 0} 回視聴`;
   likeCountEl.textContent = String(data.likes || 0);
@@ -7737,12 +7749,14 @@ function showVideoStats(videoId, data) {
   likeBtn.classList.toggle('active-like', hasLiked);
   dislikeBtn.classList.toggle('active-dislike', hasDisliked);
 
-  likeBtn.disabled = videoVoteBusy;
-  dislikeBtn.disabled = videoVoteBusy || !videoFeatureEnabled('dislikes');
+  const waiting=!!(auth.currentUser&&!auth.currentUser.isAnonymous&&!privateRatingsReady);
+  likeBtn.disabled = videoVoteBusy||waiting;
+  dislikeBtn.disabled = videoVoteBusy||waiting || !videoFeatureEnabled('dislikes');
 }
 
 // ログイン・ログアウトしたときに選択表示を更新
 onAuthStateChanged(auth, () => {
+  if(currentVideoId)startPrivateRatingWatch(currentVideoId);
   if (displayedVideoStats) {
     showVideoStats(
       displayedVideoStats.videoId,
@@ -7752,7 +7766,10 @@ onAuthStateChanged(auth, () => {
 });
 
 async function loadStats() {
+  const loadVersion=++statsLoadVersion;
   const videoId = currentVideoId;
+  startPrivateRatingWatch(videoId);
+  if(stopPublicRatings)stopPublicRatings();stopPublicRatings=null;
   const key = statsDocId(videoId);
   const statsRef = doc(db, 'videoStats', key);
 
@@ -7778,8 +7795,8 @@ async function loadStats() {
             views: 0,
             likes: 0,
             dislikes: 0,
-            likedUsers: [],
-            dislikedUsers: []
+            ratingSchemaVersion: 2,
+            ratingRevision: 0
           };
 
       const next = {
@@ -7804,7 +7821,9 @@ async function loadStats() {
       return next;
     });
 
+    if(loadVersion!==statsLoadVersion||currentVideoId!==videoId)return;
     showVideoStats(videoId, data);
+    if(currentVideoId===videoId)stopPublicRatings=onSnapshot(statsRef,snap=>{if(snap.exists()&&currentVideoId===videoId)showVideoStats(videoId,snap.data());},()=>console.warn('評価数の更新を取得できませんでした。'));
   } catch (error) {
     console.error('動画情報の取得失敗:', error);
 
@@ -7817,91 +7836,22 @@ async function loadStats() {
 }
 
 
-async function toggleVideoVote(kind) {
-  if (kind === 'dislike' && !videoFeatureEnabled('dislikes')) return;
-  const user = auth.currentUser;
-
-  if (!user || user.isAnonymous) {
-    alert('動画を評価するにはログインしてください。');
-    return;
+async function toggleVideoVote(kind){
+ if(kind==='dislike'&&!videoFeatureEnabled('dislikes'))return;
+ const user=auth.currentUser;
+ if(!user||user.isAnonymous){alert('動画を評価するにはログインしてください。');return;}
+ if(!currentVideoId||videoVoteBusy||!privateRatingsReady)return;
+ const videoId=currentVideoId,serial=privateRatingSerial,value=selectedRating('video',statsDocId(videoId))===kind?null:kind;
+ videoVoteBusy=true;likeBtn.disabled=dislikeBtn.disabled=true;
+ try{
+  const result=await guardedWrite({action:'vote',targetType:'video',videoId,value,requestId:crypto.randomUUID()},kind==='like'?likeBtn:dislikeBtn);
+  if(currentVideoId===videoId&&auth.currentUser?.uid===user.uid){
+   applyOwnRatingResult('video',statsDocId(videoId),result,serial,user.uid,videoId);
+   const old=displayedVideoStats?.videoId===videoId?displayedVideoStats.data:{};
+   if((Number(old.ratingRevision)||0)<=result.ratingRevision)showVideoStats(videoId,{...old,likes:result.likes,dislikes:result.dislikes,ratingRevision:result.ratingRevision});
   }
-
-  if (!currentVideoId || videoVoteBusy) return;
-
-  const videoId = currentVideoId;
-  const uid = user.uid;
-  const statsRef = doc(
-    db, 'videoStats', statsDocId(videoId)
-  );
-
-  videoVoteBusy = true;
-  likeBtn.disabled = true;
-  dislikeBtn.disabled = true;
-
-  try {
-    const result = await runTransaction(db, async transaction => {
-      const snapshot = await transaction.get(statsRef);
-
-      if (!snapshot.exists()) {
-        throw new Error('動画情報を再読み込みしてください。');
-      }
-
-      const data = snapshot.data();
-      const oldLikes = data.likedUsers || [];
-      const oldDislikes = data.dislikedUsers || [];
-
-      // 選択済みのボタンなら取り消す
-      const cancel = kind === 'like'
-        ? oldLikes.includes(uid)
-        : oldDislikes.includes(uid);
-
-      // 自分の票だけを取り除く
-      const likedUsers =
-        oldLikes.filter(id => id !== uid);
-
-      const dislikedUsers =
-        oldDislikes.filter(id => id !== uid);
-
-      // 取り消しでなければ、選択した側に1票
-      if (!cancel) {
-        (kind === 'like' ? likedUsers : dislikedUsers)
-          .push(uid);
-      }
-
-      const changes = {
-        likedUsers,
-        dislikedUsers,
-        likes:
-          (data.likes || 0) +
-          likedUsers.length - oldLikes.length,
-        dislikes:
-          (data.dislikes || 0) +
-          dislikedUsers.length - oldDislikes.length
-      };
-
-      transaction.update(statsRef, changes);
-
-      return { ...data, ...changes };
-    });
-
-    showVideoStats(videoId, result);
-  } catch (error) {
-    console.error('動画の評価失敗:', error);
-
-    alert(
-      '評価を保存できませんでした。' +
-      '通信とログイン状態を確認し、少し待って再度お試しください。'
-    );
-  } finally {
-    videoVoteBusy = false;
-
-    if (displayedVideoStats) {
-      showVideoStats(
-        displayedVideoStats.videoId,
-        displayedVideoStats.data
-      );
-    }
-  }
+ }catch(error){if(!error.limitNoticeShown)alert('評価を保存できませんでした。通信とログイン状態を確認してください。');}
+ finally{videoVoteBusy=false;if(displayedVideoStats)showVideoStats(displayedVideoStats.videoId,displayedVideoStats.data);}
 }
 
 likeBtn.addEventListener(
@@ -8952,8 +8902,8 @@ function setupReplyThread(node, comment, childReplies) {
       const author = comment.author || 'ゲスト';
       const canDelete = currentUser && comment.authorUid && currentUser.uid === comment.authorUid;
       const likes = comment.likes || 0; const dislikes = comment.dislikes || 0;
-      const hasLikedC = currentUser && (comment.likedUsers || []).includes(currentUser.uid);
-      const hasDislikedC = currentUser && (comment.dislikedUsers || []).includes(currentUser.uid);
+      const hasLikedC = selectedRating('comment',comment.id)==='like';
+      const hasDislikedC = selectedRating('comment',comment.id)==='dislike';
       const commentIdAttr = escapeHtml(comment.id);
       const avatarBackground = safeAvatarBackground(currentUser?.avatarUrl);
       const hasAvatar = avatarBackground !== 'none';
@@ -8988,6 +8938,7 @@ function setupReplyThread(node, comment, childReplies) {
       if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
       attachCommentImage(div, comment);
+      queueMicrotask(refreshPrivateRatingButtons);
       return div;
     }
 

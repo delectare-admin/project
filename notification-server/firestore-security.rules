@@ -11,66 +11,51 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    function validVoteChange(usersField, countField) {
-      let beforeUsers = resource.data.get(usersField, []);
-      let afterUsers = request.resource.data.get(usersField, []);
-      let beforeCount = resource.data.get(countField, 0);
-      let afterCount = request.resource.data.get(countField, 0);
-
-      return beforeUsers is list && afterUsers is list
-        && beforeCount is int && afterCount is int && afterCount >= 0
-        && afterUsers.size() == afterUsers.toSet().size()
-        && afterUsers.toSet().difference(beforeUsers.toSet())
-          .hasOnly([request.auth.uid])
-        && beforeUsers.toSet().difference(afterUsers.toSet())
-          .hasOnly([request.auth.uid])
-        && afterCount == beforeCount
-          + afterUsers.size() - beforeUsers.size();
-    }
-
-    function validVoteUpdate() {
-      return signedIn()
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['likes', 'dislikes', 'likedUsers', 'dislikedUsers'])
-        && validVoteChange('likedUsers', 'likes')
-        && validVoteChange('dislikedUsers', 'dislikes')
-        && !(request.auth.uid in request.resource.data.get('likedUsers', [])
-          && request.auth.uid in request.resource.data.get('dislikedUsers', []));
-    }
-
     match /comments/{commentId} {
       allow read: if true;
       // All comment creation and text edits go through the authenticated guard.
       allow create: if false;
-      allow update: if validVoteUpdate();
+      allow update: if false;
       allow delete: if signedIn()
         && resource.data.authorUid == request.auth.uid;
     }
 
+    // Public counts contain no voter list. Only the authenticated guard changes votes.
     match /videoStats/{videoId} {
       allow read: if true;
-
-      allow create:
-        if request.resource.data.keys().hasAll(['views', 'likes', 'dislikes'])
-        && request.resource.data.keys().hasOnly([
-          'views', 'likes', 'dislikes', 'likedUsers', 'dislikedUsers'
-        ])
-        && request.resource.data.views is int
+      allow create: if request.resource.data.keys().hasAll(['views','likes','dislikes','ratingSchemaVersion','ratingRevision'])
+        && request.resource.data.keys().hasOnly(['views','likes','dislikes','ratingSchemaVersion','ratingRevision'])
         && request.resource.data.views == 1
-        && request.resource.data.likes is int
-        && request.resource.data.likes == 0
-        && request.resource.data.dislikes is int
-        && request.resource.data.dislikes == 0
-        && request.resource.data.get('likedUsers', []) == []
-        && request.resource.data.get('dislikedUsers', []) == [];
+        && request.resource.data.likes == 0 && request.resource.data.dislikes == 0
+        && request.resource.data.ratingSchemaVersion == 2 && request.resource.data.ratingRevision == 0;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+        && request.resource.data.views is int && request.resource.data.views == resource.data.views + 1;
+      allow delete: if false;
+    }
+    // A viewer can read their own choices, including the selection highlight on replies.
+    match /userRatings/{uid}/items/{key} {
+      allow read: if isMe(uid);
+      allow write: if false;
+    }
+    match /ratingRequests/{id} { allow read, write: if false; }
+    match /ratingMigrationBackups/{id} { allow read, write: if false; }
+    match /securityMigrations/{id} { allow read, write: if false; }
 
-      allow update: if (
-        request.resource.data.diff(resource.data)
-          .affectedKeys().hasOnly(['views'])
-        && request.resource.data.views is int
-        && request.resource.data.views == resource.data.views + 1
-      ) || validVoteUpdate();
-
+    // Existing daily view totals are public counts. Each write must accompany one view.
+    match /videoDaily/{day}/counts/{videoId} {
+      allow read: if true;
+      allow create, update: if day.matches('[0-9]{13}')
+        && request.resource.data.keys().hasAll(['count','dayStart','updatedAt'])
+        && request.resource.data.keys().hasOnly(['count','dayStart','updatedAt'])
+        && request.resource.data.dayStart == int(day)
+        && request.resource.data.dayStart <= request.time.toMillis()
+        && request.time.toMillis() < request.resource.data.dayStart + 86400000
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.count is int
+        && request.resource.data.count == (resource == null ? 0 : resource.data.count) + 1
+        && getAfter(/databases/$(database)/documents/videoStats/$(videoId)).data.views
+          == (exists(/databases/$(database)/documents/videoStats/$(videoId))
+            ? get(/databases/$(database)/documents/videoStats/$(videoId)).data.views : 0) + 1;
       allow delete: if false;
     }
 
