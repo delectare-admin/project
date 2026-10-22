@@ -1,5 +1,5 @@
 'use strict';
-const ALLOWED=new Set(['title','desc','category','thumbUrl','mutedCommentWords','danmakuEnabled','commentsEnabled','dislikesEnabled']);
+const ALLOWED = new Set(['interactionSettingsVersion','title','desc','category','thumbUrl','mutedCommentWords','danmakuEnabled','commentsEnabled','dislikesEnabled']);
 function fail(message){const error=new Error(message);error.invalidUpload=true;return error;}
 function cleanDetails(value,required=false) {
  if (!value||typeof value!=='object'||Array.isArray(value)) throw fail('動画の設定を確認してください。');
@@ -7,7 +7,11 @@ function cleanDetails(value,required=false) {
  for(const key of Object.keys(value)) {
   if (!ALLOWED.has(key)) throw fail('変更できない動画設定が含まれています。');
   const v=value[key];if(typeof v!=='string')throw fail('動画の設定は文字列で送信してください。');
-  if(['danmakuEnabled','commentsEnabled','dislikesEnabled'].includes(key)) {
+  if (key === 'interactionSettingsVersion') {
+  if (v !== '1') {
+    throw fail('動画設定のバージョンを確認してください。');
+  }
+} else if (['danmakuEnabled', 'commentsEnabled', 'dislikesEnabled'].includes(key)) {
    if(!['true','false'].includes(v))throw fail('動画機能の設定を確認してください。');
   }else if(key==='mutedCommentWords') {
    let words;try{words=JSON.parse(v);}catch{throw fail('ミュートワードを確認してください。');}
