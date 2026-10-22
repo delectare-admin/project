@@ -6,7 +6,8 @@ const { initializeApp } = require('firebase-admin/app');
 const {
   getFirestore,
   FieldValue,
-  Timestamp
+  Timestamp,
+  FieldPath
 } = require('firebase-admin/firestore');
 
 const { getStorage } = require('firebase-admin/storage');
@@ -687,3 +688,19 @@ const {getAuth}=require('firebase-admin/auth');
 const {createChunkHandler}=require('./upload-chunk.cjs');
 exports.submovieUploadChunk=onRequest({region:'us-east1',cors:['https://delectare-admin.github.io'],
  timeoutSeconds:120,memory:'256MiB',maxInstances:3,concurrency:4},createChunkHandler({db,bucket,getAuth,checkApp:appCheckGate.http}));
+
+
+// Creator administration uses a separate callable; existing posting/voting rules stay in the guard.
+const {createCreatorLab,creatorRuntimeSafe}=require('./creator-lab.cjs');
+const creatorLabService=createCreatorLab({db,bucket,FieldValue,FieldPath,HttpsError});
+exports.submovieCreatorLab=onCall({region:'asia-northeast1',timeoutSeconds:60,memory:'256MiB',maxInstances:5,concurrency:20,enforceAppCheck:appCheckPolicy.mode==='enforce'},async request=>{
+ if(!creatorRuntimeSafe(process.version))throw new HttpsError('failed-precondition','ラボのサーバーのセキュリティ更新待ちです。しばらくしてからお試しください。');
+ if(!appCheckGate.callable(request)||!request.auth?.uid||request.auth.token.firebase?.sign_in_provider==='anonymous')throw new HttpsError('unauthenticated','ログインしてください。');
+ return creatorLabService.privateCall(request.auth.uid,request.data);
+});
+// Read-only, explicitly public presentation. Never returns private settings, analytics or vote identities.
+exports.submovieChannelPresentation=onCall({region:'asia-northeast1',timeoutSeconds:30,memory:'256MiB',maxInstances:5,concurrency:40,enforceAppCheck:appCheckPolicy.mode==='enforce'},async request=>{
+ if(!creatorRuntimeSafe(process.version))throw new HttpsError('failed-precondition','ラボのサーバーのセキュリティ更新待ちです。しばらくしてからお試しください。');
+ if(!appCheckGate.callable(request))throw new HttpsError('unauthenticated','ページを再読み込みしてください。');
+ return creatorLabService.publicCall(request.data);
+});

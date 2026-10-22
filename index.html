@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-w8WTH0Ch7esWKrT8FjCLifTqxfbO896GB8j1z+dvC7c=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-XSdakleVbJGs+3DzmX16bIzbdRJZEz9eB7bPU6aJW4U=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -27,6 +27,7 @@
 <meta name="description" content="サブ・ムービーは、動画の投稿・視聴と弾幕コメントを楽しめる動画共有サイトです。音楽、アニメ、ゲームなどの動画を探し、コメントで交流できます。">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+  <link rel="stylesheet" href="./assets/creator-lab-v1.css?v=20261022">
   <style>
     body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #0f0f0f; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; box-sizing: border-box; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
@@ -4207,6 +4208,9 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   </aside>
 
   <script type="module">
+    import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261022";
+    import {recommendationOrder} from "./assets/creator-lab-model-v1.mjs";
+    let creatorLab=null;
     import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript} from "./assets/site-performance-v1.mjs?v=20261022";
     const loadSearchEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js","sha384-it1zrjZg9Wow4/YazUTfchZX61ulfA0SAtXufVXx9G1XPgBIk+aLylHM5lWl03Bi","Fuse");
     const loadHlsEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js","sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX","Hls");
@@ -4962,6 +4966,7 @@ function applyDanmakuStyle(node, value) {
     const navSavedBtn = document.getElementById('navSavedBtn');
 
     function setActiveNav(feedType) {
+      document.getElementById("navCreatorLab")?.classList.toggle("active",feedType==="lab");
       navHomeBtn.classList.toggle('active', feedType === 'all');
       navSubscriptionsBtn.classList.toggle('active', feedType === 'subscriptions');
       navHistoryBtn.classList.toggle('active',feedType === 'trending');
@@ -5617,6 +5622,7 @@ async function secureSubscribe() {
   }
 }
     async function showMyProfile(targetUid = null) {
+      creatorLab?.route("channel");creatorLab?.closeMenu();
       try{await ensureCompleteVideoCatalog();}catch(error){console.warn("チャンネル一覧を再試行してください:",error.code||"network");}
       const uid = targetUid || (currentUser ? currentUser.uid : null);
       if (!uid || uid === "undefined" || uid === "null") return;
@@ -5649,6 +5655,7 @@ async function secureSubscribe() {
       const userVideos = allVideos.filter(v => v.uploaderUid === uid);
       document.getElementById('channelVideoCount').textContent = userVideos.length;
       renderGrid(userVideos, channelGrid);
+      void creatorLab?.publicChannel(uid);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     userProfileAvatar.addEventListener('click', () => showMyProfile());
@@ -6405,6 +6412,8 @@ async function loadVideoList(prefetched = null) {
 }
 
   async function applyFilterAndSort() {
+    creatorLab?.route(currentFeed);
+    if(currentFeed==="lab"){moreVideoObserver.disconnect();document.getElementById("moreVideosControl")?.remove();return;}
     const version=++searchRenderVersion;
     document.getElementById("moreVideosControl")?.remove();moreVideoObserver.disconnect();
     if(currentFeed!=="all"||currentCategory!=="すべて"||currentSort==="popular"||searchInput.value.trim()){
@@ -6438,6 +6447,7 @@ async function loadVideoList(prefetched = null) {
     if (!sortNewestBtn.dataset.originalLabel) sortNewestBtn.dataset.originalLabel=sortNewestBtn.textContent;
     sortNewestBtn.textContent=keyword ? '関連度順' : sortNewestBtn.dataset.originalLabel;
     if (keyword) list=rankVideoSearch(list,keyword);
+    else if(currentFeed==='all'&&currentSort!=='popular')list=recommendationOrder(list,{history:watchHistory,subscriptions:currentUserSubscriptions});
     if (currentFeed==='history' || currentSort!=='popular') { renderGrid(list,videoGrid); installMoreVideosControl(); return; }
     // An explicit popularity selection sorts the matching set. Limit concurrent reads.
     const withScore=new Array(list.length); let next=0;
@@ -6965,6 +6975,7 @@ let hlsInstance = null;
 let playbackGeneration = 0;
 
 function stopMainPlayback() {
+  creatorLab?.clearPublic();
   stopRatingWatches();
   releaseBrowseMiniPlayer({ resume: false });
   // 古い動画の再生処理を無効にする
@@ -6994,6 +7005,7 @@ function stopMainPlayback() {
 // 1. 動画再生処理（HLS対応・最適化済み）
 // ==========================================
 async function watchVideo(videoData, options = {}) {
+  creatorLab?.route("watch");creatorLab?.closeMenu();
   if (browseMini.active && videoData.itemRef.fullPath === currentVideoId) {
     restoreBrowseMiniWatch({ updateUrl: options.updateUrl !== false });
     return;
@@ -7215,6 +7227,7 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
 
   loadComments(); 
   void loadStats(); 
+  void creatorLab?.publicVideo(currentVideoId);
   renderSidebar(currentVideoId);
 
   blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
@@ -8959,6 +8972,7 @@ function setupReplyThread(node, comment, childReplies) {
       if (replyAvatar && hasAvatar) replyAvatar.style.backgroundImage = avatarBackground;
       if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
+      if(comment.creatorHeart===true){const heart=document.createElement('p');heart.className='yl-heart-label';heart.textContent='♥ 投稿者からハート';div.querySelector('.comment-content')?.appendChild(heart);}
       attachCommentImage(div, comment);
       queueMicrotask(refreshPrivateRatingButtons);
       return div;
@@ -9158,7 +9172,7 @@ function loadComments(){
  loadCommentPin(videoId);updateWatchDanmakuCount(null,videoId);
  const current=()=>active&&currentVideoId===videoId;
  const dataOf=snapshot=>snapshot.docs.map(item=>({...item.data({serverTimestamps:'estimate'}),id:item.id}));
- const visible=data=>!currentUserBlocks.includes(data.authorUid)&&!hideVideoComment(data.text);
+ const visible=data=>data.creatorHidden!==true&&!currentUserBlocks.includes(data.authorUid)&&!hideVideoComment(data.text);
  function refreshCount(){
   if(!current()||legacyStop||countTimer)return;
   countTimer=setTimeout(async()=>{countTimer=null;lastCountAt=Date.now();try{const result=await getCountFromServer(query(collection(db,'comments'),where('videoId','==',videoId),where('type','==','danmaku')));if(current()&&!legacyStop)updateWatchDanmakuCount(result.data().count,videoId);}catch{if(current()&&!legacyStop)updateWatchDanmakuCount(null,videoId);}},Math.max(200,10000-(Date.now()-lastCountAt)));
@@ -14127,6 +14141,46 @@ function setupDanmakuCustomization() {
   updateStageSize(); render();
 }
 setupDanmakuCustomization();
+
+// Wire the isolated creator UI to the site's existing authentication and guarded writes.
+const creatorLabFunctions=getGuardFunctions(app,'asia-northeast1');
+const callCreatorLab=guardCallable(creatorLabFunctions,'submovieCreatorLab');
+const callChannelPresentation=guardCallable(creatorLabFunctions,'submovieChannelPresentation');
+const labPublicCache=new Map();
+async function labPublicRequest(payload){
+ const key=JSON.stringify(payload),cached=labPublicCache.get(key);if(cached&&Date.now()-cached.at<60000)return cached.promise;
+ const record={at:Date.now(),promise:callChannelPresentation(payload).then(r=>r.data)};labPublicCache.set(key,record);record.promise.catch(()=>{if(labPublicCache.get(key)===record)labPublicCache.delete(key);});return record.promise;
+}
+async function uploadLabImage(file,uid,kind){
+ if(auth.currentUser?.uid!==uid||auth.currentUser?.isAnonymous)throw Error('ログイン状態が変わりました。');
+ if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024||file.size<=0)throw Error('5MiB以下のPNG・JPEG・WebP画像を選んでください。');
+ const bitmap=await createImageBitmap(file);let blob;
+ try{if(bitmap.width>8192||bitmap.height>8192||bitmap.width*bitmap.height>32*1024*1024)throw Error('画像の縦横サイズが大きすぎます。');const max=kind==='watermark'?256:kind==='banner'?2048:1280,scale=Math.min(1,max/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));const ctx=canvas.getContext('2d');if(!ctx)throw Error('画像を読み込めませんでした。');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.9));}finally{bitmap.close();}
+ if(!blob||auth.currentUser?.uid!==uid)throw Error('画像の保存を中止しました。');const target=ref(storage,'thumbnails/lab-'+uid+'-'+crypto.randomUUID()+'.jpg');await uploadBytes(target,blob,{contentType:'image/jpeg',customMetadata:{uploaderUid:uid}});if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');return getDownloadURL(target);
+}
+creatorLab=mountCreatorLab({
+ user:()=>{const u=auth.currentUser;return u&&!u.isAnonymous?{uid:u.uid,isAnonymous:false,channelName:currentUser?.uid===u.uid?currentUser.channelName:u.displayName||'ユーザー',avatarUrl:currentUser?.uid===u.uid?currentUser.avatarUrl:u.photoURL||''}:null;},
+ onAuth:fn=>onAuthStateChanged(auth,fn),
+ query:()=>searchInput.value.trim(),
+ navigateLab:()=>{searchInput.value='';currentFeed='lab';setActiveNav('lab');goHome();},
+ selectFeed:feed=>{if(feed==='subscriptions'&&(!auth.currentUser||auth.currentUser.isAnonymous)){loginOpenBtn.click();return;}searchInput.value='';currentCategory='すべて';currentSort='newest';selectedSubscriptionUid='';resetSubscriptionFilters();currentFeed=feed;setActiveNav(feed);goHome();},
+ login:()=>loginOpenBtn.click(),logout:()=>signOut(auth),
+ switchAccount:async()=>{const provider=new GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});const result=await signInWithPopup(auth,provider),u=result.user,userRef=doc(db,'users',u.uid),snap=await getDoc(userRef);if(!snap.exists())await setDoc(userRef,{channelName:u.displayName||'Googleユーザー',createdAt:serverTimestamp(),subscriberCount:0});},
+ settings:kind=>{document.getElementById('mySettingsBtn').click();const panel=document.getElementById('mySettingsDialog');for(const detail of panel.querySelectorAll('.content-filter-settings > details'))detail.open=false;if(kind==='mute')panel.querySelector('.content-filter-settings > details').open=true;if(kind==='block')panel.querySelector('#blockedUsersDetails').open=true;},
+ ownVideos:async()=>{const uid=auth.currentUser?.uid;await ensureCompleteVideoCatalog();if(auth.currentUser?.uid!==uid)return[];return [...allVideos].filter(v=>v.uploaderUid===uid).sort((a,b)=>(Date.parse(b.uploadedAt)||0)-(Date.parse(a.uploadedAt)||0));},
+ metrics:async v=>{const [stats,normal,danmaku]=await Promise.all([getDoc(doc(db,'videoStats',statsDocId(v.itemRef.fullPath))),getCountFromServer(query(collection(db,'comments'),where('videoId','==',v.itemRef.fullPath),where('type','==','normal'))),getCountFromServer(query(collection(db,'comments'),where('videoId','==',v.itemRef.fullPath),where('type','==','danmaku')))]);const s=stats.data()||{};return{views:Math.max(0,Number(s.views)||0),likes:Math.max(0,Number(s.likes)||0),dislikes:Math.max(0,Number(s.dislikes)||0),comments:normal.data().count,danmaku:danmaku.data().count};},
+ metadata:v=>getMetadata(v.itemRef),
+ saveBasics:async(v,details)=>{const uid=auth.currentUser?.uid;if(!uid||v.uploaderUid!==uid)throw Error('自分の動画だけ編集できます。');validateVideoMetadataSize(details);const result=await guardedWrite({action:'editVideo',videoId:v.itemRef.fullPath,details},document.getElementById('creatorLabScreen'));if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');v.originalCustomMetadata=result.customMetadata;v.title=result.customMetadata.title||v.title;v.desc=result.customMetadata.desc||'';v.category=result.customMetadata.category||v.category;v.thumbUrl=result.customMetadata.thumbUrl||'';saveVideoListCache(allVideos);return result;},
+ uploadImage:uploadLabImage,
+ deleteVideo:async v=>{const uid=auth.currentUser?.uid;if(v.uploaderUid!==uid)throw Error('自分の動画だけ削除できます。');await guardedWrite({action:'deleteVideo',videoId:v.itemRef.fullPath},document.getElementById('creatorLabScreen'));if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');await fetchVideoEntries();await ensureCompleteVideoCatalog();allVideos=videoPager.values();saveVideoListCache(allVideos);},
+ api:async payload=>{const uid=auth.currentUser?.uid;const {data}=await callCreatorLab(payload);if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');if(!data?.ok)throw Error('サーバーの応答を確認できませんでした。');if(['saveChannel','saveVideoDetails'].includes(payload.op))labPublicCache.clear();return data;},
+ publicApi:labPublicRequest,
+ reply:async payload=>{const uid=auth.currentUser?.uid;const{data}=await callSubmovieGuard(payload);if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');if(!data?.ok)throw Error(data?.message||'返信を保存できませんでした。');return data;},
+ openChannel:uid=>showMyProfile(uid),openUploader:()=>{const uid=uploaderNameEl.dataset.uid;if(uid)void showMyProfile(uid);},
+ openVideo:v=>watchVideo(v),openVideoId:async id=>{let v=allVideos.find(x=>x.itemRef.fullPath===id);if(!v){try{const itemRef=ref(storage,id),metadata=await getMetadata(itemRef);v=videoFromMetadata(itemRef,metadata);}catch{return;}}void watchVideo(v);},
+ videoTitle:id=>allVideos.find(v=>v.itemRef.fullPath===id)?.title||'',currentVideoId:()=>currentVideoId,channelVisible:()=>channelScreen.style.display!=='none',
+ upload:()=>{createBtn.click();document.getElementById('uploadMenuBtn').click();},customize:()=>{document.getElementById('customizeBtn').click();}
+});
 
 </script>
 
