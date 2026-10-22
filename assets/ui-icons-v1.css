@@ -1,0 +1,30 @@
+/* Bundled SVGs inherit currentColor, including existing light/dark and selected states. */
+.site-ui-icon{display:inline-block;width:24px;height:24px;flex:0 0 auto;vertical-align:middle;overflow:visible;pointer-events:none}
+.site-ui-icon *{pointer-events:none}
+button>.site-ui-icon{vertical-align:middle}
+.rate-btn>.site-ui-icon{width:20px;height:20px}
+.nav-item>svg.site-ui-icon,.nav-item-icon>.site-ui-icon{width:24px;height:24px}
+.nav-item-icon{display:inline-flex;align-items:center;justify-content:center}
+.grid-menu-btn-yt>.site-ui-icon,.comment-more summary>.site-ui-icon,#watchMoreButton>.site-ui-icon{width:22px;height:22px}
+.comment-action-btn>.site-ui-icon{width:18px;height:18px}
+.home-stat>.site-ui-icon,.watch-danmaku-stat>.site-ui-icon{width:17px;height:17px}
+.comment-pin-label>.site-ui-icon,.yl-heart-label>.site-ui-icon{width:14px;height:14px;margin-right:3px}
+.comment-more-menu button>.site-ui-icon{width:19px;height:19px;margin-right:6px}
+.manage-btn>.site-ui-icon{width:18px;height:18px}
+.upload-icon-circle>.site-ui-icon{width:52px;height:52px}
+.suggest-item>.site-ui-icon{width:18px;height:18px;margin-right:9px;color:inherit}
+.suggest-item::before{content:none!important;display:none!important}
+.site-icon-only{font-size:0!important}
+.site-icon-only>.site-ui-icon{width:24px;height:24px}
+#watchScreen #videoWrapper #pipBtn.site-icon-only,#watchScreen #videoWrapper #fullscreenBtn.site-icon-only{font-size:0!important;align-items:center;justify-content:center}
+#videoWrapper .player-play>.site-ui-icon,#videoWrapper .player-mute>.site-ui-icon,#videoWrapper .desktop-ten-skip>.site-ui-icon{width:24px;height:24px}
+#videoWrapper .ten-second-button>.site-ui-icon{width:32px;height:32px}
+#videoWrapper #mobileCenterPlayBtn>.site-ui-icon{width:42px;height:42px}
+#videoWrapper #pipBtn::before,#videoWrapper #pipBtn::after,#videoWrapper #fullscreenBtn::before,#videoWrapper #fullscreenBtn::after{content:none!important;display:none!important}
+#playerSettingsBtn>.site-ui-icon,#mySettingsBtn>.site-ui-icon{width:24px;height:24px}
+.playback-settings-close>.site-ui-icon,.dc-close>.site-ui-icon,.close-btn>.site-ui-icon{width:24px;height:24px}
+.playback-speed-minus>.site-ui-icon,.playback-speed-plus>.site-ui-icon,.dc-size-step>.site-ui-icon{width:18px;height:18px}
+.mobile-comment-preview-arrow>.site-ui-icon{width:18px;height:18px}
+.yl-menu-row>.site-ui-icon{width:22px;height:22px}
+.yl-button>.site-ui-icon{width:19px;height:19px}
+@media(max-width:768px){#navCreatorLab>.site-ui-icon{width:23px;height:23px}.custom-control-btn>.site-ui-icon{width:22px;height:22px}#watchMoreButton>.site-ui-icon{width:20px;height:20px}}

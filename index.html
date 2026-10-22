@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-XSdakleVbJGs+3DzmX16bIzbdRJZEz9eB7bPU6aJW4U=' 'sha256-J3Hjmombs39OMElWkT4IfOmVjMZiVF93O+cN/jz7JRU=' 'sha256-3BoKLZv8W6RXk4hKgGNLGrGKPPyHSoyT3WSzHVhG1d8=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-3W7ByohFUjP4hq7Qq/5L/TU6PrtXwCCbOqBGRIB4APo=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-uejQH05b5ueajVP4SrdhK/FvCev9WwkeFk3OtPqpYbk=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -41,7 +41,7 @@
     .search-suggestions { display: none; position: absolute; top: 100%; left: 0; width: calc(100% - 60px); background-color: white; border: 1px solid #ccc; border-top: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; max-height: 300px; overflow-y: auto; }
     .suggest-item { padding: 10px 20px; font-size: 14px; color: #0f0f0f; cursor: pointer; display: flex; align-items: center; gap: 12px; }
     .suggest-item:hover { background-color: #f2f2f2; }
-    .suggest-item::before { content: '🔍'; font-size: 12px; color: #606060; }
+    .suggest-item::before { content: none; }
     .header-actions { display: flex; align-items: center; gap: 16px; position: relative; flex-shrink: 0; }
     .create-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background-color: #f2f2f2; border: none; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; }
     .create-btn:hover { background-color: #e5e5e5; }
@@ -2142,7 +2142,7 @@ body > header #logoutBtn {
   }
 
   #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn::before {
-    content: "×";
+    content: none !important;
     font-size: 32px;
     line-height: 1;
   }
@@ -2369,7 +2369,7 @@ body > header #logoutBtn {
   }
 
   #watchScreen #videoWrapper:not(.touch-fullscreen-ui) #fullscreenBtn::before {
-    content: "⛶" !important;
+    content: none !important;
     font-size: 26px;
   }
 
@@ -2378,7 +2378,7 @@ body > header #logoutBtn {
   }
 
   #watchScreen #videoWrapper.touch-fullscreen-ui #fullscreenBtn::before {
-    content: "×" !important;
+    content: none !important;
     font-size: 32px;
   }
 
@@ -3754,6 +3754,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 }
 
 </style>
+  <link rel="stylesheet" href="./assets/ui-icons-v1.css?v=20261022">
 </head>
 <body>
 
@@ -3762,13 +3763,13 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
       <img src="logo.png" alt="ロゴ" class="logo-img">サブ・ムービー</div>
     <div class="header-search-bar">
       <input type="text" id="searchInput" placeholder="検索...">
-      <button id="searchBtn">🔍</button>
+      <button id="searchBtn" type="button" aria-label="検索"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="search"><path d="M19 10.5a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0Zm-2.5 6 5 5"></path></svg></button>
       <div id="searchSuggestions" class="search-suggestions"></div>
     </div>
     <div class="header-actions">
-      <button id="createBtn" class="create-btn">＋ 作成</button>
+      <button id="createBtn" class="create-btn"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="plus"><path d="M12 5v14M5 12h14"></path></svg> 作成</button>
       <div id="createMenu" class="dropdown-menu">
-        <div id="uploadMenuBtn" class="menu-item">▶ 動画をアップロード</div>
+        <div id="uploadMenuBtn" class="menu-item"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="upload"><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg> 動画をアップロード</div>
       </div>
       <button id="loginOpenBtn" class="create-btn">ログイン</button>
       <div id="userInfo">
@@ -3781,19 +3782,19 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
   <nav class="side-nav" id="sideNav">
     <div class="nav-item active" id="navHomeBtn">
-      <img src="icon-home.png" alt="ホーム">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="home"><path d="m2 10 10-8 10 8M5 8v12a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V8M18 4v4"></path></svg>
       <span>ホーム</span>
     </div>
     <div class="nav-item" id="navSubscriptionsBtn">
-      <img src="icon-sub.png" alt="コレクション">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="users"><path d="M16 21v-2a5 5 0 0 0-5-5H8a5 5 0 0 0-5 5v2m11-15a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm3-3a3 3 0 0 1 0 6m2 5a4 4 0 0 1 3 4v2"></path></svg>
       <span>コレクション</span>
     </div>
     <div class="nav-item" id="navHistoryBtn">
-      <span class="nav-item-icon">🕒</span>
+      <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="history"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7m2-5v6l4 3"></path></svg></span>
       <span>アーカイブ</span>
     </div>
     <div class="nav-item" id="navSavedBtn">
-      <span class="nav-item-icon">🔖</span>
+      <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="bookmark"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2Z"></path></svg></span>
       <span>保存した動画</span>
     </div>
   </nav>
@@ -3806,9 +3807,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
         <div><h2 id="pcSearchResultsHeading"></h2><span id="pcSearchResultsCount" role="status" aria-live="polite"></span></div>
         <button type="button" id="pcSearchFilterButton" aria-expanded="false" aria-controls="categoryFilterBar sortControlsArea">
           フィルタ
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-            <path d="M3 6h7m4 0h7M3 12h12m4 0h2M3 18h3m4 0h11"/><circle cx="12" cy="6" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>
-          </svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="sliders"><path d="M3 6h6m6 0h6M3 12h11m6 0h1M3 18h2m6 0h10M15 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm5 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path></svg>
         </button>
       </div>
       <section id="subscriptionChannelStrip" hidden aria-labelledby="subscriptionSelectionTitle">
@@ -3856,7 +3855,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
           <p class="channel-meta-stats" style="color:#606060; font-size:14px; margin:0 0 16px 0;">@<span id="channelHandle"></span> ・ チャンネル登録者数 <span id="channelSubscriberCount">0</span>人 ・ <span id="channelVideoCount">0</span> 本の動画</p>
           <div class="channel-actions-row" style="display:flex; gap:8px;">
             <button id="customizeBtn" class="rate-btn" style="display:none;">チャンネルをカスタマイズ</button>
-            <button id="manageVideoBtn" class="rate-btn" style="display:none;">≡ 動画を管理</button>
+            <button id="manageVideoBtn" class="rate-btn" style="display:none;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="channel"><path d="M4 4h16v16H4zM9 8l7 4-7 4z"></path></svg> 動画を管理</button>
           </div>
         </div>
       </div>
@@ -3877,17 +3876,14 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
               <button type="button" id="videoClickToggle" aria-label="動画を再生" aria-controls="mainVideo"></button>
               <div id="danmakuContainer" class="danmaku-container"></div>
               <div class="custom-controls-bar">
-                <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示">💬 弾幕オン</button>
-                <button id="pipBtn" class="custom-control-btn">◱ PiP</button>
+                <button id="toggleDanmakuBtn" class="custom-control-btn" title="弾幕の表示/非表示"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="comment"><path d="M21 11.5a9 9 0 0 1-9 9 10 10 0 0 1-4.5-1L3 21l1.5-4.5a10 10 0 0 1-1-5 8.8 8.8 0 0 1 9-8.5 8.5 8.5 0 0 1 8.5 8.5Z"></path></svg> 弾幕オン</button>
+                <button id="pipBtn" class="custom-control-btn site-icon-only" aria-label="PiPを切り替える" title="PiP"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="pip"><path d="M21 10V4H3v16h7M14 13h8v8h-8zM17 7l-5 5m5-2V7h-3"></path></svg> PiP</button>
                 <button type="button" id="browseMiniToggleBtn" class="custom-control-btn"
                   title="ミニプレーヤー（I）" aria-label="ミニプレーヤーでホームに戻る（I）"
                   aria-controls="browseMiniPlayer" aria-expanded="false" aria-keyshortcuts="i">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                    <rect x="12" y="12" width="7" height="5" fill="currentColor" stroke="none"></rect>
-                  </svg>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="miniplayer"><path d="M3 4h18v16H3zM12 12h7v6h-7z"></path></svg>
                 </button>
-                <button id="fullscreenBtn" class="custom-control-btn">⛶ 全画面</button>
+                <button id="fullscreenBtn" class="custom-control-btn site-icon-only" aria-label="全画面" title="全画面"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="fullscreen"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"></path></svg> 全画面</button>
               </div>
             </div>
           </div>
@@ -3903,15 +3899,15 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
                   <div id="uploaderSubscriberCount" class="uploader-sub-count">チャンネル登録者数 0人</div>
                 </div>
                 <button id="subscribeBtn" class="subscribe-btn" style="display:none;">チャンネル登録</button>
-                <button id="blockUserBtn" class="rate-btn" style="font-size:12px; padding:4px 10px; display:none; margin-left:8px;">🚫</button>
+                <button id="blockUserBtn" class="rate-btn" style="font-size:12px; padding:4px 10px; display:none; margin-left:8px;" aria-label="ユーザーをブロック"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="block"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM5.6 5.6l12.8 12.8"></path></svg></button>
               </div>
             </div>
             <div class="meta-actions">
-              <button id="likeBtn" class="rate-btn" disabled>👍 <span id="likeCount">0</span></button>
-              <button id="dislikeBtn" class="rate-btn" disabled>👎 <span id="dislikeCount">0</span></button>
-              <button id="shareBtn" class="rate-btn">➡️ 共有</button>
-              <button id="saveVideoBtn" class="rate-btn">🔖 保存</button>
-              <button id="reportBtn" class="rate-btn" style="color:#cc0000;">🚨 通報</button>
+              <button id="likeBtn" class="rate-btn" aria-label="高評価" title="高評価" disabled><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="thumb-up"><path d="M7 10H4v10h3m0-10 4-7c.6-1 3-.2 3 2v5h5a2 2 0 0 1 2 2.5l-1.5 6a2 2 0 0 1-2 1.5H7V10Z"></path></svg> <span id="likeCount">0</span></button>
+              <button id="dislikeBtn" class="rate-btn" aria-label="低評価" title="低評価" disabled><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="thumb-down"><path d="M7 10H4v10h3m0-10 4-7c.6-1 3-.2 3 2v5h5a2 2 0 0 1 2 2.5l-1.5 6a2 2 0 0 1-2 1.5H7V10Z" transform="rotate(180 12 12)"></path></svg> <span id="dislikeCount">0</span></button>
+              <button id="shareBtn" class="rate-btn"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="share"><path d="M9 10.5 16 7m-7 6.5 7 3.5M9 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm13-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm0 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path></svg> 共有</button>
+              <button id="saveVideoBtn" class="rate-btn"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="bookmark"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2Z"></path></svg> 保存</button>
+              <button id="reportBtn" class="rate-btn" style="color:#cc0000;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="flag"><path d="M5 21V4c5-5 9 5 15 0v11c-6 5-10-5-15 0"></path></svg> 通報</button>
             </div>
           </div>
 
@@ -3949,12 +3945,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
       aria-controls="commentSortMenu"
       disabled
     >
-      <svg width="24" height="24" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round"
-           aria-hidden="true">
-        <path d="M3 6h18M3 12h12M3 18h6"/>
-      </svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="sort"><path d="M3 6h18M3 12h12M3 18h6"></path></svg>
       並べ替え
     </button>
 
@@ -4028,10 +4019,10 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="modalTitle">動画のアップロード</h2>
-        <button id="closeModalBtn" class="close-btn">✕</button>
+        <button id="closeModalBtn" class="close-btn" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
       </div>
       <div id="step1Area" class="step-1-area">
-        <div class="upload-icon-circle">⬆️</div>
+        <div class="upload-icon-circle" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="upload"><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg></div>
         <p>アップロードする動画ファイルを選択してください</p>
         <input type="file" id="fileInput" accept="video/*" style="display:none;">
         <button id="selectFileBtn" class="select-file-btn">ファイルを選択</button>
@@ -4094,7 +4085,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <!-- 共有モーダル -->
   <div id="shareModal" class="modal-overlay">
     <div class="modal-content auth-modal-content" style="max-width:450px; height:auto;">
-      <div class="modal-header"><h2>共有</h2><button id="closeShareModalBtn" class="close-btn">✕</button></div>
+      <div class="modal-header"><h2>共有</h2><button id="closeShareModalBtn" class="close-btn" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button></div>
       <div class="auth-body">
         <div class="share-link-box"><input type="text" id="shareLinkInput" readonly><button id="copyShareLinkBtn" class="share-btn-copy">コピー</button></div>
         <div class="sns-share-btns">
@@ -4109,7 +4100,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <!-- 認証モーダル -->
   <div id="authModal" class="modal-overlay">
     <div class="modal-content auth-modal-content">
-      <div class="modal-header"><h2 id="authModalTitle">ログイン</h2><button id="closeAuthModalBtn" class="close-btn">✕</button></div>
+      <div class="modal-header"><h2 id="authModalTitle">ログイン</h2><button id="closeAuthModalBtn" class="close-btn" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button></div>
       <div class="auth-body">
         <button id="googleAuthBtn" class="google-btn">Googleでログイン</button>
         <div class="input-group" id="signupNameGroup" style="display:none;"><label>チャンネル名</label><input type="text" id="authChannelName" placeholder="表示される名前"></div>
@@ -4125,7 +4116,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <!-- 動画編集モーダル -->
   <div id="editVideoModal" class="modal-overlay">
     <div class="modal-content auth-modal-content" style="max-width:500px; height:auto;">
-      <div class="modal-header"><h2>動画の詳細を編集</h2><button id="closeEditModalBtn" class="close-btn">✕</button></div>
+      <div class="modal-header"><h2>動画の詳細を編集</h2><button id="closeEditModalBtn" class="close-btn" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button></div>
       <div class="auth-body">
         <div class="input-group"><label>タイトル (必須)</label><input type="text" id="editTitleInput"></div>
         <div class="input-group"><label>説明</label><textarea id="editDescInput" rows="3" placeholder="動画の説明"></textarea></div>
@@ -4169,7 +4160,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <!-- チャンネルカスタマイズモーダル -->
   <div id="customizeModal" class="modal-overlay">
     <div class="modal-content auth-modal-content" style="max-width:450px; height:auto;">
-      <div class="modal-header"><h2>チャンネルのカスタマイズ</h2><button id="closeCustomizeModalBtn" class="close-btn">✕</button></div>
+      <div class="modal-header"><h2>チャンネルのカスタマイズ</h2><button id="closeCustomizeModalBtn" class="close-btn" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button></div>
       <div class="auth-body">
         <div class="input-group" style="text-align:center; margin-bottom:16px;">
           <label style="text-align:left; display:block;">プロフィール写真</label>
@@ -4208,7 +4199,8 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   </aside>
 
   <script type="module">
-    import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261022";
+    import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
+    import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261022-icons1";
     import {recommendationOrder} from "./assets/creator-lab-model-v1.mjs";
     let creatorLab=null;
     import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript} from "./assets/site-performance-v1.mjs?v=20261022";
@@ -4299,7 +4291,7 @@ function showGuardNotice(anchor, result) {
 
   const close = document.createElement('button');
   close.type = 'button';
-  close.textContent = '×';
+  setUiIcon(close,'close');
   close.setAttribute('aria-label', '警告を閉じる');
 
   box.append(message, close);
@@ -4826,27 +4818,7 @@ if (tenSecondControlsEnabled() && event.detail !== 0) {
     );
     button.title = seconds < 0 ? '10秒戻す' : '10秒進む';
 
-    button.innerHTML = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <g ${seconds < 0 ? 'transform="translate(32 0) scale(-1 1)"' : ''}>
-          <path
-            d="M7 9a11 11 0 1 0 17 0M24 3v6h-6"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-            stroke-linejoin="round">
-          </path>
-        </g>
-        <text
-          x="16" y="22"
-          text-anchor="middle"
-          fill="currentColor"
-          font-family="Arial, sans-serif"
-          font-size="12"
-          font-weight="bold">10</text>
-      </svg>
-    `;
+    button.innerHTML = uiIconMarkup(seconds<0?'skip-back':'skip-forward');
 
     button.addEventListener('click', event => {
       event.preventDefault();
@@ -6502,7 +6474,7 @@ async function loadVideoList(prefetched = null) {
       for (const video of suggestions) {
         const button=document.createElement('button'); button.type='button';
         button.className='suggest-item'; button.dataset.title=video.title;
-        button.textContent=video.title;
+        button.textContent=video.title;button.prepend(createUiIcon('search'));
         button.style.cssText='display:block;width:100%;text-align:left;border:0;background:transparent;font:inherit;color:inherit';
         searchSuggestions.appendChild(button);
       }
@@ -6576,7 +6548,7 @@ async function loadVideoList(prefetched = null) {
       } else {
         node.dataset.pendingThumbnail=v.itemRef.fullPath;
         node.style.cssText='display:grid;place-items:center;background:#eee;color:#666';
-        node.setAttribute('aria-label','サムネイル準備中'); node.textContent='▶';
+        node.setAttribute('aria-label','サムネイル準備中'); setUiIcon(node,'play');
         scheduleThumbnailRefresh();
       }
       return node.outerHTML;
@@ -6660,12 +6632,7 @@ function decorateHomeCard(card, v) {
   const stats = document.createElement('div');
   stats.className = 'home-video-stats';
 
-  const icons = {
-    views: 'M8 5v14l11-7Z',
-    likes:
-      'M7 10H3v10h4Zm0 0 4-7c1-1 3 0 3 2v5h5c2 0 2 2 2 3l-2 7H7Z',
-    comments: 'M4 4h16v13H9l-5 4Z'
-  };
+  const icons = {views:'play',likes:'thumb-up',comments:'comment'};
 
   const labels = {
     views: '再生数',
@@ -6685,17 +6652,7 @@ function decorateHomeCard(card, v) {
     );
     item.title = `${labels[key]} 読み込み中`;
 
-    item.innerHTML = `
-      <svg viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="1.7"
-           stroke-linejoin="round"
-           aria-hidden="true">
-        <path d="${icons[key]}"/>
-      </svg>
-      <span class="home-stat-number">--</span>
-    `;
+    item.innerHTML = `${uiIconMarkup(icons[key])}<span class="home-stat-number">--</span>`;
 
     stats.appendChild(item);
   }
@@ -6851,11 +6808,11 @@ async function fillHomeCard(card, v) {
         const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
         const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
         const mediaHtml = thumbnailHtml(v); 
-        gridItem.innerHTML = `${mediaHtml}${canDelete ? '<button class="delete-video-btn" title="この動画を削除">🗑</button>' : ''}
+        gridItem.innerHTML = `${mediaHtml}${canDelete ? '<button class="delete-video-btn" title="この動画を削除" aria-label="この動画を削除">'+uiIconMarkup('trash')+'</button>' : ''}
           <div class="grid-item-info"><div class="grid-item-text"><div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div></div>
-          <div class="grid-menu-wrapper"><button class="grid-menu-btn-yt">⋮</button><div class="grid-dropdown">
-            <div class="grid-dropdown-item not-interested-btn" data-uid="${v.uploaderUid}">🚫 チャンネルをおすすめに表示しない</div>
-            <div class="grid-dropdown-item block-channel-btn" data-uid="${v.uploaderUid}">⛔ チャンネルをブロックする</div>
+          <div class="grid-menu-wrapper"><button class="grid-menu-btn-yt" type="button" aria-label="動画のその他の操作">${uiIconMarkup('more')}</button><div class="grid-dropdown">
+            <div class="grid-dropdown-item not-interested-btn" data-uid="${v.uploaderUid}">${uiIconMarkup('eye-off')} チャンネルをおすすめに表示しない</div>
+            <div class="grid-dropdown-item block-channel-btn" data-uid="${v.uploaderUid}">${uiIconMarkup('block')} チャンネルをブロックする</div>
           </div></div></div>`;
 
         // 動画ごとのURLを作成
@@ -7241,10 +7198,10 @@ uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
 
   const saveVideoBtn = document.getElementById('saveVideoBtn');
   if (currentUserSaved.includes(currentVideoId)) { 
-    saveVideoBtn.textContent = '🔖 保存済み'; 
+    setUiIcon(saveVideoBtn,'bookmark-check','保存済み'); 
     saveVideoBtn.style.color = '#065fd4'; 
   } else { 
-    saveVideoBtn.textContent = '🔖 保存'; 
+    setUiIcon(saveVideoBtn,'bookmark','保存'); 
     saveVideoBtn.style.color = ''; 
   }
 }
@@ -7685,9 +7642,7 @@ fullscreenBtn.addEventListener('click', async () => {
 function updateFullscreenBtn() {
   const active = isPlayerFullscreen();
 
-  fullscreenBtn.textContent = active
-    ? '✖ 全画面を解除'
-    : '⛶ 全画面';
+  setUiIcon(fullscreenBtn,active?'fullscreen-exit':'fullscreen',active?'全画面を解除':'全画面');
 
   fullscreenBtn.setAttribute(
     'aria-label',
@@ -8199,7 +8154,7 @@ function refreshCommentPinLabels() {
 
     if (label) label.hidden = !pinned;
     if (button) {
-      button.textContent = pinned ? '📌 固定を解除' : '📌 固定';
+      setUiIcon(button,'pin',pinned?'固定を解除':'固定');
     }
   }
 }
@@ -8565,7 +8520,7 @@ function enhanceCommentNode(node, comment, isReply) {
   if (!isReply) {
     const badge = document.createElement('div');
     badge.className = 'comment-pin-label';
-    badge.textContent = '📌 投稿者が固定';
+    setUiIcon(badge,'pin','投稿者が固定');
     badge.hidden = !isPinnedComment(comment);
     content.prepend(badge);
   }
@@ -8575,10 +8530,10 @@ function enhanceCommentNode(node, comment, isReply) {
     auth.currentUser.uid === comment.authorUid;
 
   const actions = mine
-    ? [['edit', '✎ 編集'], ['delete', '削除']]
+    ? [['edit', '編集'], ['delete', '削除']]
     : [
-        ['report', '⚑ 通報'],
-        ['block', '🚫 ユーザーをブロック']
+        ['report', '通報'],
+        ['block', 'ユーザーをブロック']
       ];
 
   if (
@@ -8588,7 +8543,7 @@ function enhanceCommentNode(node, comment, isReply) {
   ) {
     actions.splice(1, 0, [
       'pin',
-      isPinnedComment(comment) ? '📌 固定を解除' : '📌 固定'
+      isPinnedComment(comment) ? '固定を解除' : '固定'
     ]);
   }
 
@@ -8596,7 +8551,7 @@ function enhanceCommentNode(node, comment, isReply) {
   details.className = 'comment-more';
 
   details.innerHTML = `
-    <summary aria-label="コメントの操作">⋮</summary>
+    <summary aria-label="コメントの操作">${uiIconMarkup('more')}</summary>
     <div class="comment-more-menu"
          role="group"
          aria-label="コメントの操作"></div>
@@ -8605,7 +8560,7 @@ function enhanceCommentNode(node, comment, isReply) {
   for (const [action, label] of actions) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = label;
+    setUiIcon(button,{edit:'edit',delete:'trash',report:'flag',block:'block',pin:'pin'}[action],label);
 
     if (action === 'pin') {
       button.className = 'comment-pin-action';
@@ -8857,7 +8812,7 @@ function setupReplyThread(node, comment, childReplies) {
   const previousVisible = Math.min(state.visible, childReplies.length);
   let shown = 0;
   let lastMore = null;
-  const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>';
+  const arrow = uiIconMarkup('chevron-down');
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'replies-thread-toggle';
@@ -8951,8 +8906,8 @@ function setupReplyThread(node, comment, childReplies) {
           <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
           <div class="comment-text">${escapeHtml(comment.text)}</div>
           <div class="comment-actions-bar">
-            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" data-id="${commentIdAttr}">👍 ${likes > 0 ? likes : ''}</button>
-            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" data-id="${commentIdAttr}">👎 ${dislikes > 0 ? dislikes : ''}</button>
+            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" aria-label="コメントに高評価" data-id="${commentIdAttr}">${uiIconMarkup('thumb-up')} ${likes > 0 ? likes : ''}</button>
+            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" aria-label="コメントに低評価" data-id="${commentIdAttr}">${uiIconMarkup('thumb-down')} ${dislikes > 0 ? dislikes : ''}</button>
             ${!isReply ? `<button class="comment-action-btn reply-toggle-btn" data-id="${commentIdAttr}">返信</button>` : ''}
             ${canDelete ? `<button class="comment-action-btn comment-delete-btn" data-id="${commentIdAttr}" style="color:#909090;">削除</button>` : ''}
           </div>
@@ -8972,7 +8927,7 @@ function setupReplyThread(node, comment, childReplies) {
       if (replyAvatar && hasAvatar) replyAvatar.style.backgroundImage = avatarBackground;
       if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
-      if(comment.creatorHeart===true){const heart=document.createElement('p');heart.className='yl-heart-label';heart.textContent='♥ 投稿者からハート';div.querySelector('.comment-content')?.appendChild(heart);}
+      if(comment.creatorHeart===true){const heart=document.createElement('p');heart.className='yl-heart-label';setUiIcon(heart,'heart','投稿者からハート');div.querySelector('.comment-content')?.appendChild(heart);}
       attachCommentImage(div, comment);
       queueMicrotask(refreshPrivateRatingButtons);
       return div;
@@ -9866,7 +9821,7 @@ await uploadBytes(storageRef,file, {
       myVideos.forEach(v => {
         const item = document.createElement('div'); item.className = 'manage-list-item';
       const mediaHtml = thumbnailHtml(v, 'thumb');
-        item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">✏️ 編集</button><button class="manage-btn manage-btn-delete">🗑 削除</button></div></div>`;
+        item.innerHTML = `${mediaHtml}<div class="manage-list-info"><div class="manage-list-title">${escapeHtml(v.title)}</div><div class="manage-list-date">カテゴリー: ${escapeHtml(v.category)}</div><div class="manage-list-actions"><button class="manage-btn edit-btn">${uiIconMarkup('edit')} 編集</button><button class="manage-btn manage-btn-delete">${uiIconMarkup('trash')} 削除</button></div></div>`;
         item.querySelector('.edit-btn').addEventListener('click', async () => {
           const request = ++editPolicyRequest;
           currentEditVideo = v;
@@ -9976,8 +9931,8 @@ await uploadBytes(thumbRef, thumbFile, {
       saveVideoBtn.disabled = true;
       try {
         const userRef = doc(db, 'userPrivate', currentUser.uid);
-        if (currentUserSaved.includes(currentVideoId)) { await setDoc(userRef, { savedVideos: arrayRemove(currentVideoId) }, { merge: true }); currentUserSaved = currentUserSaved.filter(id => id !== currentVideoId); saveVideoBtn.textContent = '🔖 保存'; saveVideoBtn.style.color = ''; }
-        else { await setDoc(userRef, { savedVideos: arrayUnion(currentVideoId) }, { merge: true }); currentUserSaved.push(currentVideoId); saveVideoBtn.textContent = '🔖 保存済み'; saveVideoBtn.style.color = '#065fd4'; }
+        if (currentUserSaved.includes(currentVideoId)) { await setDoc(userRef, { savedVideos: arrayRemove(currentVideoId) }, { merge: true }); currentUserSaved = currentUserSaved.filter(id => id !== currentVideoId); setUiIcon(saveVideoBtn,'bookmark','保存'); saveVideoBtn.style.color = ''; }
+        else { await setDoc(userRef, { savedVideos: arrayUnion(currentVideoId) }, { merge: true }); currentUserSaved.push(currentVideoId); setUiIcon(saveVideoBtn,'bookmark-check','保存済み'); saveVideoBtn.style.color = '#065fd4'; }
       } catch { alert('保存に失敗しました。'); } finally { saveVideoBtn.disabled = false; }
     });
 
@@ -10011,8 +9966,8 @@ await uploadBytes(thumbRef, thumbFile, {
     toggleDanmakuBtn.addEventListener('click', () => {
       if (!videoFeatureEnabled('danmaku')) return;
       isDanmakuVisible = !isDanmakuVisible;
-      if (isDanmakuVisible) { danmakuContainer.style.visibility = 'visible'; toggleDanmakuBtn.textContent = '💬 弾幕オン'; toggleDanmakuBtn.style.opacity = '1'; }
-      else { danmakuContainer.style.visibility = 'hidden'; toggleDanmakuBtn.textContent = '🔕 弾幕オフ'; toggleDanmakuBtn.style.opacity = '0.6'; }
+      if (isDanmakuVisible) { danmakuContainer.style.visibility = 'visible'; setUiIcon(toggleDanmakuBtn,'comment','弾幕オン'); toggleDanmakuBtn.style.opacity = '1'; }
+      else { danmakuContainer.style.visibility = 'hidden'; setUiIcon(toggleDanmakuBtn,'comment-off','弾幕オフ'); toggleDanmakuBtn.style.opacity = '0.6'; }
     });
 
 
@@ -10038,10 +9993,10 @@ await uploadBytes(thumbRef, thumbFile, {
 
     <div class="player-row">
       <button type="button" class="player-play"
-        aria-label="再生">▶</button>
+        aria-label="再生">${uiIconMarkup('play')}</button>
 
       <button type="button" class="player-mute"
-        aria-label="ミュート">🔊</button>
+        aria-label="ミュート">${uiIconMarkup('volume')}</button>
 
       <input
         class="player-volume"
@@ -10228,7 +10183,7 @@ volume.addEventListener('blur', () => {
   }
 
   function sync() {
-    play.textContent = video.paused ? '▶' : '⏸';
+    setUiIcon(play,video.paused?'play':'pause');
     play.setAttribute(
       'aria-label',
       video.paused ? '再生' : '一時停止'
@@ -10236,7 +10191,7 @@ volume.addEventListener('blur', () => {
 
     const silent = video.muted || video.volume === 0;
 
-    mute.textContent = silent ? '🔇' : '🔊';
+    setUiIcon(mute,silent?'volume-off':'volume');
     mute.setAttribute(
       'aria-label',
       silent ? 'ミュート解除' : 'ミュート'
@@ -10393,14 +10348,7 @@ volume.addEventListener('blur', () => {
   const header = document.querySelector('body > header');
   if (!header) return;
 
-  const searchIcon = `
-    <svg viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" aria-hidden="true">
-      <circle cx="10.5" cy="10.5" r="7.5"></circle>
-      <path d="m16 16 5 5"></path>
-    </svg>
-  `;
+  const searchIcon = uiIconMarkup('search');
 
   // ヘッダー右側の検索アイコン
   const openBtn = document.createElement('button');
@@ -10422,12 +10370,7 @@ volume.addEventListener('blur', () => {
               class="mobile-search-icon-btn"
               id="mobileSearchBack"
               aria-label="動画に戻る">
-        <svg viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true">
-          <path d="m12 4-8 8 8 8M4 12h16"></path>
-        </svg>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="back"><path d="m11 4-8 8 8 8M3 12h18"></path></svg>
       </button>
 
       <div class="mobile-search-field">
@@ -10795,7 +10738,7 @@ function renderMyPage() {
   if (document.getElementById('mySettingsBtn')) return;
 
   navSavedBtn.innerHTML = `
-    <span class="nav-item-icon">👤</span>
+    <span class="nav-item-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="profile"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 8 0 0 1 16 0v2"></path></svg></span>
     <span>マイページ</span>
   `;
 
@@ -10805,7 +10748,7 @@ function renderMyPage() {
   settings.id = 'mySettingsBtn';
   settings.type = 'button';
   settings.setAttribute('aria-label', '設定');
-  settings.textContent = '⚙';
+  setUiIcon(settings,'settings');
   settings.hidden = true;
   header.appendChild(settings);
 
@@ -10818,7 +10761,7 @@ function renderMyPage() {
       <h2>設定</h2>
       <button type="button"
               id="mySettingsClose"
-              aria-label="設定を閉じる">×</button>
+              aria-label="設定を閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     </div>
     <p id="mySettingsAccount"></p>
     <button type="button" id="mySettingsAuth"></button>
@@ -10883,7 +10826,7 @@ function renderMyPage() {
       img.alt = '';
       icon.appendChild(img);
     } else {
-      icon.textContent = '👤';
+      setUiIcon(icon,'profile');
     }
   }
 
@@ -10933,7 +10876,7 @@ function renderMyPage() {
     <span class="mobile-comment-preview-heading">
       コメント
       <span id="mobileCommentsCount"></span>
-      <span class="mobile-comment-preview-arrow" aria-hidden="true">›</span>
+      <span class="mobile-comment-preview-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="chevron-right"><path d="m9 5 7 7-7 7"></path></svg></span>
     </span>
     <span id="mobileCommentsExcerpt">読み込み中...</span>
   `;
@@ -10951,7 +10894,7 @@ function renderMyPage() {
       <button id="mobileCommentsClose"
               type="button"
               aria-label="コメント欄を閉じる"
-              autofocus>×</button>
+              autofocus><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     </div>
     <div id="mobileCommentsScroll"></div>
   `;
@@ -11130,14 +11073,7 @@ function updateWatchDanmakuCount(value, videoId) {
     <span class="watch-danmaku-stat"
           role="img"
           aria-label="弾幕コメント数を読み込み中">
-      <svg viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="1.8"
-           stroke-linejoin="round"
-           aria-hidden="true">
-        <path d="M4 4h16v13H9l-5 4Z"/>
-      </svg>
+      ${uiIconMarkup('comment')}
       <span data-watch-danmaku-count>--</span>
     </span>
   `;
@@ -11219,7 +11155,7 @@ function updateWatchDanmakuCount(value, videoId) {
       <button type="button"
               id="mobileDescriptionClose"
               aria-label="説明を閉じる"
-              autofocus>×</button>
+              autofocus><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     </div>
     <div class="mobile-description-body">
       <h3 id="mobileDescriptionTitle"></h3>
@@ -11386,7 +11322,7 @@ function updateWatchDanmakuCount(value, videoId) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'desktop-ten-skip';
-    button.textContent = seconds < 0 ? '↶10' : '10↷';
+    setUiIcon(button,seconds<0?'skip-back':'skip-forward');
     button.setAttribute(
       'aria-label',
       seconds < 0 ? '10秒戻す' : '10秒進む'
@@ -11786,7 +11722,7 @@ function subMovieIsMuted(...values) {
 
   notice.innerHTML = `
     <button type="button" class="notice-close"
-      aria-label="ログイン案内を閉じる">×</button>
+      aria-label="ログイン案内を閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     <h2 id="nearLoginTitle">ログインが必要です</h2>
     <p></p>
     <button type="button" class="notice-login">
@@ -12262,7 +12198,7 @@ async function renderTrendingVideos() {
 }
 
 // アーカイブを「人気の動画」へ変更
-navHistoryBtn.querySelector('.nav-item-icon').textContent = '🔥';
+setUiIcon(navHistoryBtn.querySelector('.nav-item-icon'),'trending');
 navHistoryBtn.querySelector('span:last-child').textContent =
   '人気の動画';
 
@@ -12487,7 +12423,7 @@ navHistoryBtn.addEventListener('click', event => {
   const more = document.createElement('button');
   more.id = 'watchMoreButton';
   more.type = 'button';
-  more.textContent = '⋮';
+  setUiIcon(more,'more');
   more.setAttribute('aria-label', 'その他の操作');
   more.setAttribute('aria-expanded', 'false');
   more.setAttribute('aria-controls', 'watchMoreMenu');
@@ -12501,7 +12437,7 @@ navHistoryBtn.addEventListener('click', event => {
   const download = document.createElement('button');
   download.id = 'downloadVideoBtn';
   download.type = 'button';
-  download.textContent = '⬇ 動画を保存';
+  setUiIcon(download,'download','動画を保存');
   download.title = 'この端末に動画ファイルを保存（無料）';
   download.setAttribute('aria-label', '動画を端末に保存・無料');
   menu.append(save, report, download);
@@ -12511,7 +12447,7 @@ const blockMenuItem = document.getElementById('blockUserBtn');
 
 if (blockMenuItem) {
   blockMenuItem.type = 'button';
-  blockMenuItem.textContent = '🚫 ユーザーをブロック';
+  setUiIcon(blockMenuItem,'block','ユーザーをブロック');
 
   ['font-size', 'padding', 'margin-left'].forEach(name => {
     blockMenuItem.style.removeProperty(name);
@@ -12935,15 +12871,7 @@ import {
   bell.setAttribute('aria-label', '通知を開く');
   bell.setAttribute('aria-haspopup', 'dialog');
 
-  bell.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="1.8"
-      stroke-linecap="round" stroke-linejoin="round"
-      aria-hidden="true">
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-      <path d="M10 21h4"/>
-    </svg>
-  `;
+  bell.innerHTML = uiIconMarkup('bell');
 
  const search = document.getElementById('mobileWatchSearchBtn');
 const settingsButton = document.getElementById('mySettingsBtn');
@@ -12990,7 +12918,7 @@ notificationMobile.addEventListener('change', placeNotificationBell);
     <div class="notification-heading">
       <h2 id="notificationHeading">通知</h2>
       <button type="button" id="notificationClose"
-        aria-label="通知を閉じる">×</button>
+        aria-label="通知を閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     </div>
     <div id="notificationStatus">読み込み中…</div>
     <div id="notificationList"></div>
@@ -13227,7 +13155,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
   settingsButton.type = 'button';
   settingsButton.id = 'playerSettingsBtn';
   settingsButton.className = 'custom-control-btn player-settings-button';
-  settingsButton.textContent = '⚙';
+  setUiIcon(settingsButton,'settings');
   settingsButton.setAttribute('aria-label', '再生設定');
   settingsButton.setAttribute('aria-expanded', 'false');
   settingsButton.setAttribute('aria-controls', 'mobilePlaybackSettings');
@@ -13246,7 +13174,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
     <div class="playback-settings-heading">
       <strong>再生設定</strong>
       <button type="button" class="playback-settings-close"
-        aria-label="再生設定を閉じる">×</button>
+        aria-label="再生設定を閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
     </div>
 
     <label>
@@ -13261,10 +13189,10 @@ bell.hidden = !signedIn || !onNotificationScreen;
       <output class="playback-speed-value" for="playbackSpeedRange">1.00倍</output>
     </div>
     <div class="playback-speed-adjust">
-      <button type="button" class="playback-speed-minus" aria-label="速度を0.05倍下げる">−</button>
+      <button type="button" class="playback-speed-minus" aria-label="速度を0.05倍下げる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="minus"><path d="M5 12h14"></path></svg></button>
       <input id="playbackSpeedRange" class="playback-speed" type="range"
         min="0.25" max="4" step="0.05" value="1" aria-label="再生速度">
-      <button type="button" class="playback-speed-plus" aria-label="速度を0.05倍上げる">＋</button>
+      <button type="button" class="playback-speed-plus" aria-label="速度を0.05倍上げる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="plus"><path d="M12 5v14M5 12h14"></path></svg></button>
     </div>
     <div class="playback-speed-presets" aria-label="よく使う再生速度">
       <button type="button" data-playback-rate="0.25" aria-pressed="false">0.25倍</button>
@@ -13639,12 +13567,12 @@ bell.hidden = !signedIn || !onNotificationScreen;
     }
 
     #videoWrapper.mobile-player-layout #pipBtn::after {
-      content: 'PiP';
+      content: none !important;
       font-size: 13px;
     }
 
     #videoWrapper.mobile-player-layout #fullscreenBtn::after {
-      content: '⛶';
+      content: none !important;
       font-size: 24px;
     }
 
@@ -13802,7 +13730,7 @@ function setupDanmakuCustomization() {
   dialog.setAttribute('aria-labelledby', 'dcTitle');
   dialog.innerHTML = `
     <header class="dc-heading"><strong id="dcTitle">弾幕カスタマイズ</strong>
-      <button type="button" class="dc-close" aria-label="カスタマイズを閉じる">×</button></header>
+      <button type="button" class="dc-close" aria-label="カスタマイズを閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button></header>
     <div class="dc-preview" aria-label="弾幕プレビュー"><span></span></div>
     <div class="dc-body">
       <nav class="dc-tabs" role="tablist" aria-label="カスタマイズ項目" aria-orientation="vertical">
@@ -13831,9 +13759,9 @@ function setupDanmakuCustomization() {
         </section>
         <section class="dc-panel" id="dcSizePanel" role="tabpanel" aria-labelledby="dcSizeTab" data-panel="size" hidden>
           <label for="dcSize">文字のサイズ</label><output class="dc-size-value" for="dcSize">3.0</output>
-          <div class="dc-size-control"><button type="button" class="dc-size-step" data-size-step="-0.1" aria-label="サイズを小さくする">−</button>
+          <div class="dc-size-control"><button type="button" class="dc-size-step" data-size-step="-0.1" aria-label="サイズを小さくする"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="minus"><path d="M5 12h14"></path></svg></button>
             <input type="range" id="dcSize" class="dc-size-range" min="1" max="5" step="0.1" value="3" aria-label="弾幕のサイズ">
-            <button type="button" class="dc-size-step" data-size-step="0.1" aria-label="サイズを大きくする">＋</button></div>
+            <button type="button" class="dc-size-step" data-size-step="0.1" aria-label="サイズを大きくする"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="plus"><path d="M12 5v14M5 12h14"></path></svg></button></div>
           <div class="dc-size-ticks" aria-hidden="true"><span>1</span><span>2</span><span class="dc-default">3</span><span>4</span><span>5</span></div>
         </section>
       </div>
@@ -14205,25 +14133,7 @@ creatorLab=mountCreatorLab({
     tool.title = '弾幕をカスタマイズ';
     tool.setAttribute('aria-label', '弾幕をカスタマイズ');
 
-    tool.innerHTML = `
-      <svg viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="1.8"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           aria-hidden="true">
-        <path d="
-          M14.5 6.3
-          a5.2 5.2 0 0 0-6.8 6.8
-          L3 17.8
-          a2.3 2.3 0 0 0 3.2 3.2
-          l5.7-5.7
-          a5.2 5.2 0 0 0 6.8-6.8
-          l-3.4 3.4-3.2-3.2
-          3.4-3.4Z"/>
-      </svg>
-    `;
+    tool.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="wrench"><path d="M14.5 6.3a5.2 5.2 0 0 0-6.8 6.8L3 17.8a2.3 2.3 0 0 0 3.2 3.2l5.7-5.7a5.2 5.2 0 0 0 6.8-6.8l-3.4 3.4-3.2-3.2 3.4-3.4Z"></path></svg>`;
 
     area.insertBefore(tool, input);
   }
@@ -14233,32 +14143,7 @@ creatorLab=mountCreatorLab({
   send.title = '弾幕を送信';
   send.setAttribute('aria-label', '弾幕を送信');
 
-  send.innerHTML = `
-    <svg viewBox="0 0 32 32"
-         fill="none"
-         stroke="currentColor"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         aria-hidden="true">
-      <path d="
-        M6 27
-        V16
-        L9 12
-        V5
-        C9 2 13 2 13 5
-        V12
-        H27
-        C30 12 30 16 27 16
-        H19
-        V23
-        C19 26 16 28 13 28
-        H6"/>
-      <path d="M19 17H15"/>
-      <path d="M19 21H15"/>
-      <path d="M6 24H3V29H9"/>
-    </svg>
-  `;
+  send.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="send"><path d="m21 3-7 18-3.5-7.5L3 10l18-7Zm0 0L10.5 13.5"></path></svg>`;
 })();
 </script>
 
@@ -14278,19 +14163,9 @@ creatorLab=mountCreatorLab({
     playButton.type = 'button';
     playButton.className = 'ten-second-button';
 
-    const playIcon = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M11 6L27 16L11 26Z"
-              fill="currentColor"/>
-      </svg>
-    `;
+    const playIcon = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="play"><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"></path></svg>`;
 
-    const pauseIcon = `
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M9 6H14V26H9ZM19 6H24V26H19Z"
-              fill="currentColor"/>
-      </svg>
-    `;
+    const pauseIcon = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="pause"><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"></path><path d="M9 8v8m6-8v8" stroke-width="2.8"></path></svg>`;
 
     function updatePlayButton() {
       const paused = video.paused || video.ended;
@@ -14494,7 +14369,7 @@ creatorLab=mountCreatorLab({
 
     if (!pip || !video || !wrapper || !fullscreen) return;
 
-    pip.textContent = 'PiP';
+    pip.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="pip"><path d="M21 10V4H3v16h7M14 13h8v8h-8zM17 7l-5 5m5-2V7h-3"></path></svg>`;pip.classList.add('site-icon-only');
     pip.setAttribute('aria-label', 'PiPを切り替える');
     pip.title = 'PiP';
 
