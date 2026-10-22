@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-uejQH05b5ueajVP4SrdhK/FvCev9WwkeFk3OtPqpYbk=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-wrFv/fBxknjQjPm+dKvYGJD1f0OhEeMkODaONS4LoxQ=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -25,6 +25,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>サブ・ムービー｜弾幕コメントで楽しむ動画共有サイト</title>
 <meta name="description" content="サブ・ムービーは、動画の投稿・視聴と弾幕コメントを楽しめる動画共有サイトです。音楽、アニメ、ゲームなどの動画を探し、コメントで交流できます。">
+  <link rel="preconnect" href="https://asia-northeast1-testo-movie-site.cloudfunctions.net" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
   <link rel="stylesheet" href="./assets/creator-lab-v1.css?v=20261022">
@@ -178,7 +179,7 @@
     .video-wrapper:-webkit-full-screen { width: 100vw !important; height: 100vh !important; border-radius: 0; margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; }
     .video-wrapper.pseudo-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; margin: 0 !important; background-color: #000 !important; display: flex !important; justify-content: center; align-items: center; }
     .video-wrapper:fullscreen video, .video-wrapper:-webkit-full-screen video, .video-wrapper.pseudo-fullscreen video { width: 100%; height: 100%; object-fit: contain; }
-    video::-webkit-media-controls-fullscreen-button { display: none !important; }
+    video:not(.native-fullscreen-video)::-webkit-media-controls-fullscreen-button { display: none !important; }
 
     /* ===== スクロール追従（is-sticky）===== */
     .video-wrapper.is-sticky {
@@ -3755,6 +3756,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
 </style>
   <link rel="stylesheet" href="./assets/ui-icons-v1.css?v=20261022">
+<link rel="stylesheet" href="./assets/interaction-feedback-v1.css?v=20261022-1">
 </head>
 <body>
 
@@ -4200,6 +4202,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
   <script type="module">
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
+    import {createRatingFeedback} from "./assets/interaction-feedback-v1.mjs?v=20261022-1";
     import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261022-icons1";
     import {recommendationOrder} from "./assets/creator-lab-model-v1.mjs";
     let creatorLab=null;
@@ -4251,6 +4254,76 @@ const callSubmovieGuard = guardCallable(
   getGuardFunctions(app, 'asia-northeast1'),
   'submovieGuard'
 );
+
+const ratingFeedback = createRatingFeedback(() => ({
+  uid: auth.currentUser?.uid || '', videoId: currentVideoId
+}));
+const ownPostFeedback = new Map();
+const replyPostPending = new Map();
+let ownPostVersion = 0;
+
+function clearOwnPostFeedback() {
+  for (const entry of ownPostFeedback.values()) entry.node?.remove();
+  ownPostFeedback.clear();
+  replyPostPending.clear();
+  ownPostVersion++;
+}
+
+function beginOwnPostFeedback(payload, anchor, uid) {
+  const entry = {payload, uid, videoId: payload.videoId, id: 'pending-' + payload.requestId};
+  const host = anchor?.closest('.reply-input-area, #commentComposer, .danmaku-input-area') || anchor;
+  if (host?.isConnected) {
+    const box = document.createElement('div');
+    box.className = 'own-post-feedback';
+    box.setAttribute('role', 'status');
+    const text = document.createElement('span');
+    text.textContent = payload.text;
+    const status = document.createElement('small');
+    status.textContent = '送信中…（まだ保存は完了していません）';
+    box.append(text, status);
+    host.after(box);
+    entry.node = box;
+  }
+  ownPostFeedback.set(payload.requestId, entry);
+  ownPostVersion++;
+  if (payload.type === 'danmaku') syncDanmakuToTime();
+  return entry;
+}
+
+function finishOwnPostFeedback(entry, result) {
+  entry.node?.remove();
+  if (ownPostFeedback.get(entry.payload.requestId) !== entry) return;
+  // Keep an acknowledged local danmaku only until the same server ID arrives.
+  if (result && entry.payload.type === 'danmaku' && typeof result.commentId === 'string' &&
+      !videoComments.some(comment => comment.id === result.commentId)) {
+    entry.id = result.commentId;
+    entry.confirmed = true;
+  } else ownPostFeedback.delete(entry.payload.requestId);
+  ownPostVersion++;
+  if (entry.payload.type === 'danmaku') syncDanmakuToTime();
+}
+
+function reconcileOwnPosts(rows) {
+  const ids = new Set(rows.map(row => row.id));
+  const requests = new Set(rows.filter(row => row.authorUid === auth.currentUser?.uid).map(row => row.clientRequestId));
+  for (const [key, entry] of ownPostFeedback) {
+    if (ids.has(entry.id) || requests.has(key)) {
+      entry.node?.remove();
+      ownPostFeedback.delete(key);
+      ownPostVersion++;
+    }
+  }
+}
+
+// Warm cached credentials on user intent, without forcing refresh or sending a write.
+let lastCredentialWarm = 0;
+document.addEventListener('focusin', event => {
+  if (!event.target.matches?.('#commentInput, #danmakuInput, .reply-input-area textarea')) return;
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous || Date.now() - lastCredentialWarm < 60000) return;
+  lastCredentialWarm = Date.now();
+  void Promise.allSettled([user.getIdToken(), getSubmovieAppCheckToken(false)]);
+});
 
 const guardNotices = new WeakMap();
 const uploadGrantIds = new WeakMap();
@@ -4327,6 +4400,11 @@ async function guardedWrite(payload, anchor) {
       currentVideoId === payload.videoId
     );
 
+  let feedback = null;
+  if (payload.action === 'post') {
+    payload = {...payload, requestId: crypto.randomUUID()};
+    feedback = beginOwnPostFeedback(payload, anchor, uid);
+  }
   try {
     const { data } = await callSubmovieGuard(payload);
 
@@ -4339,8 +4417,10 @@ async function guardedWrite(payload, anchor) {
       throw error;
     }
 
+    if (feedback) finishOwnPostFeedback(feedback, sameContext() ? data : null);
     return data;
   } catch (error) {
+    if (feedback) finishOwnPostFeedback(feedback, null);
     if (!error.limitNoticeShown) {
       const message =
         error.code === 'functions/unauthenticated'
@@ -5402,13 +5482,16 @@ async function toggleCommentVote(commentId,kind){
  if(commentVotePending.has(commentId)||!privateRatingsReady)return;
  const videoId=currentVideoId,serial=privateRatingSerial;
  const value=selectedRating('comment',commentId)===kind?null:kind;
+ const anchor=[...document.querySelectorAll('.like-comment-btn')].find(b=>b.dataset.id===commentId);
+ const data={ratingRevision:Number(anchor?.dataset.revision)||0};
+ const feedback=ratingFeedback.begin('comment',commentId,selectedRating('comment',commentId),value,data);
  commentVotePending.add(commentId);refreshPrivateRatingButtons();
  try{
   const anchor=[...document.querySelectorAll('.like-comment-btn')].find(b=>b.dataset.id===commentId)||commentList;
   const result=await guardedWrite({action:'vote',targetType:'comment',commentId,value,requestId:crypto.randomUUID()},anchor);
   applyOwnRatingResult('comment',commentId,result,serial,user.uid,videoId);
  }catch(error){if(!error.limitNoticeShown)alert('評価を保存できませんでした。通信とログイン状態を確認してください。');}
- finally{commentVotePending.delete(commentId);refreshPrivateRatingButtons();}
+ finally{ratingFeedback.finish(feedback);commentVotePending.delete(commentId);refreshPrivateRatingButtons();}
 }
 
 async function secureAuthChanged(user) {
@@ -7566,6 +7649,8 @@ let previousBodyOverflow = '';
 
 function isPlayerFullscreen() {
   return (
+    document.fullscreenElement === mainVideo ||
+    document.webkitFullscreenElement === mainVideo ||
     document.fullscreenElement === videoWrapper ||
     document.webkitFullscreenElement === videoWrapper ||
     mainVideo.webkitDisplayingFullscreen ||
@@ -7587,30 +7672,74 @@ function exitPseudoFullscreen() {
   document.body.style.overflow = previousBodyOverflow;
 }
 
-async function enterPlayerFullscreen() {
-  videoWrapper.classList.remove('is-sticky');
-  videoWrapper.classList.remove('mobile-controls-hidden');
+let nativeFullscreenState = null;
+function prepareNativeFullscreen() {
+  if (!nativeFullscreenState) nativeFullscreenState = {
+    controls: mainVideo.controls, controlsList: mainVideo.getAttribute('controlsList')
+  };
+  mainVideo.classList.add('native-fullscreen-video');
+  mainVideo.controls = true;
+  mainVideo.controlsList?.remove('nofullscreen');
+}
+function restoreNativeFullscreen() {
+  if (!nativeFullscreenState) return;
+  mainVideo.classList.remove('native-fullscreen-video');
+  mainVideo.controls = nativeFullscreenState.controls;
+  if (nativeFullscreenState.controlsList === null) mainVideo.removeAttribute('controlsList');
+  else mainVideo.setAttribute('controlsList', nativeFullscreenState.controlsList);
+  nativeFullscreenState = null;
+}
+function isNativeVideoFullscreen() {
+  return !!mainVideo.webkitDisplayingFullscreen ||
+    document.fullscreenElement === mainVideo || document.webkitFullscreenElement === mainVideo;
+}
+mainVideo.addEventListener('webkitendfullscreen', restoreNativeFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  if (!isNativeVideoFullscreen()) restoreNativeFullscreen();
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  if (!isNativeVideoFullscreen()) restoreNativeFullscreen();
+});
 
-  // 動画・弾幕・操作ボタンを含むプレーヤー全体を全画面にする
-  try {
-    if (typeof videoWrapper.requestFullscreen === 'function') {
-     await videoWrapper.requestFullscreen({navigationUI: 'hide'});
+async function enterPlayerFullscreen() {
+  videoWrapper.classList.remove('is-sticky', 'mobile-controls-hidden');
+  const mobile = matchMedia('(max-width: 900px)').matches &&
+    (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0);
+  if (mobile) {
+    prepareNativeFullscreen();
+    try {
+      // Call directly within the tap gesture: no awaited work before the iPhone API.
+      if (typeof mainVideo.webkitEnterFullscreen === 'function') {
+        mainVideo.webkitEnterFullscreen();
+        return;
+      }
+      if (typeof mainVideo.requestFullscreen === 'function') {
+        await mainVideo.requestFullscreen({navigationUI: 'hide'});
+        return;
+      }
+      if (typeof mainVideo.webkitRequestFullscreen === 'function') {
+        mainVideo.webkitRequestFullscreen();
+        return;
+      }
+      throw new Error('native-fullscreen-unavailable');
+    } catch (error) {
+      restoreNativeFullscreen();
+      console.warn('動画の標準全画面を開始できませんでした。', error.name);
+      showGuardNotice(fullscreenBtn, {message: '全画面表示を開始できませんでした。動画を再生してからもう一度お試しください。'});
       return;
     }
-
+  }
+  // Desktop keeps the player wrapper and its danmaku/settings.
+  try {
+    if (typeof videoWrapper.requestFullscreen === 'function') {
+      await videoWrapper.requestFullscreen({navigationUI: 'hide'});
+      return;
+    }
     if (typeof videoWrapper.webkitRequestFullscreen === 'function') {
       await videoWrapper.webkitRequestFullscreen();
       return;
     }
-  } catch (error) {
-    console.warn(
-      'プレーヤー全体の全画面が使えないため、ページ内で拡大します:',
-      error
-    );
-  }
-
-  // 動画だけの標準全画面には切り替えない
-  // 弾幕も一緒に残せるページ内の全画面表示を使う
+  } catch (error) { console.warn('プレーヤー全体の全画面を開始できませんでした。', error.name); }
   enterPseudoFullscreen();
 }
 
@@ -7687,13 +7816,17 @@ let privateRatings=new Map(),privateRatingUid='',privateRatingVideo='',privateRa
 let stopPrivateRatings=null,stopPublicRatings=null,privateRatingGeneration=0,privateRatingSerial=0,statsLoadVersion=0;
 function selectedRating(kind,targetId){
  const user=auth.currentUser;if(!user||user.isAnonymous||user.uid!==privateRatingUid)return null;
- return privateRatings.get(kind+':'+targetId)||null;
+ return ratingFeedback.selection(kind,targetId,privateRatings.get(kind+':'+targetId)||null);
 }
 function refreshPrivateRatingButtons(){
  if(displayedVideoStats)showVideoStats(displayedVideoStats.videoId,displayedVideoStats.data);
  for(const button of document.querySelectorAll('.like-comment-btn, .dislike-comment-btn')){
   const selected=selectedRating('comment',button.dataset.id),kind=button.classList.contains('like-comment-btn')?'like':'dislike';
   button.classList.toggle('active',selected===kind);button.setAttribute('aria-pressed',String(selected===kind));
+  const data={likes:kind==='like'?Number(button.dataset.count):0,dislikes:kind==='dislike'?Number(button.dataset.count):0,ratingRevision:Number(button.dataset.revision)};
+  const counts=ratingFeedback.counts('comment',button.dataset.id,data),value=kind==='like'?counts.likes:counts.dislikes;
+  const label=button.querySelector('.comment-vote-count');if(label)label.textContent=value>0?String(value):'';
+  button.setAttribute('aria-busy',String(ratingFeedback.has('comment',button.dataset.id)));
   button.disabled=commentVotePending.has(button.dataset.id)||!!(auth.currentUser&&!auth.currentUser.isAnonymous&&!privateRatingsReady);
  }
 }
@@ -7701,6 +7834,7 @@ function startPrivateRatingWatch(videoId){
  const user=auth.currentUser,uid=user&&!user.isAnonymous?user.uid:'';
  if(privateRatingVideo===videoId&&privateRatingUid===uid&&stopPrivateRatings)return;
  if(stopPrivateRatings)stopPrivateRatings();stopPrivateRatings=null;
+ ratingFeedback.clear();clearOwnPostFeedback();
  const version=++privateRatingGeneration;privateRatingSerial++;privateRatings.clear();privateRatingUid=uid;privateRatingVideo=videoId;
  privateRatingsReady=!uid||!videoId;refreshPrivateRatingButtons();
  if(privateRatingsReady)return;
@@ -7712,6 +7846,7 @@ function startPrivateRatingWatch(videoId){
  },()=>{if(version!==privateRatingGeneration)return;privateRatingsReady=false;privateRatings.clear();privateRatingSerial++;refreshPrivateRatingButtons();console.warn('自分の評価を取得できませんでした。ルールと通信を確認してください。');});
 }
 function stopRatingWatches(){
+ ratingFeedback.clear();clearOwnPostFeedback();
  statsLoadVersion++;
  if(stopPrivateRatings)stopPrivateRatings();if(stopPublicRatings)stopPublicRatings();stopPrivateRatings=stopPublicRatings=null;
  privateRatingGeneration++;privateRatingSerial++;privateRatings.clear();privateRatingUid='';privateRatingVideo='';privateRatingsReady=true;
@@ -7732,8 +7867,12 @@ function showVideoStats(videoId, data) {
   hasDisliked=selectedRating('video',statsDocId(videoId))==='dislike';
 
   viewCountEl.textContent = `${data.views || 0} 回視聴`;
-  likeCountEl.textContent = String(data.likes || 0);
-  dislikeCountEl.textContent = String(data.dislikes || 0);
+  const preview=ratingFeedback.counts('video',statsDocId(videoId),data);
+  likeCountEl.textContent = String(preview.likes);
+  dislikeCountEl.textContent = String(preview.dislikes);
+  likeBtn.setAttribute('aria-pressed',String(hasLiked));dislikeBtn.setAttribute('aria-pressed',String(hasDisliked));
+  likeBtn.setAttribute('aria-busy',String(ratingFeedback.has('video',statsDocId(videoId))));
+  dislikeBtn.setAttribute('aria-busy',String(ratingFeedback.has('video',statsDocId(videoId))));
 
   likeBtn.classList.toggle('active-like', hasLiked);
   dislikeBtn.classList.toggle('active-dislike', hasDisliked);
@@ -7831,7 +7970,9 @@ async function toggleVideoVote(kind){
  if(!user||user.isAnonymous){alert('動画を評価するにはログインしてください。');return;}
  if(!currentVideoId||videoVoteBusy||!privateRatingsReady)return;
  const videoId=currentVideoId,serial=privateRatingSerial,value=selectedRating('video',statsDocId(videoId))===kind?null:kind;
- videoVoteBusy=true;likeBtn.disabled=dislikeBtn.disabled=true;
+ const previous=selectedRating('video',statsDocId(videoId));
+ const feedback=ratingFeedback.begin('video',statsDocId(videoId),previous,value,displayedVideoStats?.data||{});
+ videoVoteBusy=true;if(displayedVideoStats)showVideoStats(videoId,displayedVideoStats.data);
  try{
   const result=await guardedWrite({action:'vote',targetType:'video',videoId,value,requestId:crypto.randomUUID()},kind==='like'?likeBtn:dislikeBtn);
   if(currentVideoId===videoId&&auth.currentUser?.uid===user.uid){
@@ -7840,7 +7981,7 @@ async function toggleVideoVote(kind){
    if((Number(old.ratingRevision)||0)<=result.ratingRevision)showVideoStats(videoId,{...old,likes:result.likes,dislikes:result.dislikes,ratingRevision:result.ratingRevision});
   }
  }catch(error){if(!error.limitNoticeShown)alert('評価を保存できませんでした。通信とログイン状態を確認してください。');}
- finally{videoVoteBusy=false;if(displayedVideoStats)showVideoStats(displayedVideoStats.videoId,displayedVideoStats.data);}
+ finally{ratingFeedback.finish(feedback);videoVoteBusy=false;if(displayedVideoStats)showVideoStats(displayedVideoStats.videoId,displayedVideoStats.data);}
 }
 
 likeBtn.addEventListener(
@@ -8628,8 +8769,9 @@ function enhanceCommentNode(node, comment, isReply) {
   toggle.setAttribute('aria-expanded', 'false');
 
   let sending = false;
-
+  const replyKey=()=>JSON.stringify([auth.currentUser?.uid,comment.videoId,comment.id]);
   const sync = () => {
+    sending=replyPostPending.has(replyKey());
     send.disabled = sending ||
       !videoFeatureEnabled('comments') ||
       !input.value.trim();
@@ -8717,25 +8859,14 @@ function enhanceCommentNode(node, comment, isReply) {
       return;
     }
 
+    const pendingKey=replyKey(),replyOperation={uid:user.uid};
+    replyPostPending.set(pendingKey,replyOperation);
     sending = true;
     sync();
     send.textContent = '送信中…';
     status.textContent = '';
 
     try {
-      const parent = await getDoc(
-        doc(db, 'comments', comment.id)
-      );
-
-      if (
-        !parent.exists() ||
-        parent.data().videoId !== videoId ||
-        parent.data().type !== 'normal' ||
-        parent.data().parentId
-      ) {
-        throw new Error('返信先が見つかりません。');
-      }
-
       checkCommentSession(user);
 
       if (
@@ -8755,6 +8886,12 @@ function enhanceCommentNode(node, comment, isReply) {
 
       if (currentVideoId === videoId && auth.currentUser?.uid === user.uid) {
         closeReply();
+        // Realtime updates may have replaced this row while the request was pending.
+        const live=document.getElementById('reply-input-'+comment.id);
+        if(live && live!==input && live.value.trim()===text){
+          live.value='';live.style.height='38px';live.closest('.reply-input-area').style.display='none';
+          const actions=live.closest('.reply-input-area').querySelector('.reply-compose-actions');if(actions)actions.hidden=true;
+        }
       }
     } catch (error) {
       if (error.limitNoticeShown) {
@@ -8764,9 +8901,14 @@ function enhanceCommentNode(node, comment, isReply) {
       console.error(error);
       status.textContent = error.message || '返信できませんでした。';
     } finally {
+      if(replyPostPending.get(pendingKey)===replyOperation)replyPostPending.delete(pendingKey);
       sending = false;
       send.textContent = '返信';
       sync();
+      if(currentVideoId===videoId && auth.currentUser?.uid===user.uid){
+        const live=document.getElementById('reply-input-'+comment.id);
+        if(live && live!==input)live.dispatchEvent(new Event('input',{bubbles:true}));
+      }
     }
   });
 
@@ -8891,7 +9033,8 @@ function setupReplyThread(node, comment, childReplies) {
       const date = comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleDateString() : '送信中...';
       const author = comment.author || 'ゲスト';
       const canDelete = currentUser && comment.authorUid && currentUser.uid === comment.authorUid;
-      const likes = comment.likes || 0; const dislikes = comment.dislikes || 0;
+      const likes = Number.isSafeInteger(comment.likes)&&comment.likes>=0?comment.likes:0; const dislikes = Number.isSafeInteger(comment.dislikes)&&comment.dislikes>=0?comment.dislikes:0;
+      const ratingRevision=Number.isSafeInteger(comment.ratingRevision)?comment.ratingRevision:0;
       const hasLikedC = selectedRating('comment',comment.id)==='like';
       const hasDislikedC = selectedRating('comment',comment.id)==='dislike';
       const commentIdAttr = escapeHtml(comment.id);
@@ -8906,8 +9049,8 @@ function setupReplyThread(node, comment, childReplies) {
           <div class="comment-author">${escapeHtml(author)} <span class="comment-date">${date}</span></div>
           <div class="comment-text">${escapeHtml(comment.text)}</div>
           <div class="comment-actions-bar">
-            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" aria-label="コメントに高評価" data-id="${commentIdAttr}">${uiIconMarkup('thumb-up')} ${likes > 0 ? likes : ''}</button>
-            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" aria-label="コメントに低評価" data-id="${commentIdAttr}">${uiIconMarkup('thumb-down')} ${dislikes > 0 ? dislikes : ''}</button>
+            <button class="comment-action-btn like-comment-btn ${hasLikedC ? 'active' : ''}" aria-label="コメントに高評価" data-id="${commentIdAttr}" data-count="${likes}" data-revision="${ratingRevision}">${uiIconMarkup('thumb-up')} <span class="comment-vote-count">${likes > 0 ? likes : ''}</span></button>
+            <button class="comment-action-btn dislike-comment-btn ${hasDislikedC ? 'active' : ''}" aria-label="コメントに低評価" data-id="${commentIdAttr}" data-count="${dislikes}" data-revision="${ratingRevision}">${uiIconMarkup('thumb-down')} <span class="comment-vote-count">${dislikes > 0 ? dislikes : ''}</span></button>
             ${!isReply ? `<button class="comment-action-btn reply-toggle-btn" data-id="${commentIdAttr}">返信</button>` : ''}
             ${canDelete ? `<button class="comment-action-btn comment-delete-btn" data-id="${commentIdAttr}" style="color:#909090;">削除</button>` : ''}
           </div>
@@ -8975,7 +9118,7 @@ function renderSortedComments() {
   const nodes=rows.slice(0,normalCommentVisible).map(row=>row.node||(row.node=renderCommentNode(row.comment,row.replies)));
   commentList.replaceChildren(...nodes);
   if(rows.length>normalCommentVisible){const more=document.createElement('button');more.type='button';more.textContent='さらにコメントを表示';more.className='comment-load-more';more.style.cssText='padding:10px 16px;border:0;border-radius:20px;font:inherit;cursor:pointer';more.addEventListener('click',()=>{normalCommentVisible+=20;renderSortedComments();});commentList.appendChild(more);}
-  refreshCommentPinLabels();
+  refreshCommentPinLabels();refreshPrivateRatingButtons();
 }
 
 commentSortSelect.addEventListener('change',()=>{normalCommentVisible=20;renderSortedComments();});
@@ -9147,9 +9290,9 @@ function loadComments(){
    return previous?.signature===signature?previous:{comment,replies,node:null,signature};
   });
   commentSortSelect.disabled=false;renderSortedComments();
-  for(const[id,draft]of drafts){const input=document.getElementById(id);if(!input||input.value)continue;input.value=draft.value;input.style.height=draft.height;input.closest('.reply-input-area').style.display=draft.open;input.dispatchEvent(new Event('input',{bubbles:true}));}
+  for(const[id,draft]of drafts){const input=document.getElementById(id);if(!input||input.value)continue;input.value=draft.value;input.style.height=draft.height;input.closest('.reply-input-area').style.display=draft.open;const actions=input.closest('.reply-input-area').querySelector('.reply-compose-actions');if(actions)actions.hidden=draft.open==='none';input.dispatchEvent(new Event('input',{bubbles:true}));}
  }
- function setDanmaku(rows){if(!current())return;videoComments=videoFeatureEnabled('danmaku')?rows.filter(visible):[];syncDanmakuToTime();}
+ function setDanmaku(rows){if(!current())return;reconcileOwnPosts(rows);videoComments=videoFeatureEnabled('danmaku')?rows.filter(visible):[];syncDanmakuToTime();}
  function startLegacy(){
   if(!current()||legacyStop)return;
   normalStop?.();normalStop=null;danmakuStop?.();danmakuStop=null;refreshDanmakuWindow=null;
@@ -9286,14 +9429,19 @@ function loadComments(){
 const danmakuNodes = new Map();
 const DANMAKU_SECONDS = 5;
 let indexedDanmakuSource = null;
+let indexedOwnPostVersion = -1;
 let indexedDanmaku = [];
 
 function activeDanmakuAt(currentTime) {
   if (!Number.isFinite(currentTime)) return [];
+  for(const [key,entry] of ownPostFeedback)if(entry.confirmed && entry.payload.videoTime + DANMAKU_SECONDS <= currentTime){ownPostFeedback.delete(key);ownPostVersion++;}
   // コメント購読側は更新ごとに新しい配列を作る。
-  if (indexedDanmakuSource !== videoComments) {
+  if (indexedDanmakuSource !== videoComments || indexedOwnPostVersion !== ownPostVersion) {
     indexedDanmakuSource = videoComments;
-    indexedDanmaku = videoComments.filter(comment =>
+    indexedOwnPostVersion = ownPostVersion;
+    const local=[...ownPostFeedback.values()].filter(entry=>entry.uid===auth.currentUser?.uid && entry.videoId===currentVideoId && entry.payload.type==='danmaku' && !videoComments.some(row=>row.id===entry.id))
+      .map(entry=>({...entry.payload,id:entry.id,localSending:!entry.confirmed}));
+    indexedDanmaku = [...videoComments,...local].filter(comment =>
       comment.id && typeof comment.videoTime === 'number' &&
       Number.isFinite(comment.videoTime)
     ).sort((a, b) => a.videoTime - b.videoTime);
@@ -9374,6 +9522,7 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
       danmakuNodes.set(id, node);
     }
 
+    node.dataset.sending=String(comment.localSending===true);
     const text = comment.text || '';
     if (node.textContent !== text) node.textContent = text;
 

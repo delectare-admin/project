@@ -11,7 +11,7 @@ const {
 } = require('firebase-admin/firestore');
 
 const { getStorage } = require('firebase-admin/storage');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 const appCheckPolicy=require('./app-check-policy.cjs');
 const {getAppCheck}=require('firebase-admin/app-check');
 const {createAppCheckGate}=require('./app-check-gate.cjs');
@@ -480,7 +480,8 @@ exports.submovieGuard = onCall({
 
   const danmakuStyle = type === 'danmaku' ? readDanmakuStyle(d.danmakuStyle) : null;
 
-  await getPolicy(d.videoId, type, text);
+  // Keep the current Storage policy authoritative; do not cache permissions.
+  const policyCheck = getPolicy(d.videoId, type, text).then(() => null, error => error);
 
   // コメント1件につき合計5回まで編集
   if (d.action === 'edit') {
@@ -494,7 +495,8 @@ exports.submovieGuard = onCall({
     const ref = db.doc('comments/' + d.commentId);
 
     return db.runTransaction(async tx => {
-      const snapshot = await tx.get(ref);
+      const [policyError, snapshot] = await Promise.all([policyCheck, tx.get(ref)]);
+      if (policyError) throw policyError;
       const c = snapshot.data();
 
       if (
@@ -571,19 +573,35 @@ exports.submovieGuard = onCall({
 
   const rateRef = db.doc('commentRateLimits/' + uid);
   const profileRef = db.doc('users/' + uid);
-  const postRef = db.collection('comments').doc();
+  if (d.requestId !== undefined && !validId(d.requestId)) throw new HttpsError('invalid-argument', '投稿リクエストを確認してください。');
+  // Bind retries to the authenticated UID so another user cannot claim this ID.
+  const postRef = d.requestId
+    ? db.doc('comments/p_' + createHash('sha256').update(uid + ':' + d.requestId).digest('hex'))
+    : db.collection('comments').doc();
 
   const parentRef = parentId
     ? db.doc('comments/' + parentId)
     : null;
 
   return db.runTransaction(async tx => {
-    const [rateSnap, profileSnap, parentSnap] =
+    const [policyError, rateSnap, profileSnap, parentSnap, existing] =
       await Promise.all([
+        policyCheck,
         tx.get(rateRef),
         tx.get(profileRef),
-        parentRef ? tx.get(parentRef) : Promise.resolve(null)
+        parentRef ? tx.get(parentRef) : Promise.resolve(null),
+        d.requestId ? tx.get(postRef) : Promise.resolve(null)
       ]);
+    if (policyError) throw policyError;
+    if (existing?.exists) {
+      const old = existing.data();
+      if (old.authorUid !== uid || old.videoId !== d.videoId || old.type !== type || old.text !== text ||
+          (old.parentId ?? null) !== parentId || (type === 'danmaku' &&
+            (old.videoTime !== d.videoTime || JSON.stringify(old.danmakuStyle ?? null) !== JSON.stringify(danmakuStyle)))) {
+        throw new HttpsError('invalid-argument', '投稿リクエストが一致しません。');
+      }
+      return {ok: true, commentId: postRef.id, replayed: true};
+    }
 
     if (parentRef) {
       const parent = parentSnap.data();
@@ -677,6 +695,7 @@ exports.submovieGuard = onCall({
       post.likes=0;post.dislikes=0;post.ratingSchemaVersion=2;post.ratingRevision=0;
     }
 
+    if (d.requestId) post.clientRequestId = d.requestId;
     tx.create(postRef, post);
 
     return { ok: true, commentId: postRef.id };

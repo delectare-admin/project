@@ -1,0 +1,19 @@
+/* Cards remain separated by space, without a rule in light or dark mode. */
+:root #videoGrid .grid-item {
+  border-bottom: 0 !important;
+}
+.own-post-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(127, 127, 127, .1);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+.own-post-feedback small { opacity: .72; }
+.danmaku-comment[data-sending="true"] { opacity: .7; }
+button[aria-busy="true"] { cursor: progress; }

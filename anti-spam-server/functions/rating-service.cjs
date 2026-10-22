@@ -15,11 +15,12 @@ function createRatingService({db,bucket,FieldValue,Timestamp,HttpsError}){
    videoId=comment.data().videoId;
   }
   if(typeof videoId!=='string'||!videoId.startsWith('videos/')||Buffer.byteLength(statsKey(videoId))>1500)throw new HttpsError('invalid-argument','動画を確認してください。');
-  let metadata;try{[metadata]=await bucket.file(videoId).getMetadata();}catch(error){throw new HttpsError(Number(error.code)===404?'not-found':'unavailable','動画を確認できませんでした。');}
-  if(kind==='video'&&data.value==='dislike'&&metadata.metadata?.dislikesEnabled==='false')throw new HttpsError('failed-precondition','投稿者が低評価をオフにしています。');
+  const metadataCheck=bucket.file(videoId).getMetadata().then(([metadata])=>({metadata}),error=>({error}));
   const key=ratingKey(kind,targetId),privateRef=db.doc('userRatings/'+uid+'/items/'+key),requestRef=db.doc('ratingRequests/'+requestKey(uid,data.requestId));
   return db.runTransaction(async tx=>{
-   const [publicSnap,privateSnap,requestSnap]=await Promise.all([tx.get(reference),tx.get(privateRef),tx.get(requestRef)]);
+   const [checked,publicSnap,privateSnap,requestSnap]=await Promise.all([metadataCheck,tx.get(reference),tx.get(privateRef),tx.get(requestRef)]);
+   if(checked.error)throw new HttpsError(Number(checked.error.code)===404?'not-found':'unavailable','動画を確認できませんでした。');
+   if(kind==='video'&&data.value==='dislike'&&checked.metadata.metadata?.dislikesEnabled==='false')throw new HttpsError('failed-precondition','投稿者が低評価をオフにしています。');
    if(kind==='comment'&&(!publicSnap.exists||publicSnap.data().type!=='normal'||publicSnap.data().videoId!==videoId))throw new HttpsError('not-found','コメントが削除されています。');
    const current=publicSnap.exists?publicSnap.data():{views:0,likes:0,dislikes:0,ratingSchemaVersion:VERSION,ratingRevision:0};
    if(current.ratingSchemaVersion!==VERSION||Object.hasOwn(current,'likedUsers')||Object.hasOwn(current,'dislikedUsers'))throw new HttpsError('failed-precondition','評価データの移行中です。少し待ってから再度お試しください。');
