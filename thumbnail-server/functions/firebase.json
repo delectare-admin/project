@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "thumbnails",
+    "predeploy": [
+      "node \"$PROJECT_DIR/ensure-validator-build.cjs\" --check"
+    ],
+    "postdeploy": [
+      "node \"$PROJECT_DIR/ensure-validator-build.cjs\" --repair"
+    ]
+  }
+}
