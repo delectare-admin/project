@@ -1,0 +1,51 @@
+/* Thumbnail history is visual only; all normal video links keep their existing behavior. */
+.watch-thumbnail{display:block;position:relative;min-width:0;overflow:hidden;border-radius:12px;line-height:0}
+.watch-thumbnail>.thumbnail-img{display:block;margin:0;max-width:100%}
+.watch-progress{position:absolute;inset:auto 0 0;height:4px;background:#ffffff70;pointer-events:none;z-index:2;line-height:normal}
+.watch-progress>span{display:block;height:100%;background:#ff1744;border-radius:0 2px 2px 0}
+.related-item>.watch-thumbnail{width:168px;height:94px;border-radius:8px}
+.creator-heart-host{display:inline-flex;align-items:center;min-width:0}
+.creator-comment-heart{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:0;border-radius:50%;padding:6px;background:transparent;color:#727272;vertical-align:middle}
+button.creator-comment-heart{cursor:pointer}
+button.creator-comment-heart:hover{background:var(--yl-soft,#eee)}
+button.creator-comment-heart:focus-visible{outline:2px solid var(--yl-blue,#0969da);outline-offset:2px}
+button.creator-comment-heart:disabled{opacity:.65;cursor:wait}
+.creator-comment-heart>.site-ui-icon{width:20px;height:20px}
+.creator-comment-heart.is-hearted>.site-ui-icon{position:absolute;right:0;bottom:1px;width:15px;height:15px;color:#e91e63;fill:#e91e63;stroke:var(--yl-bg,#fff);stroke-width:1.3}
+.creator-heart-avatar,.community-avatar{position:relative;display:inline-grid;place-items:center;flex-shrink:0;overflow:hidden;border-radius:50%;background:var(--yl-soft,#eee);color:var(--yl-fg,#222);line-height:1}
+.creator-heart-avatar{width:23px;height:23px;font-size:12px}
+.community-avatar{width:42px;height:42px;font-size:18px}
+.creator-heart-avatar img,.community-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.community-action-error{display:block;flex-basis:100%;color:#b3261e;font-size:12px;line-height:1.6;margin-top:5px}
+.community-subscriber-setting{border-top:1px solid var(--yl-line,#ddd);margin-top:22px;padding-top:16px}
+.community-subscriber-setting h3{font-size:16px;margin:0 0 14px}
+.community-subscriber-setting .yl-check{font-weight:400;line-height:1.6;align-items:flex-start}
+.community-subscriber-setting input{flex-shrink:0}
+.community-subscriber-setting .yl-muted{font-size:12px}
+#creatorLabScreen .yl-dashboard-bottom{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr);gap:20px;align-items:start}
+#creatorLabScreen .yl-recent-videos .yl-video-cell{min-width:0;max-width:none;gap:16px;align-items:center}
+#creatorLabScreen .yl-recent-videos .yl-video-cell+.yl-video-cell{margin-top:22px}
+#creatorLabScreen .yl-recent-videos .yl-video-cell>div{min-width:0;flex:1}
+#creatorLabScreen .yl-recent-videos .yl-video-cell strong{margin-bottom:9px;line-height:1.5}
+#creatorLabScreen .yl-recent-videos .yl-video-cell .yl-button{margin:0 7px 5px 0}
+#creatorLabScreen .yl-recent-videos .yl-video-cell img{flex:0 0 120px;max-width:35%;height:auto}
+#creatorLabScreen .yl-subscribers>h2{margin-bottom:7px}
+#creatorLabScreen .yl-subscribers>.yl-muted{margin:0 0 20px;font-size:12px}
+.yl-subscriber-list{display:grid;gap:20px}
+.yl-subscriber-row{display:flex;align-items:center;gap:13px;width:100%;min-width:0;padding:0;border:0;background:none;color:var(--yl-fg,#222);font:inherit;text-align:left;cursor:pointer}
+.yl-subscriber-row:focus-visible{outline:2px solid var(--yl-blue,#0969da);outline-offset:5px;border-radius:6px}
+.yl-subscriber-detail{display:grid;gap:5px;min-width:0}
+.yl-subscriber-detail strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.yl-subscriber-detail small{font-size:12px;line-height:1.5}
+.yl-subscribers>.yl-button[hidden]{display:none}
+.yl-subscribers>.yl-button{margin-top:14px}
+@media(max-width:1100px){.related-item>.watch-thumbnail{width:140px;height:79px}}
+@media(max-width:768px){
+ #creatorLabScreen .yl-dashboard-bottom{grid-template-columns:minmax(0,1fr);gap:16px}
+ #creatorLabScreen .yl-recent-videos .yl-video-cell{gap:12px}
+ #creatorLabScreen .yl-recent-videos .yl-video-cell+.yl-video-cell{margin-top:20px}
+ #creatorLabScreen .yl-recent-videos .yl-video-cell img{flex-basis:100px;width:100px}
+ #creatorLabScreen .yl-recent-videos .yl-video-cell .yl-button{font-size:12px;padding:7px 12px;min-height:36px}
+ #creatorLabScreen .yl-recent-videos .yl-video-cell strong{font-size:13px}
+}
+@media(prefers-color-scheme:dark){.community-action-error{color:#ffb4ab}.creator-comment-heart{color:#bbb}}

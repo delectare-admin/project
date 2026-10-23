@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-wrFv/fBxknjQjPm+dKvYGJD1f0OhEeMkODaONS4LoxQ=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-c1NIx8JAGU5HIdUqldcHv/dVKrGa3p4i2VXkNgaE048=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -29,6 +29,7 @@
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
   <link rel="stylesheet" href="./assets/creator-lab-v1.css?v=20261022">
+  <link rel="stylesheet" href="./assets/community-features-v1.css?v=20261023-community1">
   <style>
     body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #0f0f0f; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; box-sizing: border-box; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;}
@@ -4203,9 +4204,13 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <script type="module">
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
     import {createRatingFeedback} from "./assets/interaction-feedback-v1.mjs?v=20261022-1";
-    import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261022-icons1";
+    import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261023-community1";
     import {recommendationOrder} from "./assets/creator-lab-model-v1.mjs";
+    import {mountWatchProgress,followingOrder} from "./assets/watch-progress-v1.mjs?v=20261023-community1";
+    import {mountCommunityFeatures} from "./assets/community-features-v1.mjs?v=20261023-community1";
     let creatorLab=null;
+    let watchProgress=null,communityFeatures=null;
+    let followingFeedSeed=Math.floor(Math.random()*4294967296);
     import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript} from "./assets/site-performance-v1.mjs?v=20261022";
     const loadSearchEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js","sha384-it1zrjZg9Wow4/YazUTfchZX61ulfA0SAtXufVXx9G1XPgBIk+aLylHM5lWl03Bi","Fuse");
     const loadHlsEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js","sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX","Hls");
@@ -5019,7 +5024,7 @@ function applyDanmakuStyle(node, value) {
 
     function setActiveNav(feedType) {
       document.getElementById("navCreatorLab")?.classList.toggle("active",feedType==="lab");
-      navHomeBtn.classList.toggle('active', feedType === 'all');
+      navHomeBtn.classList.toggle('active', feedType === 'all' || feedType === 'following');
       navSubscriptionsBtn.classList.toggle('active', feedType === 'subscriptions');
       navHistoryBtn.classList.toggle('active',feedType === 'trending');
       navSavedBtn.classList.toggle('active', feedType === 'saved');
@@ -5372,7 +5377,7 @@ async function setChannelSubscription(
   );
   const countRef = doc(db, 'channelStats', channelUid);
 
-  return runTransaction(db, async tx => {
+  const result=await runTransaction(db, async tx => {
     const relationSnap = await tx.get(relationRef);
     const countSnap = await tx.get(countRef);
 
@@ -5409,6 +5414,8 @@ async function setChannelSubscription(
 
     return { active: after, count: nextCount };
   });
+  if(auth.currentUser?.uid===user.uid)document.dispatchEvent(new CustomEvent('submovie-subscription-change',{detail:{channelUid}}));
+  return result;
 }
 
 async function migrateLegacySubscriptions(user, ids) {
@@ -5566,6 +5573,7 @@ async function secureAuthChanged(user) {
     ) return;
 
     currentUser = { uid: user.uid, channelName, avatarUrl };
+    document.dispatchEvent(new Event('submovie-account-ready'));
 
     loginOpenBtn.style.display = 'none';
     userInfo.style.display = 'flex';
@@ -6497,11 +6505,13 @@ async function loadVideoList(prefetched = null) {
     } else {
       categoryFilterBar.style.display='flex'; sortControlsArea.style.display='flex'; pageTitleHeading.style.display='none';
       if (currentFeed==='subscriptions') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid) && (!selectedSubscriptionUid || v.uploaderUid === selectedSubscriptionUid));
+      if (currentFeed==='following') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
       if (currentCategory!=='すべて') list=list.filter(v => v.category===currentCategory);
     }
     if (!sortNewestBtn.dataset.originalLabel) sortNewestBtn.dataset.originalLabel=sortNewestBtn.textContent;
     sortNewestBtn.textContent=keyword ? '関連度順' : sortNewestBtn.dataset.originalLabel;
     if (keyword) list=rankVideoSearch(list,keyword);
+    else if(currentFeed==='following')list=followingOrder(list,currentUserSubscriptions,followingFeedSeed);
     else if(currentFeed==='all'&&currentSort!=='popular')list=recommendationOrder(list,{history:watchHistory,subscriptions:currentUserSubscriptions});
     if (currentFeed==='history' || currentSort!=='popular') { renderGrid(list,videoGrid); installMoreVideosControl(); return; }
     // An explicit popularity selection sorts the matching set. Limit concurrent reads.
@@ -6882,7 +6892,7 @@ async function fillHomeCard(card, v) {
       
       if (container===videoGrid) syncDesktopSearchLayout(list);
       if (list.length === 0) {
-        const msg = currentFeed === 'subscriptions' ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
+        const msg = ['subscriptions','following'].includes(currentFeed) ? '登録したチャンネルの動画がありません。' : currentFeed === 'history' ? 'まだ視聴した動画がありません。' : '動画が見つかりません。';
         container.innerHTML = `<p class="empty-list-msg" style="grid-column:1/-1;">${msg}</p>`; return;
       }
       if(container===videoGrid)homeCardObserver.disconnect();
@@ -6980,6 +6990,7 @@ gridItem.addEventListener('click', event => {
 
       const image=gridItem.querySelector('img.thumbnail-img');
       if(image&&container===videoGrid&&container.children.length<2){image.loading='eager';image.fetchPriority=container.children.length===0?'high':'auto';}
+      watchProgress?.decorate(gridItem,v.itemRef.fullPath);
       container.appendChild(gridItem);
       if (container === videoGrid) {
           decorateHomeCard(gridItem, v);
@@ -7005,7 +7016,7 @@ gridItem.addEventListener('click', event => {
        const mediaHtml = thumbnailHtml(v);
         item.innerHTML = `${mediaHtml}<div class="info"><div class="info-title">${escapeHtml(v.title)}</div><div class="info-author">${escapeHtml(v.uploaderName)}</div><div class="info-author">${escapeHtml(v.category || 'その他')}</div></div>`;
         const open = e => { if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return; e.preventDefault(); watchVideo(v); };
-        item.addEventListener('click', open); item.addEventListener('keydown', open); relatedVideosSidebar.appendChild(item);
+        item.addEventListener('click', open); item.addEventListener('keydown', open); watchProgress?.decorate(item,v.itemRef.fullPath); relatedVideosSidebar.appendChild(item);
       });
     }
    // ==========================================
@@ -7015,6 +7026,8 @@ let hlsInstance = null;
 let playbackGeneration = 0;
 
 function stopMainPlayback() {
+  watchProgress?.stop();
+  communityFeatures?.videoChanged();
   creatorLab?.clearPublic();
   stopRatingWatches();
   releaseBrowseMiniPlayer({ resume: false });
@@ -7066,6 +7079,7 @@ async function watchVideo(videoData, options = {}) {
 
  // --- HLS / 動画読み込み処理 ---
 stopMainPlayback();
+watchProgress?.start(videoData.itemRef.fullPath);
 const thisPlayback = playbackGeneration;
 
 const hlsUrl = trustedMediaUrl(videoData.hlsUrl||'',firebaseConfig.storageBucket);
@@ -9070,7 +9084,7 @@ function setupReplyThread(node, comment, childReplies) {
       if (replyAvatar && hasAvatar) replyAvatar.style.backgroundImage = avatarBackground;
       if (!isReply) setupReplyThread(div, comment, childReplies);
       enhanceCommentNode(div, comment, isReply);
-      if(comment.creatorHeart===true){const heart=document.createElement('p');heart.className='yl-heart-label';setUiIcon(heart,'heart','投稿者からハート');div.querySelector('.comment-content')?.appendChild(heart);}
+      communityFeatures?.decorateComment(div,comment);
       attachCommentImage(div, comment);
       queueMicrotask(refreshPrivateRatingButtons);
       return div;
@@ -14240,7 +14254,7 @@ creatorLab=mountCreatorLab({
  onAuth:fn=>onAuthStateChanged(auth,fn),
  query:()=>searchInput.value.trim(),
  navigateLab:()=>{searchInput.value='';currentFeed='lab';setActiveNav('lab');goHome();},
- selectFeed:feed=>{if(feed==='subscriptions'&&(!auth.currentUser||auth.currentUser.isAnonymous)){loginOpenBtn.click();return;}searchInput.value='';currentCategory='すべて';currentSort='newest';selectedSubscriptionUid='';resetSubscriptionFilters();currentFeed=feed;setActiveNav(feed);goHome();},
+ selectFeed:feed=>{if(feed==='following'&&(!auth.currentUser||auth.currentUser.isAnonymous)){loginOpenBtn.click();return;}searchInput.value='';currentCategory='すべて';currentSort='newest';if(feed==='following')followingFeedSeed=Math.floor(Math.random()*4294967296);currentFeed=feed;setActiveNav(feed);goHome();},
  login:()=>loginOpenBtn.click(),logout:()=>signOut(auth),
  switchAccount:async()=>{const provider=new GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});const result=await signInWithPopup(auth,provider),u=result.user,userRef=doc(db,'users',u.uid),snap=await getDoc(userRef);if(!snap.exists())await setDoc(userRef,{channelName:u.displayName||'Googleユーザー',createdAt:serverTimestamp(),subscriberCount:0});},
  settings:kind=>{document.getElementById('mySettingsBtn').click();const panel=document.getElementById('mySettingsDialog');for(const detail of panel.querySelectorAll('.content-filter-settings > details'))detail.open=false;if(kind==='mute')panel.querySelector('.content-filter-settings > details').open=true;if(kind==='block')panel.querySelector('#blockedUsersDetails').open=true;},
@@ -14257,6 +14271,16 @@ creatorLab=mountCreatorLab({
  openVideo:v=>watchVideo(v),openVideoId:async id=>{let v=allVideos.find(x=>x.itemRef.fullPath===id);if(!v){try{const itemRef=ref(storage,id),metadata=await getMetadata(itemRef);v=videoFromMetadata(itemRef,metadata);}catch{return;}}void watchVideo(v);},
  videoTitle:id=>allVideos.find(v=>v.itemRef.fullPath===id)?.title||'',currentVideoId:()=>currentVideoId,channelVisible:()=>channelScreen.style.display!=='none',
  upload:()=>{createBtn.click();document.getElementById('uploadMenuBtn').click();},customize:()=>{document.getElementById('customizeBtn').click();}
+});
+
+// Community controls reuse the authenticated creator callable and local-only watch positions.
+const communityUser=()=>{const u=auth.currentUser;return u&&!u.isAnonymous?{uid:u.uid}:null;};
+watchProgress=mountWatchProgress({video:mainVideo,user:communityUser,onAuth:fn=>onAuthStateChanged(auth,fn)});
+communityFeatures=mountCommunityFeatures({
+ user:communityUser,onAuth:fn=>onAuthStateChanged(auth,fn),
+ currentVideoId:()=>currentVideoId,creatorUid:()=>uploaderNameEl.dataset.uid||'',creatorName:()=>uploaderNameEl.textContent||'投稿者',
+ profile:uid=>getHomeProfile(uid),
+ api:async payload=>{const uid=auth.currentUser?.uid;if(!uid||auth.currentUser.isAnonymous)throw Error('ログインしてください。');const {data}=await callCreatorLab(payload);if(auth.currentUser?.uid!==uid)throw Error('ログイン状態が変わりました。');if(!data?.ok)throw Error('サーバーの応答を確認できませんでした。');return data;}
 });
 
 </script>

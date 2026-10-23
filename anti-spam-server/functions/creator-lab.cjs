@@ -27,6 +27,7 @@ function videoDetailsInput(value){
 }
 function createCreatorLab({db,bucket,FieldValue,FieldPath,HttpsError,now=Date.now}){
  const fail=(code,message)=>{throw new HttpsError(code,message);};
+ const subscriberDirectory=require('./subscriber-directory.cjs').createSubscriberDirectory({db,FieldValue,FieldPath,HttpsError,now});
  async function owner(uid,videoId){
   if(!videoPath(videoId))fail('invalid-argument','動画を確認してください。');
   let metadata;try{[metadata]=await bucket.file(videoId).getMetadata();}catch(error){fail(Number(error.code)===404?'not-found':'unavailable','動画を確認できませんでした。');}
@@ -45,8 +46,9 @@ function createCreatorLab({db,bucket,FieldValue,FieldPath,HttpsError,now=Date.no
  async function related(uid,ids){for(const id of new Set(ids.filter(Boolean)))await owner(uid,id);}
  async function privateCall(uid,data){
   if(typeof uid!=='string'||!uid||uid.includes('/'))fail('unauthenticated','ログインしてください。');
-  const op=data?.op;if(!['getChannel','saveChannel','getVideoDetails','saveVideoDetails','comments','moderate','analytics'].includes(op))fail('invalid-argument','操作を確認してください。');
-  await limit(uid,['saveChannel','saveVideoDetails','moderate'].includes(op));
+  const op=data?.op;if(!['getChannel','saveChannel','getVideoDetails','saveVideoDetails','comments','moderate','analytics','subscriberVisibility','syncSubscriberCard','syncSubscriberCards','recentSubscribers'].includes(op))fail('invalid-argument','操作を確認してください。');
+  await limit(uid,['saveChannel','saveVideoDetails','moderate','syncSubscriberCard','syncSubscriberCards'].includes(op)||(op==='subscriberVisibility'&&Object.hasOwn(data,'visible')));
+  if(['subscriberVisibility','syncSubscriberCard','syncSubscriberCards','recentSubscribers'].includes(op))return subscriberDirectory.call(uid,data);
   if(op==='getChannel'){const s=await db.doc('creatorLabChannels/'+uid).get();return{ok:true,channel:channelInput(s.data()||{})};}
   if(op==='saveChannel'){
    let next;try{next=channelInput(data.channel);}catch(error){fail('invalid-argument',error.message);}

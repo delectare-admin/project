@@ -9,6 +9,9 @@ service cloud.firestore {
     match /streamingBudget/{id} { allow read, write: if false; }
     match /streamingControl/{id} { allow read, write: if false; }
 
+    // Subscriber identity index is available only through the authenticated creator service.
+    match /creatorLabSubscribers/{channelId}/items/{subscriberId} { allow read, write: if false; }
+
     function signedIn() {
       return request.auth != null
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
@@ -107,13 +110,14 @@ service cloud.firestore {
     function validPrivateSettings(d) {
       return d.keys().hasOnly([
           'blockedUids', 'notInterestedUids', 'savedVideos',
-          'pendingSubscriptions', 'legacyProfile'
+          'pendingSubscriptions', 'legacyProfile', 'showInSubscriberList'
         ])
         && d.get('blockedUids', []) is list
         && d.get('notInterestedUids', []) is list
         && d.get('savedVideos', []) is list
         && d.get('pendingSubscriptions', []) is list
-        && d.get('legacyProfile', {}) is map;
+        && d.get('legacyProfile', {}) is map
+        && d.get('showInSubscriberList', false) is bool;
     }
 
     match /userPrivate/{userId} {
