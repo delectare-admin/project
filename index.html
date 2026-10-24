@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-hfdXvWWgvObfIDRecAkU/YnZd3LKyDaUU3ngT0AMrfs=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-RlhpjlZd7fJL2OYHD6WznDYDGO+KpmbfZJYhVrOmVjw=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3785,6 +3785,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   #browseMiniPlayer:focus-within .browse-mini-actions button { pointer-events: auto; }
 }
 </style>
+<link rel="stylesheet" href="./assets/desktop-fullscreen-v1.css?v=20261024-1">
 </head>
 <body>
 
@@ -4235,6 +4236,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     import {recommendationOrder} from "./assets/creator-lab-model-v1.mjs";
     import {mountWatchProgress,followingOrder} from "./assets/watch-progress-v1.mjs?v=20261023-community1";
     import {mountCommunityFeatures} from "./assets/community-features-v1.mjs?v=20261023-community1";
+    import {mountDesktopFullscreen} from "./assets/desktop-fullscreen-v1.mjs?v=20261024-1";
     let creatorLab=null;
     let watchProgress=null,communityFeatures=null;
     let followingFeedSeed=Math.floor(Math.random()*4294967296);
@@ -13727,7 +13729,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
 
     if (compact) {
       // 弾幕入力を動画のすぐ下へ移動
-      if (anchor.nextElementSibling !== inputArea) {
+      if (!wrapper.classList.contains('pc-fullscreen-player') && anchor.nextElementSibling !== inputArea) {
         anchor.after(inputArea);
       }
 
@@ -13738,7 +13740,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
         controls.insertBefore(time, seek);
       }
     } else {
-     if (anchor.nextElementSibling !== inputArea) {anchor.after(inputArea);}
+     if (!wrapper.classList.contains('pc-fullscreen-player') && anchor.nextElementSibling !== inputArea) {anchor.after(inputArea);}
       inputArea.classList.remove('mobile-danmaku-below');
 
       if (time.parentElement !== row) {
@@ -14396,6 +14398,8 @@ creatorLab=mountCreatorLab({
  upload:()=>{createBtn.click();document.getElementById('uploadMenuBtn').click();},customize:()=>{document.getElementById('customizeBtn').click();}
 });
 
+mountDesktopFullscreen();
+
 // Community controls reuse the authenticated creator callable and local-only watch positions.
 const communityUser=()=>{const u=auth.currentUser;return u&&!u.isAnonymous?{uid:u.uid}:null;};
 watchProgress=mountWatchProgress({video:mainVideo,user:communityUser,onAuth:fn=>onAuthStateChanged(auth,fn)});
@@ -14737,6 +14741,9 @@ communityFeatures=mountCommunityFeatures({
     function showControls(visible) {
       if (!desktop.matches) return;
 
+      if (visible && wrapper.classList.contains('pc-fullscreen-player') &&
+          wrapper.dataset.pcFullscreenControls === 'hidden') return;
+
       const state = visible ? 'visible' : 'hidden';
 
       if (wrapper.dataset.pcControls !== state) {
@@ -14837,6 +14844,8 @@ communityFeatures=mountCommunityFeatures({
       // 操作ボタン・入力欄などのクリックは既存処理に任せる
       if (target?.closest?.(`
         .site-player-controls,
+        .pc-fullscreen-actions,
+        #shareModal, #authModal, #watchMoreMenu, #danmakuCustomizeDialog, #nearLoginNotice,
         .custom-controls-bar,
         #mobilePlayerTools,
         #mobilePlaybackSettings,

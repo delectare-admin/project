@@ -1,0 +1,70 @@
+#desktopFullscreenActions[hidden] { display: none !important; }
+#videoWrapper.pc-fullscreen-player { --pc-fullscreen-action-height: 66px; }
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions {
+  position: absolute; inset: auto 0 0; z-index: 45;
+  display: grid; grid-template-columns: minmax(160px, 1fr) auto;
+  align-items: center; gap: 14px; min-height: 66px;
+  box-sizing: border-box; padding: 9px 14px; border-top: 1px solid #ffffff1f;
+  background: rgba(20,20,20,.96); color: #f1f1f1;
+}
+#watchScreen #videoWrapper.pc-fullscreen-player #desktopFullscreenActions > .danmaku-input-area {
+  width: 100% !important; min-width: 0 !important; margin: 0 !important;
+  border: 1px solid #ffffff26; border-radius: 10px;
+  color: #f1f1f1; background: #ffffff0f;
+}
+#watchScreen #videoWrapper.pc-fullscreen-player #desktopFullscreenActions #danmakuInput {
+  color: #f1f1f1; background: transparent !important; font-size: 14px; min-height: 44px;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions #danmakuInput::placeholder { color: #aaa; }
+#watchScreen #videoWrapper.pc-fullscreen-player #desktopFullscreenActions .danmaku-tool,
+#watchScreen #videoWrapper.pc-fullscreen-player #desktopFullscreenActions #danmakuSubmitBtn {
+  color: #f1f1f1 !important; background: #ffffff0f !important; border-color: #ffffff26 !important; min-height: 44px;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions > .watch-rating-actions {
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; min-width: 0;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions .watch-rating-actions > button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 42px; padding: 8px 14px; margin: 0;
+  border: 0; border-radius: 22px; color: #f1f1f1; background: #ffffff16;
+  font: inherit; font-size: 14px; white-space: nowrap; cursor: pointer;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions #watchMoreButton {
+  width: 42px; min-width: 42px; padding: 8px;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions button:disabled { opacity: .5; cursor: default; }
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions button:focus-visible,
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions input:focus-visible { outline: 2px solid #9dcfff; outline-offset: 2px; }
+#videoWrapper.pc-fullscreen-player .site-player-controls { bottom: var(--pc-fullscreen-action-height) !important; }
+#videoWrapper.pc-fullscreen-player #mobilePlaybackSettings { bottom: calc(var(--pc-fullscreen-action-height) + 94px) !important; max-height: calc(100dvh - var(--pc-fullscreen-action-height) - 110px); }
+#videoWrapper.pc-fullscreen-player #watchMoreMenu { z-index: 1000; color: #f1f1f1; background: #242424; border-color: #444; }
+#videoWrapper.pc-fullscreen-player #watchMoreMenu > button { color: #f1f1f1; }
+#videoWrapper.pc-fullscreen-player #watchMoreMenu > button:hover { background: #383838; }
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions > .guard-notice,
+#videoWrapper.pc-fullscreen-player #videoDownloadProgress {
+  position: absolute; z-index: 1100; left: 14px;
+  bottom: calc(var(--pc-fullscreen-action-height) + 96px);
+  max-width: calc(100% - 28px); box-sizing: border-box;
+}
+#videoWrapper.pc-fullscreen-player #desktopFullscreenActions > .guard-notice { bottom: calc(100% + 96px); }
+#videoWrapper.pc-fullscreen-player #shareModal,
+#videoWrapper.pc-fullscreen-player #authModal { z-index: 1200; }
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] { cursor: none; }
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #desktopFullscreenActions,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] .site-player-controls,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] .custom-controls-bar,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #mobilePlayerTools,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #mobileTenSecondControls,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #touchFullscreenTimes,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #mobilePlaybackSettings,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #watchMoreMenu,
+#videoWrapper.pc-fullscreen-player[data-pc-fullscreen-controls="hidden"] #danmakuCustomizeDialog {
+  opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+}
+@media (max-width: 1000px) {
+  #videoWrapper.pc-fullscreen-player #desktopFullscreenActions { gap: 8px; padding: 8px; }
+  #videoWrapper.pc-fullscreen-player #desktopFullscreenActions .watch-rating-actions > button { padding: 8px 10px; }
+}
+@media (max-height: 560px) {
+  #videoWrapper.pc-fullscreen-player #desktopFullscreenActions { min-height: 54px; padding-block: 4px; }
+}
