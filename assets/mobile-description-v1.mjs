@@ -1,3 +1,4 @@
+import {t,th,locale} from './site-language-v1.mjs?v=20261024-1';
 // Reuse the existing description sheet and counters; no Firebase or network API calls.
 const make = (tag, css, text) => {
   const node = document.createElement(tag);
@@ -6,7 +7,7 @@ const make = (tag, css, text) => {
   return node;
 };
 const cleanCount = text => {
-  const value = String(text || '').replace(/\s*回視聴\s*$/, '').trim();
+  const value = String(text || '').replace(/\s*(?:回視聴|views)\s*$/, '').trim();
   return /^[\d,，]+$/.test(value) ? value : '—';
 };
 function enhance(sheet) {
@@ -33,20 +34,20 @@ function enhance(sheet) {
   const viewCell = make('div', 'md-stat');
   const viewValue = make('strong', 'md-stat-value', '—');
   views.hidden = true; views.setAttribute('aria-hidden', 'true');
-  viewCell.append(views, viewValue, make('span', 'md-stat-label', '視聴回数'));
+  viewCell.append(views, viewValue, make('span', 'md-stat-label', t("視聴回数")));
   const dateCell = make('div', 'md-stat md-date');
   const day = make('strong', 'md-stat-value', '—');
-  const year = make('span', 'md-stat-label', '投稿日不明');
+  const year = make('span', 'md-stat-label', t("投稿日不明"));
   date.hidden = true; date.setAttribute('aria-hidden', 'true'); dateCell.append(date, day, year);
   danmaku.classList.add('md-stat'); count.classList.add('md-stat-value');
-  danmaku.append(make('span', 'md-stat-label', '弾幕数'));
+  danmaku.append(make('span', 'md-stat-label', t("弾幕数")));
   meta.replaceChildren(danmaku, viewCell, dateCell);
   sheet.classList.add('md-enhanced');
 
   let avatarKey = null;
   function syncChannel() {
     const label = sourceName?.textContent.trim() || '投稿者'; name.textContent = label;
-    channel.disabled = !sourceName?.dataset.uid; channel.setAttribute('aria-label', label + 'のチャンネルを表示');
+    channel.disabled = !sourceName?.dataset.uid; channel.setAttribute('aria-label', t('{0}のチャンネルを表示', label));
     const background = sourceAvatar?.style.backgroundImage || '';
     const key = label + '\n' + background;
     if (key === avatarKey) return; avatarKey = key; face.replaceChildren(document.createTextNode(label.slice(0, 1)));
@@ -61,16 +62,14 @@ function enhance(sheet) {
   }
   function syncStats() {
     viewValue.textContent = cleanCount(views.textContent);
-    const match = /^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日(?:\s*投稿)?$/.exec(date.textContent.trim());
-    let valid = false;
-    if (match) {
-      const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
-      const test = new Date(Date.UTC(y, m - 1, d));
-      valid = y >= 1970 && test.getUTCFullYear() === y && test.getUTCMonth() === m - 1 && test.getUTCDate() === d;
-      if (valid) { day.textContent = `${m}月${d}日`; year.textContent = `${y}年`; }
-    }
-    if (!valid) { day.textContent = '—'; year.textContent = '投稿日不明'; }
-    dateCell.setAttribute('aria-label', valid ? '投稿日：' + date.textContent.trim().replace(/\s*投稿$/, '') : '投稿日不明');
+    const rawTimestamp = document.getElementById('videoUploadDate')?.dataset.uploadTimestamp;
+    const dateValue = rawTimestamp ? new Date(rawTimestamp) : null;
+    const valid = dateValue && Number.isFinite(dateValue.getTime());
+    if (valid) {
+      day.textContent = new Intl.DateTimeFormat(locale, {timeZone:'Asia/Tokyo', month:locale==='ja-JP'?'numeric':'short', day:'numeric'}).format(dateValue);
+      year.textContent = new Intl.DateTimeFormat(locale, {timeZone:'Asia/Tokyo', year:'numeric'}).format(dateValue);
+    } else {day.textContent='—';year.textContent=t('投稿日不明');}
+    dateCell.setAttribute('aria-label', valid ? (locale === 'ja-JP' ? '投稿日：' : 'Uploaded: ') + date.textContent.trim().replace(/\s*投稿$/, '') : t("投稿日不明"));
   }
   for (const source of [views, date]) new MutationObserver(syncStats).observe(source, {childList: true, subtree: true, characterData: true});
   for (const source of [sourceName, sourceAvatar]) if (source) new MutationObserver(syncChannel).observe(source, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'data-uid']});

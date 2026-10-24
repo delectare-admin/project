@@ -1,3 +1,4 @@
+import {t,th,locale} from './site-language-v1.mjs?v=20261024-1';
 // Watch positions stay in this browser and are separated by signed-in account.
 export function validVideoId(value) {
   return typeof value === 'string' && value.startsWith('videos/') && value.length > 7
@@ -59,7 +60,7 @@ export function mountWatchProgress({video, user, onAuth, storage = null}) {
     if (!bar) {
       bar = document.createElement('span'); bar.className = 'watch-progress';
       bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0');
-      bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-label', '視聴済みの位置');
+      bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-label', t("視聴済みの位置"));
       bar.append(document.createElement('span')); frame.append(bar);
     }
     const percent = Math.max(0, Math.min(100, row.position / row.duration * 100));

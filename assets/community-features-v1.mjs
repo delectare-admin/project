@@ -1,4 +1,5 @@
-import {safeHttps, formatCount} from './creator-lab-model-v1.mjs';
+import {t,th,locale} from './site-language-v1.mjs?v=20261024-1';
+import {safeHttps, formatCount} from './creator-lab-model-v1.mjs?v=20261024-language1';
 import {createUiIcon} from './ui-icons-v1.mjs?v=20261022';
 
 const el = (tag, css, text) => {
@@ -17,10 +18,10 @@ function avatar(profile, css = 'community-avatar') {
 }
 
 export async function mountRecentSubscribers(a, host, current) {
-  host.append(el('h2', '', '最近のチャンネル登録者'), el('p', 'yl-muted', '過去90日間・表示を許可した人のみ'));
-  const list = el('div', 'yl-subscriber-list'), status = el('p', 'yl-status', '読み込み中…');
+  host.append(el('h2', '', t("最近のチャンネル登録者")), el('p', 'yl-muted', t("過去90日間・表示を許可した人のみ")));
+  const list = el('div', 'yl-subscriber-list'), status = el('p', 'yl-status', t("読み込み中…"));
   status.setAttribute('role', 'status');
-  const more = el('button', 'yl-button', 'さらに表示'); more.type = 'button'; more.hidden = true;
+  const more = el('button', 'yl-button', t("さらに表示")); more.type = 'button'; more.hidden = true;
   host.append(list, status, more); let cursor = null, busy = false;
   async function load() {
     if (busy || !current()) return; busy = true; more.disabled = true;
@@ -30,14 +31,14 @@ export async function mountRecentSubscribers(a, host, current) {
       for (const profile of result.subscribers || []) {
         const row = el('button', 'yl-subscriber-row'); row.type = 'button';
         const detail = el('span', 'yl-subscriber-detail');
-        detail.append(el('strong', '', profile.channelName), el('small', 'yl-muted', 'チャンネル登録者 ' + formatCount(profile.subscriberCount) + '人'));
+        detail.append(el('strong', '', profile.channelName), el('small', 'yl-muted', t("チャンネル登録者 ") + formatCount(profile.subscriberCount) + (locale==='ja-JP'?'人':'')));
         row.append(avatar(profile), detail); row.title = profile.channelName;
         row.addEventListener('click', () => { if (current()) a.openChannel(profile.uid); }); list.append(row);
       }
       cursor = result.next || null; more.hidden = !cursor;
-      status.textContent = list.childElementCount ? '' : '表示できる最近の登録者はまだいません。';
+      status.textContent = list.childElementCount ? '' : t("表示できる最近の登録者はまだいません。");
     } catch (error) {
-      if (current()) { status.textContent = error.message || '登録者を読み込めませんでした。'; status.dataset.error = 'true'; more.hidden = false; more.textContent = 'もう一度読み込む'; }
+      if (current()) { status.textContent = error.message || t("登録者を読み込めませんでした。"); status.dataset.error = 'true'; more.hidden = false; more.textContent = t("もう一度読み込む"); }
     } finally { busy = false; more.disabled = false; }
   }
   more.addEventListener('click', load); await load();
@@ -58,7 +59,7 @@ export function mountCommunityFeatures(a) {
     host.replaceChildren(); if (!active && !canHeart) return;
     const button = el(canHeart ? 'button' : 'span', 'creator-comment-heart' + (active ? ' is-hearted' : ''));
     if (canHeart) { button.type = 'button'; button.disabled = !!state?.busy; button.setAttribute('aria-pressed', String(active)); }
-    button.setAttribute('aria-label', canHeart ? active ? '投稿者のハートを取り消す' : '投稿者としてハートを付ける' : '投稿者からハート');
+    button.setAttribute('aria-label', canHeart ? active ? t("投稿者のハートを取り消す") : t("投稿者としてハートを付ける") : t("投稿者からハート"));
     button.title = button.getAttribute('aria-label');
     if (active) {
       const face = avatar({channelName: a.creatorName()}, 'creator-heart-avatar'); button.append(face);
@@ -81,7 +82,7 @@ export function mountCommunityFeatures(a) {
       } catch (error) {
         if (epoch !== token || user()?.uid !== uid || a.currentVideoId() !== videoId) return;
         pendingHearts.delete(key);
-        const notice = el('span', 'community-action-error', error.message || 'ハートを保存できませんでした。');
+        const notice = el('span', 'community-action-error', error.message || t("ハートを保存できませんでした。"));
         notice.setAttribute('role', 'alert'); host.after(notice);
       } finally { if (epoch === token) paintAll(); }
     });
@@ -100,11 +101,11 @@ export function mountCommunityFeatures(a) {
   let checkbox, status, section;
   if (panel) {
     section = el('section', 'community-subscriber-setting'); section.hidden = true;
-    section.append(el('h3', '', '登録先への表示'));
+    section.append(el('h3', '', t("登録先への表示")));
     const label = el('label', 'yl-check'); checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.disabled = true;
-    label.append(checkbox, el('span', '', '登録先の投稿者に、自分のチャンネル名とアイコンを表示する'));
+    label.append(checkbox, el('span', '', t("登録先の投稿者に、自分のチャンネル名とアイコンを表示する")));
     status = el('p', 'yl-status'); status.setAttribute('role', 'status');
-    section.append(label, el('p', 'yl-muted', '初期設定はオフです。オンにすると登録先の「最近のチャンネル登録者」に表示されます。メールアドレスや登録先一覧は表示されません。'), status);
+    section.append(label, el('p', 'yl-muted', t("初期設定はオフです。オンにすると登録先の「最近のチャンネル登録者」に表示されます。メールアドレスや登録先一覧は表示されません。")), status);
     panel.append(section);
   }
   async function syncCards(token = epoch) {
@@ -125,22 +126,22 @@ export function mountCommunityFeatures(a) {
       if (token !== epoch) return;
       checkbox.checked = result.visible === true; checkbox.disabled = false; status.textContent = '';
       if (result.visible === true) await syncCards(token);
-    } catch (error) { if (token === epoch) status.textContent = error.message || '表示設定を読み込めませんでした。'; }
+    } catch (error) { if (token === epoch) status.textContent = error.message || t("表示設定を読み込めませんでした。"); }
   }
   checkbox?.addEventListener('change', async () => {
     const token = epoch, desired = checkbox.checked; let saved = false; checkbox.disabled = true;
-    status.textContent = '保存中…';
+    status.textContent = t("保存中…");
     try {
       const result = await a.api({op: 'subscriberVisibility', visible: desired});
       if (token !== epoch) return;
-      saved = true; checkbox.checked = result.visible === true; status.textContent = '設定を保存しました。';
+      saved = true; checkbox.checked = result.visible === true; status.textContent = t("設定を保存しました。");
       await syncCards(token);
     } catch (error) {
       if (token === epoch) {
         if (!saved) await refreshSetting();
         if (token === epoch) status.textContent = saved
-          ? '表示設定は保存しました。一覧への反映は、設定を開き直して再試行してください。'
-          : error.message || '設定を保存できませんでした。';
+          ? t("表示設定は保存しました。一覧への反映は、設定を開き直して再試行してください。")
+          : error.message || t("設定を保存できませんでした。");
       }
     } finally { if (token === epoch) checkbox.disabled = false; }
   });

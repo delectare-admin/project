@@ -1,0 +1,57 @@
+/* Related cards share the home card icons and public counters. */
+#relatedVideosSidebar .related-item {align-items:start;gap:12px;}
+#relatedVideosSidebar .video-page-link {color:inherit;text-decoration:none;min-width:0;}
+#relatedVideosSidebar .info.grid-item-info {display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;overflow:visible;}
+#relatedVideosSidebar .grid-item-text {min-width:0;}
+#relatedVideosSidebar .info-title {margin:0 0 5px;overflow-wrap:anywhere;}
+#relatedVideosSidebar .home-channel-avatar {display:grid;place-items:center;width:28px;height:28px;min-width:28px;padding:0;border:0;border-radius:50%;overflow:hidden;background:#e5e5e5;color:#444;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;}
+#relatedVideosSidebar .home-channel-avatar:disabled {cursor:default;}
+#relatedVideosSidebar .home-channel-avatar img {width:100%;height:100%;object-fit:cover;}
+#relatedVideosSidebar .home-author-row {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;}
+#relatedVideosSidebar .grid-author {max-width:100%;margin:0;font-size:12px;color:#606060;}
+#relatedVideosSidebar .home-video-stats {display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;color:#606060;font-size:12px;line-height:1.5;min-width:0;}
+#relatedVideosSidebar .home-stat {display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+#relatedVideosSidebar .home-stat svg {width:14px;height:14px;flex:0 0 14px;}
+#relatedVideosSidebar a:focus-visible,#relatedVideosSidebar button:focus-visible {outline:2px solid #065fd4;outline-offset:3px;}
+@media(max-width:768px) {
+ #relatedVideosSidebar {gap:22px;padding:0 12px 24px;}
+ #relatedVideosSidebar .related-item {grid-template-columns:minmax(0,1fr);gap:10px;padding:0;}
+ #relatedVideosSidebar .related-item .thumbnail-img {width:100%;height:auto;aspect-ratio:16/9;}
+ #relatedVideosSidebar .info.grid-item-info {grid-template-columns:36px minmax(0,1fr);gap:10px;}
+ #relatedVideosSidebar .home-channel-avatar {width:36px;height:36px;min-width:36px;font-size:16px;}
+ #relatedVideosSidebar .info-title {font-size:15px;line-height:1.4;}
+ #relatedVideosSidebar .home-video-stats,#relatedVideosSidebar .grid-author {font-size:12px;}
+}
+@media(prefers-color-scheme:dark) {
+ :root[data-system-appearance=dark] #relatedVideosSidebar .grid-author,
+ :root[data-system-appearance=dark] #relatedVideosSidebar .home-video-stats {color:#aaa;}
+}
+@media(max-width:768px) and (prefers-color-scheme:dark) {
+ #relatedVideosSidebar .grid-author,#relatedVideosSidebar .home-video-stats {color:#aaa;}
+ #relatedVideosSidebar .home-channel-avatar {background:#333;color:#eee;}
+}
+#preferredLanguageSection {margin:20px 0;padding:16px 0;border-top:1px solid #ddd;border-bottom:1px solid #ddd;}
+#preferredLanguageSection summary {cursor:pointer;font-weight:600;padding:8px 0;}
+#preferredLanguageSection fieldset {border:0;margin:8px 0;padding:0;display:grid;gap:8px;}
+#preferredLanguageSection label {display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;}
+#preferredLanguageSection input {width:18px;height:18px;accent-color:#065fd4;}
+#preferredLanguageSection .language-actions {display:flex;flex-wrap:wrap;gap:8px;}
+#preferredLanguageSection button {min-height:40px;padding:8px 14px;border:0;border-radius:20px;cursor:pointer;background:#eee;color:#111;font:inherit;}
+#preferredLanguageSection button[type=submit] {background:#065fd4;color:#fff;}
+#preferredLanguageSection p {font-size:12px;line-height:1.6;max-width:48em;overflow-wrap:anywhere;}
+#preferredLanguageStatus {color:#b3261e;}
+html[lang=en] .nav-item span {white-space:normal;overflow-wrap:anywhere;}
+html[lang=en] .dc-tab {white-space:normal!important;overflow-wrap:anywhere;}
+@media(max-width:768px) {
+ html[lang=en] .side-nav .nav-item {min-width:0;padding-left:3px;padding-right:3px;font-size:10px;line-height:1.2;}
+ html[lang=en] #videoWrapper .player-right {gap:1px;}
+}
+@media(prefers-color-scheme:dark) {
+ #preferredLanguageSection {border-color:#555;}
+ #preferredLanguageSection button {background:#333;color:#eee;}
+ #preferredLanguageSection button[type=submit] {background:#8ecaff;color:#062236;}
+ #preferredLanguageStatus {color:#ffb4ab;}
+}
+@media(max-width:768px) {
+ #relatedVideosSidebar .related-item > .watch-thumbnail {width:100%;height:auto;aspect-ratio:16/9;}
+}

@@ -1,3 +1,4 @@
+import {t,th,locale} from './site-language-v1.mjs?v=20261024-1';
 // Move existing controls only. Authentication, guarded writes and button handlers stay unchanged.
 export function mountDesktopFullscreen() {
   const wrapper = document.getElementById('videoWrapper');
@@ -6,7 +7,7 @@ export function mountDesktopFullscreen() {
   const desktop = matchMedia('(min-width: 769px) and (hover: hover) and (pointer: fine)');
   const bar = document.createElement('div');
   bar.id = 'desktopFullscreenActions'; bar.className = 'pc-fullscreen-actions';
-  bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', '全画面の弾幕と動画の操作');
+  bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', t("全画面の弾幕と動画の操作"));
   bar.hidden = true; wrapper.appendChild(bar);
   let active = false, timer = 0, frame = 0, hiding = false, keyboard = false, keyAt = 0;
   const moved = new Map();
