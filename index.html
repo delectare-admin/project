@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-c1NIx8JAGU5HIdUqldcHv/dVKrGa3p4i2VXkNgaE048=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-hfdXvWWgvObfIDRecAkU/YnZd3LKyDaUU3ngT0AMrfs=' 'sha256-LfPDIVihzO6m8GThOg9jESRCPCdiL92xWg139LKeTnk=' 'sha256-5p/Qp+7Begt8OtTbFhk60D2MpdyYW0XE75u4jIXB3nU=' 'sha256-bY/aUS5Dc/1NADCdhlKBdGi7N654rzlE+Gg5swPwsaw=' 'sha256-9j5w+2sOG+XWyb1O5TkIwQjolMtOEJNkvwKY+Z8WUro=' 'sha256-6d0n8DJHFWlD4L6N1WWIyaeTFtMDdQWbqqato+mhA3E=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3771,6 +3771,20 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 <link rel="stylesheet" href="./assets/mobile-description-v1.css?v=20261023-1">
 <script type="module" src="./assets/mobile-description-v1.mjs?v=20261023-1"></script>
 
+
+<style id="pcPipLayoutStyles">
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  #browseMiniPlayer .browse-mini-actions {
+    left: 8px; right: 8px; justify-content: space-between;
+    pointer-events: none;
+  }
+  #browseMiniPlayer:hover .browse-mini-actions,
+  #browseMiniPlayer:focus-within .browse-mini-actions { pointer-events: none; }
+  #browseMiniPlayer .browse-mini-actions button { pointer-events: none; }
+  #browseMiniPlayer:hover .browse-mini-actions button,
+  #browseMiniPlayer:focus-within .browse-mini-actions button { pointer-events: auto; }
+}
+</style>
 </head>
 <body>
 
@@ -7039,6 +7053,8 @@ let hlsInstance = null;
 let playbackGeneration = 0;
 
 function stopMainPlayback() {
+  cancelPipPositionRestore?.();
+  cancelPipPositionRestore = null;
   watchProgress?.stop();
   communityFeatures?.videoChanged();
   creatorLab?.clearPublic();
@@ -7356,6 +7372,7 @@ logoHome.addEventListener('click', returnToHomeList);
     }
 
     let pipOpening = false;
+let cancelPipPositionRestore = null;
 
 const pipPlayer = document.getElementById('videoWrapper');
 const pipHome = document.getElementById('videoAnchor');
@@ -7519,6 +7536,10 @@ pipBtn.addEventListener('click', async () => {
 
   pipOpening = true;
   let pipWindow = null;
+  const pipSessionVideoId = currentVideoId;
+  const pipSessionGeneration = playbackGeneration;
+  cancelPipPositionRestore?.();
+  cancelPipPositionRestore = null;
 
   // 動画を必ず元のvideoAnchorの中へ戻す
   const restorePlayer = () => {
@@ -7530,9 +7551,29 @@ pipBtn.addEventListener('click', async () => {
     }
 
     const resume = !mainVideo.paused;
+    const position = Number.isFinite(mainVideo.currentTime) ? mainVideo.currentTime : 0;
 
     pipHome.appendChild(pipPlayer);
     pipPlayer.classList.remove('in-pip', 'is-sticky');
+
+    // Adoption into another document may reset the decoder. Keep the current position.
+    const restorePosition = () => {
+      if (currentVideoId !== pipSessionVideoId || playbackGeneration !== pipSessionGeneration ||
+          pipPlayer.ownerDocument !== document || pipPlayer.classList.contains('in-pip')) return;
+      if (position > 0) {
+        try { mainVideo.currentTime = Number.isFinite(mainVideo.duration)
+          ? Math.min(position, mainVideo.duration) : position; } catch { /* Retry after metadata. */ }
+      }
+    };
+    const onMetadata = () => {
+      restorePosition();
+      if (cancelPipPositionRestore === cleanupPosition) cancelPipPositionRestore = null;
+    };
+    const cleanupPosition = () => mainVideo.removeEventListener('loadedmetadata', onMetadata);
+    cancelPipPositionRestore?.();
+    cancelPipPositionRestore = cleanupPosition;
+    mainVideo.addEventListener('loadedmetadata', onMetadata, {once: true});
+    restorePosition();
 
     // スクロール位置に合わせて自動小窓を再判定
     window.dispatchEvent(new Event('resize'));
@@ -7546,11 +7587,22 @@ pipBtn.addEventListener('click', async () => {
 
   try {
     if ('documentPictureInPicture' in window) {
+      const returnVideoId = currentVideoId;
+      const returnGeneration = playbackGeneration;
+      const returnTitle = document.title;
+      const returnScrollY = window.scrollY;
+      const useLeftReturn = browseMiniDesktop.matches;
       pipWindow =
         await window.documentPictureInPicture.requestWindow({
           width: 480,
-          height: 270
+          height: 270,
+          disallowReturnToOpener: useLeftReturn
         });
+
+      if (returnVideoId !== currentVideoId || returnGeneration !== playbackGeneration) {
+        pipWindow.close();
+        return;
+      }
 
       pipWindow.addEventListener(
         'pagehide',
@@ -7600,6 +7652,19 @@ pipBtn.addEventListener('click', async () => {
           height: 100%;
           object-fit: contain;
         }
+
+        #documentPipReturn {
+          position: fixed; top: 8px; left: 8px; z-index: 2147483000;
+          display: grid; place-items: center; width: 36px; height: 36px;
+          padding: 7px; border: 0; border-radius: 50%;
+          background: #000b; color: #fff; cursor: pointer;
+          opacity: 0; pointer-events: none; transition: opacity .15s;
+        }
+        #documentPipReturn svg { width: 22px; height: 22px; }
+        body:hover #documentPipReturn,
+        #documentPipReturn:focus-visible { opacity: 1; pointer-events: auto; }
+        #documentPipReturn:focus-visible { outline: 2px solid #9dcfff; outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) { #documentPipReturn { transition: none; } }
       `;
 
       pipWindow.document.head.appendChild(style);
@@ -7610,6 +7675,45 @@ pipBtn.addEventListener('click', async () => {
       pipPlayer.classList.add('in-pip');
 
       pipWindow.document.body.appendChild(pipPlayer);
+
+      if (useLeftReturn) {
+        const returnButton = pipWindow.document.createElement('button');
+        returnButton.id = 'documentPipReturn';
+        returnButton.type = 'button';
+        returnButton.title = '再生画面に戻る';
+        returnButton.setAttribute('aria-label', '再生画面に戻る');
+        const icon = browseMiniRestore.querySelector('svg');
+        if (icon) returnButton.appendChild(icon.cloneNode(true));
+        else returnButton.textContent = '戻る';
+        returnButton.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (pipWindow.closed) return;
+          // Never restore a stale video's URL or screen after playback has changed.
+          if (returnVideoId !== currentVideoId || returnGeneration !== playbackGeneration) {
+            pipWindow.close();
+            return;
+          }
+          creatorLab?.route('watch');
+          creatorLab?.closeMenu();
+          homeScreen.style.display = 'none';
+          channelScreen.style.display = 'none';
+          document.getElementById('manageScreen').style.display = 'none';
+          watchScreen.style.display = 'block';
+          document.body.classList.add('watch-mode');
+          document.title = returnTitle;
+          const url = window.location.pathname + '?v=' + encodeURIComponent(returnVideoId);
+          if (window.location.pathname + window.location.search !== url) {
+            window.history.pushState(null, '', url);
+          }
+          restorePlayer();
+          window.focus();
+          pipWindow.close();
+          window.scrollTo({top: returnScrollY, behavior: 'instant'});
+          pipBtn.focus({preventScroll: true});
+        });
+        pipWindow.document.body.appendChild(returnButton);
+      }
 
       if (resume) {
         mainVideo.play().catch(console.warn);
@@ -13611,8 +13715,14 @@ bell.hidden = !signedIn || !onNotificationScreen;
       if (settingsButton.parentElement !== tools) tools.appendChild(settingsButton);
     } else {
       const pipButton = wrapper.querySelector('#pipBtn');
-      if (pipButton && pipButton.nextElementSibling !== settingsButton) pipButton.after(settingsButton);
-      else if (!pipButton && settingsButton.parentElement !== right) right.appendChild(settingsButton);
+      if (pipButton) {
+        // PC: settings, external PiP, then home-browsing PiP. Keep the compact layout.
+        const neighbor = compact ? pipButton.nextElementSibling : pipButton.previousElementSibling;
+        if (neighbor !== settingsButton) {
+          if (compact) pipButton.after(settingsButton);
+          else pipButton.before(settingsButton);
+        }
+      } else if (settingsButton.parentElement !== right) right.appendChild(settingsButton);
     }
 
     if (compact) {
