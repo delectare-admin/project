@@ -62,7 +62,7 @@ html[lang=en] .dc-tab {white-space:normal!important;overflow-wrap:anywhere;}
 }
 
 #relatedVideosSidebar .grid-item-text > .video-page-link {
-  grid-column: 2;
+  grid-column: 1 / -1;
   grid-row: 1;
 }
 
