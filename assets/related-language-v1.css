@@ -55,3 +55,24 @@ html[lang=en] .dc-tab {white-space:normal!important;overflow-wrap:anywhere;}
 @media(max-width:768px) {
  #relatedVideosSidebar .related-item > .watch-thumbnail {width:100%;height:auto;aspect-ratio:16/9;}
 }
+
+/* 関連動画のアイコンを下段へ移動 */
+#relatedVideosSidebar .grid-item-text {
+  display: contents;
+}
+
+#relatedVideosSidebar .grid-item-text > .video-page-link {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#relatedVideosSidebar .home-author-row {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#relatedVideosSidebar .home-channel-avatar {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+}
