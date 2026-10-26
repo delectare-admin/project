@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-DJ4bujOKkKiVRA+yCJR3IOoCI1V6WmEZjnDC5ku7h5g=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-kbJGzzv1ZJBr505rOYMZl0BQOx3624FNdLTcEbHJp5g=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3789,6 +3789,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 <link rel="stylesheet" href="./assets/related-language-v1.css?v=20261025-1">
 <script type="module" src="./assets/site-language-v1.mjs?v=20261024-1"></script>
 <script type="module" src="./assets/sticky-pip-drag-v1.mjs?v=20261025-1"></script>
+<link rel="stylesheet" href="./assets/upload-settings-v1.css?v=20261026-1">
 </head>
 <body>
 
@@ -4063,15 +4064,17 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   </div><!-- /main-content -->
 
   <!-- アップロードモーダル -->
-  <div id="uploadModal" class="modal-overlay">
-    <div class="modal-content">
+  <div id="uploadModal" class="modal-overlay studio-upload" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
+    <div class="modal-content studio-content">
       <div class="modal-header">
         <h2 id="modalTitle"><span data-ui-copy="動画のアップロード">動画のアップロード</span></h2>
         <button id="closeModalBtn" class="close-btn" type="button" aria-label="閉じる" data-ui-aria-label="閉じる"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
       </div>
-      <div id="step1Area" class="step-1-area">
+      <nav id="uploadStudioSteps" aria-label="アップロードの手順"></nav>
+      <div id="uploadStudioNoticeAnchor"></div>
+      <div id="step1Area" class="step-1-area" data-upload-dropzone>
         <div class="upload-icon-circle" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="upload"><path d="M12 16V3m-5 5 5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg></div>
-        <p><span data-ui-copy="アップロードする動画ファイルを選択してください">アップロードする動画ファイルを選択してください</span></p>
+        <h3 id="uploadDropHeading"></h3><p id="uploadDropHelp"></p>
         <input type="file" id="fileInput" accept="video/*" style="display:none;">
         <button id="selectFileBtn" class="select-file-btn"><span data-ui-copy="ファイルを選択">ファイルを選択</span></button>
         <p class="upload-security-help"><span data-ui-copy="1本256GB・12時間以内。送信後、動画の形式と長さを確認してから公開します。">1本256GB・12時間以内。送信後、動画の形式と長さを確認してから公開します。</span></p>
@@ -4079,18 +4082,18 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
       <div id="step2Area" class="step-2-area">
         <div class="details-layout">
           <div class="form-area">
-            <div class="input-group"><label><span data-ui-copy="タイトル (必須)">タイトル (必須)</span></label><input type="text" id="videoTitleInput"></div>
-            <div class="input-group"><label><span data-ui-copy="説明">説明</span></label><textarea id="uploadDescInput" placeholder="動画の説明を入力" data-ui-placeholder="動画の説明を入力"></textarea></div>
-            <div class="input-group"><label><span data-ui-copy="サムネイル画像 (任意)">サムネイル画像 (任意)</span></label><input type="file" id="thumbInput" accept="image/*"><p style="font-size:12px;color:#666"><span data-ui-copy="未設定の場合は、動画内のランダムな場面から自動生成します。">未設定の場合は、動画内のランダムな場面から自動生成します。</span></p></div>
+            <div class="input-group"><label for="videoTitleInput"><span data-ui-copy="タイトル (必須)">タイトル (必須)</span></label><input type="text" id="videoTitleInput" maxlength="1000" aria-describedby="uploadTitleCount"><small id="uploadTitleCount" class="studio-char-count"></small></div>
+            <div class="input-group"><label for="uploadDescInput"><span data-ui-copy="説明">説明</span></label><textarea maxlength="6000" id="uploadDescInput" placeholder="動画の説明を入力" data-ui-placeholder="動画の説明を入力"></textarea></div>
+            <div class="input-group"><label><span data-ui-copy="サムネイル画像 (任意)">サムネイル画像 (任意)</span></label><button type="button" id="uploadThumbPicker" class="studio-thumbnail-picker"></button><input type="file" id="thumbInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden><div class="studio-thumb-actions"><span id="uploadThumbName"></span><button type="button" id="uploadThumbClear" hidden></button></div><p id="uploadThumbStatus" role="status"></p><p style="font-size:12px;color:#666"><span data-ui-copy="未設定の場合は、動画内のランダムな場面から自動生成します。">未設定の場合は、動画内のランダムな場面から自動生成します。</span></p></div>
             <div class="input-group">
-              <label><span data-ui-copy="カテゴリー">カテゴリー</span></label>
+              <label for="videoCategoryInput"><span data-ui-copy="カテゴリー">カテゴリー</span></label>
               <select id="videoCategoryInput">
                 <option value="エンタメ" data-ui-copy="エンタメ">エンタメ</option><option value="漫画" data-ui-copy="漫画">漫画</option><option value="アニメ" data-ui-copy="アニメ">アニメ</option>
                 <option value="映画" data-ui-copy="映画">映画</option><option value="音楽" data-ui-copy="音楽">音楽</option><option value="ゲーム" data-ui-copy="ゲーム">ゲーム</option>
                 <option value="学問・教養" data-ui-copy="学問・教養">学問・教養</option><option value="3D・技術" data-ui-copy="3D・技術">3D・技術</option><option value="その他" data-ui-copy="その他">その他</option>
               </select>
             </div>
-            <fieldset class="video-interaction-settings">
+            <details id="uploadAdvancedSettings" class="studio-advanced"><summary id="uploadAdvancedTitle"></summary><fieldset class="video-interaction-settings">
               <legend><span data-ui-copy="コメント・弾幕の設定">コメント・弾幕の設定</span></legend>
               <div class="input-group">
                 <label for="uploadMutedWords"><span data-ui-copy="コメント・弾幕のミュートワード">コメント・弾幕のミュートワード</span></label>
@@ -4111,19 +4114,20 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
                 <input id="uploadDislikesEnabled" type="checkbox" role="switch" checked>
               </label>
               <p class="video-settings-help"><span data-ui-copy="チェックあり＝オン。オフにしても、既存の投稿・評価は削除されません。">チェックあり＝オン。オフにしても、既存の投稿・評価は削除されません。</span></p>
-            </fieldset>
+            </fieldset></details>
 
           </div>
-          <div class="preview-area">
-            <video id="previewVideo" controls></video>
-            <p style="font-size:12px; color:#606060;"><span data-ui-copy="ファイル名: ">ファイル名: </span><span id="previewFileName"></span></p>
-          </div>
+          <aside class="preview-area studio-preview">
+            <video id="previewVideo" controls preload="metadata" playsinline></video>
+            <p style="font-size:12px; color:#606060;"><span data-ui-copy="ファイル名: ">ファイル名: </span><span id="previewFileName"></span></p><p id="uploadPreviewState"></p></aside>
         </div>
-        <div class="modal-footer">
-          <div></div>
-          <div style="width:100%;">
-            <button id="saveBtn" class="save-btn" style="width:100%;"><span data-ui-copy="保存して公開">保存して公開</span></button>
-            <button id="backModalBtn" class="back-btn" style="width:100%; margin-top:8px; text-align:center;"><span data-ui-copy="戻る">戻る</span></button>
+        <section id="uploadReviewPanel" hidden aria-labelledby="uploadReviewTitle"></section>
+        <div class="modal-footer studio-footer">
+          <p id="uploadStudioStatus" role="status"></p>
+          <div class="studio-footer-actions">
+            <button id="backModalBtn" class="back-btn" type="button"><span data-ui-copy="戻る">戻る</span></button>
+            <button id="uploadStudioNext" type="button"></button>
+            <button id="saveBtn" class="save-btn" type="button" hidden><span data-ui-copy="保存して公開">保存して公開</span></button>
           </div>
         </div>
       </div>
@@ -4248,6 +4252,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
   <script type="module">import {t,th,locale,compactCount,mountLanguageSettings} from './assets/site-language-v1.mjs?v=20261024-1';
 
+    import {mountMutedWordList,mountUploadStudio} from './assets/upload-settings-v1.mjs?v=20261026-1';
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
     import {createRatingFeedback} from "./assets/interaction-feedback-v1.mjs?v=20261022-1";
     import {mountCreatorLab} from "./assets/creator-lab-v1.mjs?v=20261024-language1";
@@ -9781,18 +9786,57 @@ mainVideo.addEventListener('emptied', () => {
 });
 
     createBtn.addEventListener('click', () => createMenu.classList.toggle('active'));
+    let selectedFile = null;
+    let videoUploadSending = false;
+    let uploadPreviewUrl = '';
+    let uploadStudio = null;
+    function releaseUploadPreview() {
+      previewVideo.pause(); previewVideo.removeAttribute('src'); previewVideo.load();
+      if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+      uploadPreviewUrl = '';
+    }
+    function resetUploadDraft() {
+      releaseUploadPreview(); selectedFile = null; fileInput.value = ''; thumbInput.value = '';
+      videoTitleInput.value = ''; document.getElementById('uploadDescInput').value = '';
+      previewFileName.textContent = ''; videoCategoryInput.selectedIndex = 0;
+      fillVideoInteractionForm('upload');
+      step1Area.style.display = 'flex'; step2Area.style.display = 'none';
+      uploadStudio?.reset();
+    }
+    function chooseUploadFile(file) {
+      if (videoUploadSending || !file) return false;
+      try { validateUploadChoice(file); }
+      catch (error) { showGuardNotice(document.getElementById('uploadStudioNoticeAnchor'), {message:error.message}); return false; }
+      releaseUploadPreview(); selectedFile = file;
+      videoTitleInput.value = file.name.split('.').slice(0, -1).join('.') || file.name;
+      previewFileName.textContent = file.name;
+      uploadPreviewUrl = URL.createObjectURL(file); previewVideo.src = uploadPreviewUrl;
+      step1Area.style.display = 'none'; step2Area.style.display = 'flex';
+      uploadStudio?.fileSelected(); return true;
+    }
     uploadMenuBtn.addEventListener('click', () => {
       if (!currentUser) { alert(t("動画をアップロードするにはログインが必要です。")); authModal.classList.add('active'); return; }
-      fillVideoInteractionForm('upload'); createMenu.classList.remove('active'); uploadModal.classList.add('active'); step1Area.style.display = 'flex'; step2Area.style.display = 'none'; fileInput.value = ''; thumbInput.value = '';
+      if (!videoUploadSending) resetUploadDraft();
+      createMenu.classList.remove('active'); uploadModal.classList.add('active');
     });
-    closeModalBtn.addEventListener('click', () => uploadModal.classList.remove('active'));
+    closeModalBtn.addEventListener('click', () => {
+      if (videoUploadSending) return;
+      uploadModal.classList.remove('active'); resetUploadDraft();
+    });
     selectFileBtn.addEventListener('click', () => fileInput.click());
-
-    let selectedFile = null;
-    fileInput.addEventListener('change', (event) => { selectedFile = event.target.files[0]; if (selectedFile) { videoTitleInput.value = selectedFile.name.split('.').slice(0, -1).join('.') || selectedFile.name; previewFileName.textContent = selectedFile.name; previewVideo.src = URL.createObjectURL(selectedFile); step1Area.style.display = 'none'; step2Area.style.display = 'flex'; } });
-    backModalBtn.addEventListener('click', () => { step2Area.style.display = 'none'; step1Area.style.display = 'flex'; fileInput.value = ''; thumbInput.value = ''; selectedFile = null; });
-
-    let videoUploadSending = false;
+    fileInput.addEventListener('change', event => { chooseUploadFile(event.target.files[0]); });
+    backModalBtn.addEventListener('click', () => { if (!videoUploadSending) resetUploadDraft(); });
+    uploadStudio = mountUploadStudio({chooseFile:chooseUploadFile,isSending:()=>videoUploadSending,
+      validateDetails:()=>{
+        if (!auth.currentUser || auth.currentUser.isAnonymous) throw new Error(t("ログインしてください。"));
+        if (!selectedFile) throw new Error(t("対応する動画形式を選んでください（MP4・MOV・WebMなど）。"));
+        validateUploadChoice(selectedFile);
+        const settings=readVideoInteractionForm('upload');
+        validateVideoMetadataSize({title:videoTitleInput.value.trim()||selectedFile.name,
+          desc:document.getElementById('uploadDescInput').value,category:videoCategoryInput.value,
+          uploaderUid:auth.currentUser.uid,uploaderName:getNickname(),...videoInteractionMetadata(settings)});
+      }
+    });
 
     saveBtn.addEventListener('click', async () => {
       if (videoUploadSending) return;
@@ -9884,6 +9928,7 @@ mainVideo.addEventListener('emptied', () => {
 
           if (auth.currentUser?.uid === uploadUser.uid) {
             uploadModal.classList.remove('active');
+            releaseUploadPreview();
             await watchVideo({
               url: downloadURL,
               title: uploadDetails.title,
@@ -11875,19 +11920,16 @@ function subMovieIsMuted(...values) {
     }
   }
 
-  save.addEventListener('click', async () => {
-    const words = [...new Set(
-      editor.value.split(/\r?\n/)
-        .map(word => word.trim())
-        .filter(Boolean)
-    )];
+  async function persistMutedWords(words, removeFromDraft = null) {
+    const accountKey = subMovieMuteKey();
+    words = [...new Set(words.map(word => word.trim()).filter(Boolean))];
 
     if (
       words.length > 100 ||
       words.some(word => word.length > 100)
     ) {
       status.textContent = t("最大100語、1語100文字までにしてください。");
-      return;
+      return false;
     }
 
     try {
@@ -11897,10 +11939,11 @@ function subMovieIsMuted(...values) {
       );
     } catch {
       status.textContent = t("ブラウザに保存できませんでした。");
-      return;
+      return false;
     }
 
-    editor.value = words.join('\n');
+    editor.value = removeFromDraft === null ? words.join('\n') : editor.value.split(/\r?\n/).filter(line => line.trim() !== removeFromDraft).join('\n');
+    mutedWordList.render();
     status.textContent = t("ミュートワードを保存しました。");
 
     try {
@@ -11913,16 +11956,21 @@ function subMovieIsMuted(...values) {
         loadComments();
       }
     } catch (error) {
-      status.textContent =
+      if (accountKey === subMovieMuteKey()) status.textContent =
         t("保存済みです。表示の更新に失敗したため再読み込みしてください。");
       console.error(error);
     }
-  });
+      return true;
+  }
+  const mutedWordList = mountMutedWordList({section, read:subMovieReadMutedWords, accountKey:subMovieMuteKey,
+    remove:word=>persistMutedWords(subMovieReadMutedWords().filter(item=>item!==word),word)});
+  save.addEventListener('click', () => { void persistMutedWords(editor.value.split(/\r?\n/)); });
 
   function refreshSettings() {
     if (!panel.open) return;
 
     editor.value = subMovieReadMutedWords().join('\n');
+    mutedWordList.render();
     status.textContent = '';
     renderBlockedUsers();
   }
@@ -11935,6 +11983,7 @@ function subMovieIsMuted(...values) {
   onAuthStateChanged(auth, () => {
     ++listVersion;
     list.replaceChildren();
+    mutedWordList.render();
     refreshSettings();
     if (currentVideoId && document.body.classList.contains('watch-mode')) loadComments();
   });
