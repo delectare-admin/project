@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-kbJGzzv1ZJBr505rOYMZl0BQOx3624FNdLTcEbHJp5g=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-zQAvqlH4A7uOaNcmxlfGHbijrKdQs3AYPLy5k2cFXmY=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3790,6 +3790,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 <script type="module" src="./assets/site-language-v1.mjs?v=20261024-1"></script>
 <script type="module" src="./assets/sticky-pip-drag-v1.mjs?v=20261025-1"></script>
 <link rel="stylesheet" href="./assets/upload-settings-v1.css?v=20261026-1">
+<link rel="stylesheet" href="./assets/channel-page-v1.css?v=20261026-1">
 </head>
 <body>
 
@@ -4252,6 +4253,8 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
   <script type="module">import {t,th,locale,compactCount,mountLanguageSettings} from './assets/site-language-v1.mjs?v=20261024-1';
 
+    import {mountChannelPage} from './assets/channel-page-v1.mjs?v=20261026-1';
+    let channelPage=null;
     import {mountMutedWordList,mountUploadStudio} from './assets/upload-settings-v1.mjs?v=20261026-1';
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
     import {createRatingFeedback} from "./assets/interaction-feedback-v1.mjs?v=20261022-1";
@@ -5737,41 +5740,30 @@ async function secureSubscribe() {
   }
 }
     async function showMyProfile(targetUid = null) {
-      creatorLab?.route("channel");creatorLab?.closeMenu();
-      try{await ensureCompleteVideoCatalog();}catch(error){console.warn("チャンネル一覧を再試行してください:",error.code||"network");}
-      const uid = targetUid || (currentUser ? currentUser.uid : null);
-      if (!uid || uid === "undefined" || uid === "null") return;
+      const uid=targetUid || auth.currentUser?.uid;
+      if(typeof uid!=='string'||!uid||uid.length>128||uid.includes('/')||['undefined','null'].includes(uid))return;
+      creatorLab?.route('channel');creatorLab?.closeMenu();
       document.body.classList.remove('watch-mode');
-      homeScreen.style.display = 'none'; watchScreen.style.display = 'none'; channelScreen.style.display = 'block';
-      let userData = {
-        channelName:
-          allVideos.find(v => v.uploaderUid === uid)?.uploaderName ||
-          'チャンネル',
-        avatarUrl: ''
-      };
-
-      try {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (userSnap.exists()) userData = userSnap.data();
-      } catch (error) {
-        console.warn('公開プロフィールの取得を保留:', error);
+      homeScreen.style.display='none';watchScreen.style.display='none';manageScreen.style.display='none';channelScreen.style.display='block';
+      if(!channelPage){
+        const cardObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;cardObserver.unobserve(entry.target);const video=homeCardData.get(entry.target);if(video)void fillHomeCard(entry.target,video);}},{rootMargin:'100px'});
+        channelPage=mountChannelPage({
+          user:()=>{const u=auth.currentUser;return u&&!u.isAnonymous?{uid:u.uid}:null;},
+          onAuth:fn=>onAuthStateChanged(auth,fn),login:()=>loginOpenBtn.click(),
+          loadVideos:async()=>{await ensureCompleteVideoCatalog();return [...allVideos];},cachedVideos:()=>[...allVideos],
+          profile:async channel=>(await getDoc(doc(db,'users',channel))).data()||{},
+          presentation:channel=>labPublicRequest({kind:'channel',uid:channel}),
+          observeCount:(channel,element)=>{displaySubscriberCount(channel,element,false);return()=>{subscriberCountListeners.get(element)?.();subscriberCountListeners.delete(element);};},
+          readSubscription:async channel=>{const u=auth.currentUser;if(!u||u.isAnonymous)return false;const snap=await getDoc(doc(db,'userPrivate',u.uid,'subscriptions',channel));if(auth.currentUser?.uid!==u.uid)throw Error(t("ログイン状態が変わりました。"));return snap.exists()&&snap.data().active===true;},
+          subscribe:async(channel,desired)=>{const u=auth.currentUser;const result=await setChannelSubscription(u,channel,desired);if(auth.currentUser?.uid!==u?.uid)throw Error(t("ログイン状態が変わりました。"));currentUserSubscriptions=currentUserSubscriptions.filter(value=>value!==channel);if(result.active)currentUserSubscriptions.push(channel);syncSubscriptionStrip();return result;},
+          visible:v=>!currentUserBlocks.includes(v.uploaderUid)&&!subMovieIsMuted(v.title,v.desc,v.uploaderName),
+          renderVideos:(list,container)=>{cardObserver.disconnect();renderGrid(list,container);[...container.querySelectorAll('.grid-item')].forEach((card,index)=>decorateHomeCard(card,list[index],cardObserver));},
+          clearCards:()=>cardObserver.disconnect(),openVideo:v=>watchVideo(v),
+          views:async v=>{const snap=await getDoc(doc(db,'videoStats',statsDocId(v.itemRef.fullPath)));return Math.max(0,Number(snap.data()?.views)||0);}
+        });
       }
-      const channelAvatarHeader = document.getElementById('channelAvatarHeader');
-      channelPageTitle.textContent = userData.channelName;
-      document.getElementById('channelHandle').textContent = userData.channelName.toLowerCase().replace(/\s/g, '');
-      displaySubscriberCount(uid, document.getElementById('channelSubscriberCount'), false);
-      if (userData.avatarUrl) {
-        channelAvatarHeader.style.backgroundImage = `url(${userData.avatarUrl})`; channelAvatarHeader.textContent = '';
-      } else {
-        channelAvatarHeader.style.backgroundImage = 'none'; channelAvatarHeader.textContent = userData.channelName.charAt(0).toUpperCase();
-      }
-      document.getElementById('customizeBtn').style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
-      document.getElementById('manageVideoBtn').style.display = (currentUser && currentUser.uid === uid) ? 'block' : 'none';
-      const userVideos = allVideos.filter(v => v.uploaderUid === uid);
-      document.getElementById('channelVideoCount').textContent = userVideos.length;
-      renderGrid(userVideos, channelGrid);
-      void creatorLab?.publicChannel(uid);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({top:0,behavior:'smooth'});
+      await channelPage.open(uid);
     }
     userProfileAvatar.addEventListener('click', () => showMyProfile());
     channelNameDisplay.addEventListener('click', () => showMyProfile());
