@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-crpX7Dqn+C4uw3bXMjx7slKpPCrd4zmRszIPA6Zosik=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-Z8RfucDiF8Kvd0mN4L5Nabhtfx4W1oYDgwxo5UD/XF0=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -4303,6 +4303,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   <script type="module">import {t,th,locale,compactCount,mountLanguageSettings} from './assets/site-language-v1.mjs?v=20261024-1';
 
     import {mountChannelPage} from './assets/channel-page-v1.mjs?v=20261026-1';
+    import {createCardMenuManager} from './assets/card-menu-v1.mjs?v=20261121-1';
     let channelPage=null;
     import {mountMutedWordList,mountUploadStudio} from './assets/upload-settings-v1.mjs?v=20261026-1';
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
@@ -5706,15 +5707,18 @@ async function secureAuthChanged(user) {
   loadVideoList(videoEntriesRequest);
 }
 
-async function secureReport() {
+async function secureReport(target = null) {
   const user = auth.currentUser;
 
   if (!user || user.isAnonymous) {
     return alert(t("通報するにはログインしてください。"));
   }
 
-  const videoId = currentVideoId;
+  const hasTarget = Boolean(target && typeof target.videoId === 'string' && target.videoId);
+  const videoId = hasTarget ? target.videoId : currentVideoId;
   if (!videoId) return;
+  const videoTitle = String(hasTarget ? (target.videoTitle ?? '') : (mainTitle.textContent ?? '')).slice(0, 1000);
+  const uploaderUid = hasTarget ? (target.uploaderUid || '') : (uploaderNameEl.dataset.uid || '');
 
   const reason = prompt(
     t("通報の理由を入力してください（2000文字以内）")
@@ -5726,13 +5730,14 @@ async function secureReport() {
     return alert(t("通報理由は2000文字以内で入力してください。"));
   }
 
-  reportBtn.disabled = true;
+  const isCurrentWatchBtn = !hasTarget && reportBtn;
+  if (isCurrentWatchBtn) reportBtn.disabled = true;
 
   try {
     await addDoc(collection(db, 'reports'), {
       videoId,
-      videoTitle: mainTitle.textContent.slice(0, 1000),
-      uploaderUid: uploaderNameEl.dataset.uid || '',
+      videoTitle,
+      uploaderUid,
       reportedBy: user.uid,
       reason,
       createdAt: serverTimestamp(),
@@ -5746,7 +5751,7 @@ async function secureReport() {
       t("通報を保存できませんでした。通信とログイン状態を確認してください。")
     );
   } finally {
-    reportBtn.disabled = false;
+    if (isCurrentWatchBtn) reportBtn.disabled = false;
   }
 }
 
@@ -6994,6 +6999,78 @@ async function fillHomeCard(card, v) {
   }
 }
 
+      function syncWatchSaveButton() {
+        const btn = document.getElementById('saveVideoBtn');
+        if (!btn) return;
+        if (currentVideoId && currentUserSaved.includes(currentVideoId)) {
+          setUiIcon(btn, 'bookmark-check', t("保存済み"));
+          btn.style.color = '#065fd4';
+        } else {
+          setUiIcon(btn, 'bookmark', t("保存"));
+          btn.style.color = '';
+        }
+      }
+
+      async function toggleSavedVideo(videoId, triggerButton = null) {
+        if (!currentUser) return alert(t("動画を保存するにはログインしてください。"));
+        if (!videoId) return;
+        if (triggerButton) triggerButton.disabled = true;
+        try {
+          const userRef = doc(db, 'userPrivate', currentUser.uid);
+          if (currentUserSaved.includes(videoId)) {
+            await setDoc(userRef, { savedVideos: arrayRemove(videoId) }, { merge: true });
+            currentUserSaved = currentUserSaved.filter(id => id !== videoId);
+          } else {
+            await setDoc(userRef, { savedVideos: arrayUnion(videoId) }, { merge: true });
+            currentUserSaved.push(videoId);
+          }
+          if (videoId === currentVideoId) syncWatchSaveButton();
+          if (currentFeed === 'saved' && homeScreen.style.display !== 'none') applyFilterAndSort();
+        } catch {
+          alert(t("保存に失敗しました。"));
+        } finally {
+          if (triggerButton) triggerButton.disabled = false;
+        }
+      }
+
+      const cardMenuManager = createCardMenuManager({
+        isSaved: videoId => currentUserSaved.includes(videoId),
+        onToggleSave: async (v, button) => {
+          await toggleSavedVideo(v.itemRef.fullPath, button);
+        },
+        onReport: async v => {
+          await secureReport({
+            videoId: v.itemRef.fullPath,
+            videoTitle: v.title || '',
+            uploaderUid: v.uploaderUid || ''
+          });
+        },
+        onDownload: async v => {
+          await cardMenuManager.runDownload({
+            videoId: v.itemRef.fullPath,
+            title: v.title || '',
+            makeTarget: makeVideoDownloadTarget,
+            saveDownload: saveVideoDownload
+          });
+        },
+        onNotInterested: async v => {
+          if (!currentUser) return alert(t("この機能を使うにはログインしてください。"));
+          if (v.uploaderUid === currentUser.uid) return alert(t("自分のチャンネルは非表示にできません。"));
+          try {
+            await setDoc(doc(db, 'userPrivate', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true });
+            currentUserNotInterested.push(v.uploaderUid);
+            alert(t("このチャンネルの動画を今後おすすめに表示しません。"));
+            applyFilterAndSort();
+            if (currentVideoId && document.body.classList.contains('watch-mode')) renderSidebar(currentVideoId);
+          } catch {
+            alert(t("設定に失敗しました。"));
+          }
+        },
+        onBlockChannel: async v => {
+          await blockUserWithDialog(v.uploaderUid);
+        }
+      });
+
       function renderGrid(list, container) {
           if (container === videoGrid) {
     list = list.filter(video => !subMovieIsMuted(
@@ -7015,11 +7092,7 @@ async function fillHomeCard(card, v) {
         const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
         const mediaHtml = thumbnailHtml(v); 
         gridItem.innerHTML = `${mediaHtml}${canDelete ? `<button class="delete-video-btn" title="${th("この動画を削除")}" aria-label="${th("この動画を削除")}">`+uiIconMarkup('trash')+'</button>' : ''}
-          <div class="grid-item-info"><div class="grid-item-text"><div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div></div>
-          <div class="grid-menu-wrapper"><button class="grid-menu-btn-yt" type="button" aria-label="${th("動画のその他の操作")}">${uiIconMarkup('more')}</button><div class="grid-dropdown">
-            <div class="grid-dropdown-item not-interested-btn" data-uid="${v.uploaderUid}">${uiIconMarkup('eye-off')} ${th("チャンネルをおすすめに表示しない")}</div>
-            <div class="grid-dropdown-item block-channel-btn" data-uid="${v.uploaderUid}">${uiIconMarkup('block')} ${th("チャンネルをブロックする")}</div>
-          </div></div></div>`;
+          <div class="grid-item-info"><div class="grid-item-text"><div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div></div></div>`;
 
         // 動画ごとのURLを作成
 const videoPageUrl = new URL(window.location.pathname, window.location.origin);
@@ -7062,7 +7135,7 @@ gridItem.querySelectorAll('.thumbnail-img, .grid-title').forEach(element => {
 
 // カードの余白をクリックした場合も再生する
 gridItem.addEventListener('click', event => {
-  if (event.target.closest('a, button, .grid-dropdown')) return;
+  if (event.target.closest('a, button, .grid-menu-wrapper, .grid-dropdown')) return;
   watchVideo(v);
 });
 
@@ -7086,20 +7159,7 @@ gridItem.addEventListener('click', event => {
             deleteBtn.disabled = false;
           }
         });
-        const menuBtn = gridItem.querySelector('.grid-menu-btn-yt');
-        const dropdown = gridItem.querySelector('.grid-dropdown');
-        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.grid-dropdown.active').forEach(m => { if (m !== dropdown) m.classList.remove('active'); }); dropdown.classList.toggle('active'); });
-        gridItem.querySelector('.not-interested-btn').addEventListener('click', async (e) => {
-          e.stopPropagation(); dropdown.classList.remove('active');
-          if (!currentUser) return alert(t("この機能を使うにはログインしてください。"));
-          if (v.uploaderUid === currentUser.uid) return alert(t("自分のチャンネルは非表示にできません。"));
-          try { await setDoc(doc(db, 'userPrivate', currentUser.uid), { notInterestedUids: arrayUnion(v.uploaderUid) }, { merge: true }); currentUserNotInterested.push(v.uploaderUid); alert(t("このチャンネルの動画を今後おすすめに表示しません。")); applyFilterAndSort(); } catch { alert(t("設定に失敗しました。")); }
-        });
-
-        gridItem.querySelector('.block-channel-btn').addEventListener('click', async (e) => {
-    e.stopPropagation();dropdown.classList.remove('active');
-      await blockUserWithDialog(v.uploaderUid);
-        });
+        cardMenuManager.attach(gridItem.querySelector('.grid-item-info'), v);
 
       const image=gridItem.querySelector('img.thumbnail-img');
       if(image&&container===videoGrid&&container.children.length<2){image.loading='eager';image.fetchPriority=container.children.length===0?'high':'auto';}
@@ -7124,7 +7184,7 @@ gridItem.addEventListener('click', event => {
       relatedVideosSidebar.replaceChildren();
       const heading = document.createElement('h3'); heading.className = 'related-heading'; heading.textContent = t("関連動画"); relatedVideosSidebar.appendChild(heading);
       const current = allVideos.find(v => v.itemRef.fullPath === excludePath);
-      const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath).sort((a, b) => Number(b.category === (current && current.category)) - Number(a.category === (current && current.category)));
+      const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath && !currentUserNotInterested.includes(v.uploaderUid) && !currentUserBlocks.includes(v.uploaderUid)).sort((a, b) => Number(b.category === (current && current.category)) - Number(a.category === (current && current.category)));
       others.slice(0, 12).forEach(v => {
         const item = document.createElement('div'); item.className = 'related-item';
         item.innerHTML = `${thumbnailHtml(v)}<div class="info grid-item-info"><div class="grid-item-text"><div class="info-title">${escapeHtml(v.title)}</div><div class="grid-author info-author">${escapeHtml(v.uploaderName)}</div></div></div>`;
@@ -7139,8 +7199,12 @@ gridItem.addEventListener('click', event => {
             event.preventDefault(); watchVideo(v);
           });
         }
-        item.addEventListener('click', event => { if (!event.target.closest('a, button')) watchVideo(v); });
+        item.addEventListener('click', event => {
+          if (event.target.closest('a, button, .grid-menu-wrapper, .grid-dropdown')) return;
+          watchVideo(v);
+        });
         decorateHomeCard(item, v, relatedCardObserver);
+        cardMenuManager.attach(item.querySelector('.grid-item-info'), v);
         watchProgress?.decorate(item, v.itemRef.fullPath); relatedVideosSidebar.appendChild(item);
       });
     }
@@ -10365,13 +10429,7 @@ await uploadBytes(thumbRef, thumbFile, {
 
     const saveVideoBtn = document.getElementById('saveVideoBtn');
     saveVideoBtn.addEventListener('click', async () => {
-      if (!currentUser) return alert(t("動画を保存するにはログインしてください。"));
-      saveVideoBtn.disabled = true;
-      try {
-        const userRef = doc(db, 'userPrivate', currentUser.uid);
-        if (currentUserSaved.includes(currentVideoId)) { await setDoc(userRef, { savedVideos: arrayRemove(currentVideoId) }, { merge: true }); currentUserSaved = currentUserSaved.filter(id => id !== currentVideoId); setUiIcon(saveVideoBtn,'bookmark',t("保存")); saveVideoBtn.style.color = ''; }
-        else { await setDoc(userRef, { savedVideos: arrayUnion(currentVideoId) }, { merge: true }); currentUserSaved.push(currentVideoId); setUiIcon(saveVideoBtn,'bookmark-check',t("保存済み")); saveVideoBtn.style.color = '#065fd4'; }
-      } catch { alert(t("保存に失敗しました。")); } finally { saveVideoBtn.disabled = false; }
+      await toggleSavedVideo(currentVideoId, saveVideoBtn);
     });
 
     const shareModal = document.getElementById('shareModal');
@@ -12867,9 +12925,9 @@ navHistoryBtn.addEventListener('click', event => {
   const download = document.createElement('button');
   download.id = 'downloadVideoBtn';
   download.type = 'button';
-  setUiIcon(download,'download',t("動画を保存"));
-  download.title = t("この端末に動画ファイルを保存（無料）");
-  download.setAttribute('aria-label', t("動画を端末に保存・無料"));
+  setUiIcon(download,'download',t("動画をダウンロード"));
+  download.title = t("この端末に動画ファイルをダウンロード（無料）");
+  download.setAttribute('aria-label', t("動画をダウンロード（無料）"));
   menu.append(save, report, download);
 
   // 既存のブロックボタンを三点メニューへ移す
@@ -12899,57 +12957,20 @@ if (blockMenuItem) {
   downloadStatus.append(downloadMessage, cancelDownload);
   meta.after(downloadStatus);
 
-  let downloadController = null;
-  cancelDownload.addEventListener('click', () => downloadController?.abort());
-
   download.addEventListener('click', async () => {
-    if (downloadController || !document.body.classList.contains('watch-mode')) return;
-    const controller = new AbortController();
-    downloadController = controller;
-    download.disabled = true;
-    downloadStatus.hidden = false;
-    downloadStatus.dataset.state = 'working';
-    cancelDownload.hidden = false;
-    try {
-      const target = makeVideoDownloadTarget(currentVideoId, title.textContent);
-      downloadMessage.textContent = t("「{0}」の保存を準備しています…", target.fileName);
-      let handle = null;
-      // 先に保存先を選ぶことで、大きな動画をメモリへ丸ごと保持せず保存できる。
-      if (typeof window.showSaveFilePicker === 'function') {
-        try {
-          handle = await window.showSaveFilePicker({
-            id: 'submovie-video-download',
-            suggestedName: target.fileName,
-            types: [{description: t("動画ファイル"), accept: {[target.mime]: ['.' + target.extension]}}],
-            excludeAcceptAllOption: true
-          });
-        } catch (error) {
-          if (!['SecurityError', 'NotSupportedError'].includes(error.name)) throw error;
-        }
-      }
-      const result = await saveVideoDownload(target, handle, controller.signal, percent => {
-        downloadMessage.textContent = t("「{0}」を取得中… {1}%", target.fileName, percent);
-      });
-      downloadStatus.dataset.state = 'done';
-      downloadMessage.textContent = result === 'saved'
-        ? t("「{0}」を保存しました。", target.fileName)
-        : t("「{0}」のダウンロードを開始しました。", target.fileName);
-    } catch (error) {
-      if (error.name === 'AbortError' || controller.signal.aborted) {
-        downloadMessage.textContent = t("動画の保存をキャンセルしました。");
-        downloadStatus.dataset.state = 'done';
-      } else {
-        console.error('動画の端末保存に失敗:', error);
-        downloadStatus.dataset.state = 'error';
-        downloadMessage.textContent = error instanceof TypeError
-          ? t("動画を取得できませんでした。通信状態を確認してください。")
-          : error.message || t("動画を保存できませんでした。");
-      }
-    } finally {
-      cancelDownload.hidden = true;
-      download.disabled = false;
-      downloadController = null;
-    }
+    if (!document.body.classList.contains('watch-mode')) return;
+    await cardMenuManager.runDownload({
+      videoId: currentVideoId,
+      title: title.textContent,
+      makeTarget: makeVideoDownloadTarget,
+      saveDownload: saveVideoDownload,
+      statusElements: {
+        box: downloadStatus,
+        message: downloadMessage,
+        cancel: cancelDownload
+      },
+      triggerButton: download
+    });
   });
   document.body.appendChild(menu);
 
