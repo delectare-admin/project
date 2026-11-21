@@ -609,6 +609,7 @@ const EN = Object.freeze({"チャンネルをおすすめに表示しない": "D
   "速度を0.05倍下げる": "Decrease speed by 0.05×",
   "速度を0.05倍上げる": "Increase speed by 0.05×",
   "よく使う再生速度": "Common playback speeds",
+  "ループ再生": "Loop",
   "弾幕カスタマイズ": "Danmaku customization",
   "カラー": "Color",
   "位置": "Position",

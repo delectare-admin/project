@@ -2894,6 +2894,55 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   margin: 10px 0 0; color: #ffd2c9; font-size: 12px; line-height: 1.5;
 }
 #videoWrapper #mobilePlaybackSettings .playback-speed-note:empty { display: none; }
+#videoWrapper #mobilePlaybackSettings .playback-loop-row {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .14);
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 36px; margin: 0; cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-label {
+  color: #fff; font-size: 14px; line-height: 1.4;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-control {
+  position: relative; display: inline-flex; align-items: center;
+  flex: 0 0 auto; width: 44px; height: 24px;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  margin: 0; opacity: 0; cursor: pointer;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-input:focus-visible {
+  outline: none;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-switch {
+  position: relative; display: block; width: 44px; height: 24px;
+  box-sizing: border-box; border: 1px solid #666; border-radius: 999px;
+  background: #454545; transition: background-color .18s ease, border-color .18s ease;
+  pointer-events: none;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: transform .18s ease, background-color .18s ease;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-input:checked + .playback-loop-switch {
+  background: #fff; border-color: #fff;
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-input:checked + .playback-loop-switch::after {
+  background: #111; transform: translateX(20px);
+}
+#videoWrapper #mobilePlaybackSettings .playback-loop-input:focus-visible + .playback-loop-switch {
+  outline: 2px solid #73aaff; outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  #videoWrapper #mobilePlaybackSettings .playback-loop-switch,
+  #videoWrapper #mobilePlaybackSettings .playback-loop-switch::after {
+    transition: none;
+  }
+}
 
 
 /* コレクションの保存とは別に、端末への動画ダウンロードを表示。 */
@@ -9644,6 +9693,7 @@ function activeDanmakuAt(currentTime) {
 
 let danmakuFrame = 0;
 let danmakuVideoId = null;
+let lastDanmakuTime = 0;
 
 function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
   if (!videoFeatureEnabled('danmaku') || danmakuContainer.style.visibility === 'hidden') {
@@ -9651,6 +9701,7 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
       danmakuContainer.replaceChildren();
       danmakuNodes.clear();
     }
+    if (Number.isFinite(currentTime)) lastDanmakuTime = currentTime;
     return;
   }
   // 別の動画へ移ったら、前の弾幕を消す
@@ -9658,6 +9709,16 @@ function syncDanmakuToTime(currentTime = mainVideo.currentTime) {
     danmakuContainer.replaceChildren();
     danmakuNodes.clear();
     danmakuVideoId = currentVideoId;
+    lastDanmakuTime = 0;
+  }
+
+  // ループ等で再生位置が大きく戻った場合は、即座に時刻ウィンドウを再同期する
+  if (Number.isFinite(currentTime)) {
+    const loopedBack = currentTime + 0.5 < lastDanmakuTime;
+    lastDanmakuTime = currentTime;
+    if (loopedBack) {
+      refreshDanmakuWindow?.();
+    }
   }
 
   const visibleIds = new Set();
@@ -9767,12 +9828,19 @@ mainVideo.addEventListener('seeked', startDanmakuLoop);
 mainVideo.addEventListener('timeupdate', () => {
   refreshDanmakuWindow?.();
   syncDanmakuToTime();
+  if (!mainVideo.paused && !mainVideo.ended && !mainVideo.seeking && !danmakuFrame) {
+    startDanmakuLoop();
+  }
 });
 
-mainVideo.addEventListener('ended', stopDanmakuLoop);
+mainVideo.addEventListener('ended', () => {
+  if (mainVideo.loop) return;
+  stopDanmakuLoop();
+});
 
 mainVideo.addEventListener('emptied', () => {
   stopDanmakuLoop();
+  lastDanmakuTime = 0;
   danmakuContainer.replaceChildren();
   danmakuNodes.clear();
 });
@@ -13571,6 +13639,16 @@ bell.hidden = !signedIn || !onNotificationScreen;
       <button type="button" data-playback-rate="4" aria-pressed="false">${th("4倍")}</button>
     </div>
     <p class="playback-speed-note" role="status"></p>
+
+    <div class="playback-loop-row">
+      <label class="playback-loop-toggle" for="playbackLoopToggle">
+        <span class="playback-loop-label">${th("ループ再生")}</span>
+        <span class="playback-loop-control">
+          <input id="playbackLoopToggle" class="playback-loop-input" type="checkbox" role="switch" aria-label="${th("ループ再生")}">
+          <span class="playback-loop-switch" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
   `;
 
   wrapper.appendChild(settings);
@@ -13583,16 +13661,49 @@ bell.hidden = !signedIn || !onNotificationScreen;
   const speedMinus = settings.querySelector('.playback-speed-minus');
   const speedPlus = settings.querySelector('.playback-speed-plus');
   const speedPresets = [...settings.querySelectorAll('[data-playback-rate]')];
+  const loopInput = settings.querySelector('.playback-loop-input');
+  const LOOP_STORAGE_KEY = 'submovie-playback-loop-v1';
   const QUALITY_HEIGHTS = [144, 240, 360, 480, 720];
   const SPEED_MIN = 0.25;
   const SPEED_MAX = 4;
   const SPEED_STEP = 0.05;
+  let loopEnabled = false;
   let settingsPlayer = null;
   let settingsVideoId = null;
   let requestedQuality = null;
   let boundPlayer = null;
   let boundEvents = [];
   const settingsDocuments = new WeakSet();
+
+  function readStoredLoop() {
+    try {
+      return window.localStorage.getItem(LOOP_STORAGE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function persistLoopSetting(enabled) {
+    try {
+      window.localStorage.setItem(LOOP_STORAGE_KEY, enabled ? '1' : '0');
+    } catch {
+      // 保存不可でも現在の画面上ではループ設定を有効に保つ
+    }
+  }
+
+  function syncLoopControl() {
+    video.loop = loopEnabled;
+    if (loopInput) loopInput.checked = loopEnabled;
+  }
+
+  function applyLoopSetting(enabled, { persist = false } = {}) {
+    loopEnabled = Boolean(enabled);
+    syncLoopControl();
+    if (persist) persistLoopSetting(loopEnabled);
+  }
+
+  loopEnabled = readStoredLoop();
+  syncLoopControl();
 
   function currentHlsPlayer() {
     return typeof hlsInstance !== 'undefined' ? hlsInstance : null;
@@ -13656,6 +13767,7 @@ bell.hidden = !signedIn || !onNotificationScreen;
 
   function refreshSettings() {
     syncSpeedControls();
+    syncLoopControl();
     const player = currentHlsPlayer();
     if (settingsPlayer !== player) requestedQuality = null;
     settingsPlayer = player;
@@ -13748,6 +13860,22 @@ bell.hidden = !signedIn || !onNotificationScreen;
     button.addEventListener('click', () => changePlaybackSpeed(button.dataset.playbackRate));
   });
   video.addEventListener('ratechange', syncSpeedControls);
+  loopInput.addEventListener('change', () => applyLoopSetting(loopInput.checked, { persist: true }));
+  window.addEventListener('storage', event => {
+    if (event.key !== LOOP_STORAGE_KEY) return;
+    applyLoopSetting(event.newValue === '1');
+  });
+
+  // ループ再生オン時は、終了時の次動画遷移・終了画面等よりループを最優先する
+  video.addEventListener('ended', event => {
+    if (!loopEnabled && !video.loop) return;
+    video.loop = true;
+    event.stopImmediatePropagation();
+    try { video.currentTime = 0; } catch { /* ignore */ }
+    refreshDanmakuWindow?.();
+    syncDanmakuToTime(0);
+    video.play().catch(() => {});
+  }, true);
 
   // PCの下段へ移した設定ボタンも、映像の再生切替へクリックを伝えない。
   [tools, settings, settingsButton].forEach(element => {
@@ -13775,9 +13903,11 @@ bell.hidden = !signedIn || !onNotificationScreen;
   video.addEventListener('loadstart', () => {
     closeSettings();
     requestedQuality = null;
+    syncLoopControl();
     bindHlsSettingsEvents(currentHlsPlayer());
   });
   video.addEventListener('loadedmetadata', () => {
+    syncLoopControl();
     if (!settings.hidden) refreshSettings();
     else bindHlsSettingsEvents(currentHlsPlayer());
   });
