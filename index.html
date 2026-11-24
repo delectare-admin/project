@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-22K+au9pk5AvW5Ur5SoPXJRhyqc/esIY1POVbSXSPFg=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-6MQyDAB2o6/uzHIvbSp5P9IcylP5cd9aGqwJJNWQA+k=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3783,14 +3783,6 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 :root #watchMoreMenu {border:1px solid #3f3f3f !important; background:#212121 !important;}
 :root #watchMoreMenu > button:hover,
 :root #watchMoreMenu > button:focus-visible {background:#272727 !important;}
-:root #notificationBell {color:#f1f1f1 !important;}
-:root #notificationBell.has-unread::after {border:2px solid #3f3f3f !important;}
-:root #notificationPanel {border:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
-:root #notificationPanel .notification-heading {background:#212121 !important; border-bottom:1px solid #3f3f3f !important;}
-:root #notificationList > button {border-bottom:1px solid #3f3f3f !important; background:#212121 !important; color:#f1f1f1 !important;}
-:root #notificationList > button.unread {background:#173044 !important;}
-:root #notificationList small {color:#aaa !important;}
-:root #notificationStatus {color:#aaa !important;}
 :root .mobile-danmaku-below {background:#212121 !important;}
 :root #subscriptionOpenChannel {background:#272727 !important; color:#3ea6ff !important;}
 :root .subscription-channel {color:#f1f1f1 !important;}
@@ -3840,6 +3832,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 <script type="module" src="./assets/sticky-pip-drag-v1.mjs?v=20261025-1"></script>
 <link rel="stylesheet" href="./assets/upload-settings-v1.css?v=20261026-1">
 <link rel="stylesheet" href="./assets/channel-page-v1.css?v=20261026-1">
+<link rel="stylesheet" href="./assets/notification-panel-v1.css?v=20261124-1">
 </head>
 <body>
 
@@ -4304,6 +4297,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
 
     import {mountChannelPage} from './assets/channel-page-v1.mjs?v=20261026-1';
     import {createCardMenuManager} from './assets/card-menu-v1.mjs?v=20261121-1';
+    import {mountNotificationPanel} from './assets/notification-panel-v1.mjs?v=20261124-1';
     let channelPage=null;
     import {mountMutedWordList,mountUploadStudio} from './assets/upload-settings-v1.mjs?v=20261026-1';
     import {createUiIcon,setUiIcon,uiIconMarkup} from "./assets/ui-icons-v1.mjs?v=20261022";
@@ -13234,378 +13228,45 @@ if (blockMenuItem) {
 })();
 
 // ===== ログインユーザー専用の通知一覧 =====
-import {
-  orderBy as notificationOrderBy,
-  limit as notificationLimit
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-(() => {
-  if (document.getElementById('notificationBell')) return;
-
-  const header = document.querySelector('body > header');
-  if (!header) return;
-
-  const style = document.createElement('style');
-  style.textContent = `
-    #notificationBell {
-      position: relative;
-      display: grid;
-      place-items: center;
-      flex: 0 0 40px;
-      width: 40px;
-      height: 40px;
-      padding: 8px;
-      border: 0;
-      background: transparent;
-      color: #111;
-      cursor: pointer;
-    }
-
-    #notificationBell[hidden] {
-      display: none !important;
-    }
-
-    #notificationBell svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    #notificationBell.has-unread::after {
-      content: '';
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #e53935;
-      border: 2px solid #fff;
-    }
-
-    #notificationPanel {
-      position: fixed;
-      inset: 70px 12px auto auto;
-      width: min(390px, calc(100vw - 24px));
-      max-height: 75vh;
-      max-height: 75dvh;
-      margin: 0;
-      padding: 0;
-      border: 1px solid #ddd;
-      border-radius: 16px;
-      background: #fff;
-      color: #111;
-      box-sizing: border-box;
-      overflow: auto;
-    }
-
-    #notificationPanel::backdrop {
-      background: rgba(0,0,0,.12);
-    }
-
-    #notificationPanel .notification-heading {
-      position: sticky;
-      top: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: #fff;
-      border-bottom: 1px solid #eee;
-      z-index: 1;
-    }
-
-    #notificationPanel h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    #notificationClose {
-      width: 40px;
-      height: 40px;
-      border: 0;
-      background: transparent;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    #notificationList > button {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      border: 0;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-      color: #111;
-      text-align: left;
-      font: inherit;
-      line-height: 1.6;
-      cursor: pointer;
-    }
-
-    #notificationList > button.unread {
-      background: #edf5ff;
-    }
-
-    #notificationList small {
-      display: block;
-      margin-top: 6px;
-      color: #777;
-      font-size: 11px;
-    }
-
-    #notificationStatus {
-      padding: 16px;
-      color: #666;
-      font-size: 13px;
-    }
-  `;
-  document.head.appendChild(style);
-
-  const bell = document.createElement('button');
-  bell.id = 'notificationBell';
-  bell.type = 'button';
-  bell.hidden = true;
-  bell.setAttribute('aria-label', t("通知を開く"));
-  bell.setAttribute('aria-haspopup', 'dialog');
-
-  bell.innerHTML = uiIconMarkup('bell');
-
- const search = document.getElementById('mobileWatchSearchBtn');
-const settingsButton = document.getElementById('mySettingsBtn');
-const headerUserInfo = document.getElementById('userInfo');
-const headerActions = header.querySelector('.header-actions');
-const notificationMobile = window.matchMedia('(max-width: 768px)');
-
-function placeNotificationBell() {
-  if (notificationMobile.matches) {
-    // スマホ：左から「通知 → 検索 → 設定」
-    // スマホではheader-actionsが非表示なので、
-    // 通知ベルはヘッダー直下へ移す。
-    if (search) {
-      header.insertBefore(bell, search);
-
-      if (settingsButton) {
-        search.after(settingsButton);
-      }
-    } else {
-      header.appendChild(bell);
-    }
-  } else {
-    // PC：チャンネルアイコンのすぐ左
-    if (headerUserInfo && headerActions?.contains(headerUserInfo)) {
-      headerActions.insertBefore(bell, headerUserInfo);
-    } else if (headerActions) {
-      headerActions.appendChild(bell);
-    } else {
-      header.appendChild(bell);
-    }
-  }
-}
-
-placeNotificationBell();
-
-// ウィンドウ幅を変えた場合も配置を更新
-notificationMobile.addEventListener('change', placeNotificationBell);
-
-  const panel = document.createElement('dialog');
-  panel.id = 'notificationPanel';
-  panel.setAttribute('aria-labelledby', 'notificationHeading');
-
-  panel.innerHTML = `
-    <div class="notification-heading">
-      <h2 id="notificationHeading">${th("通知")}</h2>
-      <button type="button" id="notificationClose"
-        aria-label="${th("通知を閉じる")}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="site-ui-icon" data-ui-icon="close"><path d="m6 6 12 12M6 18 18 6"></path></svg></button>
-    </div>
-    <div id="notificationStatus">${th("読み込み中…")}</div>
-    <div id="notificationList"></div>
-  `;
-  document.body.appendChild(panel);
-
-  const list = panel.querySelector('#notificationList');
-  const status = panel.querySelector('#notificationStatus');
-
-  let uid = null;
-  let unsubscribe = null;
-
-  function syncVisibility() {
-    const signedIn =
-      auth.currentUser &&
-      !auth.currentUser.isAnonymous &&
-      auth.currentUser.uid === uid;
-
-   const watching =
-  document.body.classList.contains('watch-mode');
-
-const onNotificationScreen =
-  (
-    homeScreen.style.display !== 'none' &&
-    !watching &&
-    ['all', 'subscriptions', 'trending', 'mypage']
-      .includes(currentFeed)
-  ) ||
-  (
-    watching &&
-    !notificationMobile.matches
-  );
-
-bell.hidden = !signedIn || !onNotificationScreen;
-
-    if (bell.hidden && panel.open) panel.close();
-  }
-
-  function message(data) {
-    const number = Number(data.milestone).toLocaleString(locale);
-
-    if (data.kind === 'subscribers') {
-      return t("チャンネル登録者数が{0}人に到達しました！", number);
-    }
-
-    if (data.kind === 'danmaku') {
-      return t("「{0}」の弾幕が累計{1}件に到達しました！", data.title, number);
-    }
-
-    return t("「{0}」の高評価が{1}件に到達しました！", data.title, number);
-  }
-
-  bell.addEventListener('click', () => {
-    syncVisibility();
-    if (bell.hidden || panel.open) return;
-    panel.showModal();
-  });
-
-  panel.querySelector('#notificationClose')
-    .addEventListener('click', () => panel.close());
-
-  onAuthStateChanged(auth, user => {
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
-    }
-
-    uid = user && !user.isAnonymous ? user.uid : null;
-
-    list.replaceChildren();
-    bell.classList.remove('has-unread');
-    status.textContent = t("読み込み中…");
-
-    if (panel.open) panel.close();
-    syncVisibility();
-
-    if (!uid) return;
-
-    const ownerUid = uid;
-
-    const notifications = query(
-      collection(db, 'userNotifications', ownerUid, 'items'),
-      notificationOrderBy('createdAt', 'desc'),
-      notificationLimit(50)
-    );
-
-    unsubscribe = onSnapshot(
-      notifications,
-      snapshot => {
-        if (uid !== ownerUid) return;
-
-        list.replaceChildren();
-
-        const unread = snapshot.docs.some(
-          item => item.data().read !== true
-        );
-
-        bell.classList.toggle('has-unread', unread);
-        bell.setAttribute(
-          'aria-label',
-          unread ? t("未読の通知があります") : t("通知を開く")
-        );
-
-        status.textContent = snapshot.empty
-          ? t("通知はまだありません。")
-          : t("最新50件まで表示します。青い通知は未読です。");
-
-        for (const item of snapshot.docs) {
-          const data = item.data();
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.classList.toggle('unread', data.read !== true);
-
-          const text = document.createElement('span');
-          text.textContent = message(data);
-
-          const date = document.createElement('small');
-          const recorded = data.createdAt?.toDate?.();
-
-          date.textContent = recorded
-            ? t("記録日時：{0}", recorded.toLocaleString(locale))
-            : '';
-
-          button.append(text, date);
-
-          button.addEventListener('click', async () => {
-            if (
-              !auth.currentUser ||
-              auth.currentUser.isAnonymous ||
-              auth.currentUser.uid !== ownerUid
-            ) return;
-
-            button.disabled = true;
-
-            try {
-              await updateDoc(item.ref, { read: true });
-
-              if (auth.currentUser?.uid !== ownerUid) return;
-
-              panel.close();
-
-              if (data.kind === 'subscribers') {
-                showMyProfile(ownerUid);
-              } else if (
-                typeof data.videoId === 'string' &&
-                data.videoId.startsWith('videos/')
-              ) {
-                const url = new URL(location.href);
-                url.search = '';
-                url.hash = '';
-                url.searchParams.set('v', data.videoId);
-                location.assign(url.href);
-              }
-            } catch (error) {
-              console.error('通知の既読更新失敗:', error);
-              status.textContent =
-                t("既読にできませんでした。通信状態を確認してください。");
-              button.disabled = false;
-            }
-          });
-
-          list.appendChild(button);
-        }
-      },
-      error => {
-        if (uid !== ownerUid) return;
-
-        console.error('通知の読み込み失敗:', error);
-        list.replaceChildren();
-        bell.classList.remove('has-unread');
-        status.textContent =
-          t("通知を取得できませんでした。Firestoreルールを確認してください。");
-      }
-    );
-  });
-
-  new MutationObserver(syncVisibility).observe(homeScreen, {
-    attributes: true,
-    childList: true,
-    subtree: true
-  });
-
-  notificationMobile.addEventListener('change', syncVisibility);
-  new MutationObserver(syncVisibility).observe(document.body, {
-    attributes: true,
-    attributeFilter: ['class']
-  });
-
-  syncVisibility();
-})();
+mountNotificationPanel({
+  auth,
+  db,
+  storage,
+  header: document.querySelector('body > header'),
+  homeScreen,
+  getCurrentFeed: () => currentFeed,
+  getCurrentUser: () => currentUser,
+  getCurrentVideoId: () => currentVideoId,
+  getAllVideos: () => allVideos,
+  mergeVideoEntries,
+  videoFromMetadata,
+  parseVideoInteractionSettings,
+  getHomeProfile,
+  getBlockedUids: () => currentUserBlocks,
+  isMutedComment: text => subMovieIsMuted(text),
+  normalizeText: value => subMovieNormalize(value),
+  validVideoPath,
+  validCommentImagePath,
+  watchVideo,
+  showMyProfile,
+  t,
+  locale,
+  createUiIcon,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  updateDoc,
+  onAuthStateChanged,
+  storageRef: ref,
+  getMetadata,
+  getDownloadURL
+});
 
 // ===== PC・スマホ共通の再生設定とスマホの配置 =====
 (() => {
