@@ -91,6 +91,8 @@ const EN = Object.freeze({"チャンネルをおすすめに表示しない": "D
   "アーカイブ（履歴）": "Archive (history)",
   "保存した動画": "Saved videos",
   "関連度順": "Relevance",
+  "投稿日順": "Upload date",
+  "再生回数順": "View count",
   "検索候補": "Search suggestions",
   "サムネイル準備中": "Preparing thumbnail",
   "再生数": "Views",

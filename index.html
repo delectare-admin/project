@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-6MQyDAB2o6/uzHIvbSp5P9IcylP5cd9aGqwJJNWQA+k=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-j3w6ZxfhL4XTJQx4i9vtC8Q2QU2irRJ3RdC75sYTAA0=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -3473,7 +3473,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   #homeScreen.pc-search-results { max-width:1440px; }
   #homeScreen.pc-search-results #pcSearchResultsHeader {
     display:flex; align-items:center; justify-content:space-between; gap:16px;
-    margin:2px 24px 22px; color:#606060;
+    margin:2px 24px 12px; color:#606060;
   }
   #pcSearchResultsHeader[hidden] { display:none !important; }
   #pcSearchResultsHeading { margin:0 0 4px; font-size:15px; font-weight:500; color:#0f0f0f; overflow-wrap:anywhere; }
@@ -3484,8 +3484,8 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
   }
   #pcSearchFilterButton:hover,#pcSearchFilterButton[aria-expanded="true"] { background:#e9e9e9; }
   #pcSearchFilterButton svg { width:22px; height:22px; }
-  #homeScreen.pc-search-results:not(.search-filters-open) #categoryFilterBar,
-  #homeScreen.pc-search-results:not(.search-filters-open) #sortControlsArea { display:none !important; }
+  #homeScreen.pc-search-results:not(.search-filters-open) #categoryFilterBar { display:none !important; }
+  #homeScreen.pc-search-results #sortControlsArea { margin-bottom:20px; }
   #homeScreen.pc-search-results #videoGrid { display:flex; flex-direction:column; gap:24px; }
   #homeScreen.pc-search-results #videoGrid .grid-item {
     --search-thumb-width:42%; display:grid; grid-template-columns:var(--search-thumb-width) minmax(0,1fr);
@@ -3883,7 +3883,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     <div id="homeScreen" class="home-container">
       <div id="pcSearchResultsHeader" hidden>
         <div><h2 id="pcSearchResultsHeading"></h2><span id="pcSearchResultsCount" role="status" aria-live="polite"></span></div>
-        <button type="button" id="pcSearchFilterButton" aria-expanded="false" aria-controls="categoryFilterBar sortControlsArea"><span data-ui-copy="
+        <button type="button" id="pcSearchFilterButton" aria-expanded="false" aria-controls="categoryFilterBar"><span data-ui-copy="
           フィルタ
           ">
           フィルタ
@@ -3912,8 +3912,9 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
         <button class="category-btn" data-cat="その他"><span data-ui-copy="その他">その他</span></button>
       </div>
       <div class="sort-controls" id="sortControlsArea">
-        <button id="sortNewestBtn" class="sort-btn active"><span data-ui-copy="新着順">新着順</span></button>
-        <button id="sortPopularBtn" class="sort-btn"><span data-ui-copy="人気順">人気順</span></button>
+        <button id="sortRelevanceBtn" class="sort-btn" type="button" hidden><span data-ui-copy="関連度順">関連度順</span></button>
+        <button id="sortNewestBtn" class="sort-btn active" type="button"><span data-ui-copy="新着順">新着順</span></button>
+        <button id="sortPopularBtn" class="sort-btn" type="button"><span data-ui-copy="人気順">人気順</span></button>
       </div>
       <div id="videoGrid" class="video-grid">
         <p class="empty-list-msg"><span data-ui-copy="読み込み中...">読み込み中...</span></p>
@@ -4311,6 +4312,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     let watchProgress=null,communityFeatures=null;
     let followingFeedSeed=Math.floor(Math.random()*4294967296);
     import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript} from "./assets/site-performance-v1.mjs?v=20261022";
+    import {createSearchEngine,normalizeSearchText,RELEVANCE_BOOST_GATE} from "./assets/search-engine-v1.mjs?v=20261127-1";
     const loadSearchEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js","sha384-it1zrjZg9Wow4/YazUTfchZX61ulfA0SAtXufVXx9G1XPgBIk+aLylHM5lWl03Bi","Fuse");
     const loadHlsEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js","sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX","Hls");
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -4891,6 +4893,7 @@ async function saveVideoDownload(target, fileHandle, signal, onProgress) {
     const channelGrid = document.getElementById('channelGrid');
     const channelPageTitle = document.getElementById('channelPageTitle');
     const searchInput = document.getElementById('searchInput');
+    const sortRelevanceBtn = document.getElementById('sortRelevanceBtn');
     const sortNewestBtn = document.getElementById('sortNewestBtn');
     const sortPopularBtn = document.getElementById('sortPopularBtn');
 
@@ -5904,211 +5907,122 @@ onAuthStateChanged(auth, secureAuthChanged);
 
     let allVideos = []; let currentSort = 'newest';
 
-// Thumbnail/Search upgrade v1 — all matching is local; no request per keystroke.
-const searchDocumentCache = new WeakMap();
-let searchIndexSource = null;
-let searchIndex = null;
+// Hybrid Search Engine v1 — core ranking/normalization/reading/Fuse logic lives in assets/search-engine-v1.mjs.
 let searchRenderVersion = 0;
-function normalizeVideoSearch(value) {
-  return String(value || '').normalize('NFKC').toLocaleLowerCase('ja-JP')
-    .replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
-    .replace(/[\p{P}\p{S}\s]+/gu, ' ').trim();
-}
-// Japanese reading search v2. Data: Unicode Unihan; see assets/search-readings-LICENSE.txt.
-let searchReadings = null, searchReadingsPromise = null, searchReadingsRetryAt = 0;
 let searchSuggestionVersion = 0;
-const searchReadingLattices = new Map();
-const searchReadingPatterns = new Map();
+const resolvedVideoMetrics = new Map();
+const hybridSearchEngine = createSearchEngine({
+  getFuse: () => window.Fuse,
+  readingsUrl: './assets/search-japanese-readings-v2.json'
+});
+function normalizeVideoSearch(value) {
+  return normalizeSearchText(value);
+}
+function recordVideoMetrics(videoId, patch) {
+  if (!videoId || !patch || typeof patch !== 'object') return;
+  const prev = resolvedVideoMetrics.get(videoId) || {};
+  const next = { ...prev, updatedAt: Date.now() };
+  for (const key of ['views', 'likes', 'dislikes', 'danmaku', 'comments']) {
+    if (patch[key] !== undefined && Number.isFinite(Number(patch[key]))) {
+      next[key] = Math.max(0, Number(patch[key]));
+    }
+  }
+  resolvedVideoMetrics.set(videoId, next);
+  if (resolvedVideoMetrics.size > 400) {
+    resolvedVideoMetrics.delete(resolvedVideoMetrics.keys().next().value);
+  }
+}
+function getCachedVideoMetrics(video) {
+  const videoId = typeof video === 'string' ? video : video?.itemRef?.fullPath;
+  if (!videoId) return null;
+  return resolvedVideoMetrics.get(videoId) || null;
+}
+async function ensureSearchCandidateMetrics(videos, limitCount = 48, isCurrent = () => true) {
+  const now = Date.now();
+  const targets = [];
+  for (const video of videos) {
+    if (targets.length >= limitCount) break;
+    const videoId = video?.itemRef?.fullPath;
+    if (!videoId) continue;
+    const cached = resolvedVideoMetrics.get(videoId);
+    if (cached && now - cached.updatedAt < 60000 && cached.views !== undefined) continue;
+    targets.push(videoId);
+  }
+  if (!targets.length) return;
+  let next = 0;
+  async function worker() {
+    while (next < targets.length && isCurrent()) {
+      const videoId = targets[next++];
+      try {
+        await getHomeCardMetrics(videoId);
+      } catch {
+        // Ignore transient per-video metric failures during search boost.
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(4, targets.length) }, worker));
+}
 async function ensureSearchReadings() {
-  await loadSearchEngine().catch(error=>console.warn(error.message));
-  await ensureCompleteVideoCatalog().catch(error=>console.warn("検索用の追加取得を再試行してください:",error.code||"network"));
-  if (searchReadings) return;
-  if (searchReadingsPromise) return searchReadingsPromise;
-  if (Date.now()<searchReadingsRetryAt) return;
-  searchReadingsPromise=(async() => {
-    const controller=new AbortController();
-    const timer=setTimeout(() => controller.abort(),8000);
-    try {
-      const url=new URL('./assets/search-japanese-readings-v2.json',location.href);
-      const response=await fetch(url,{signal:controller.signal,credentials:'same-origin'});
-      if (!response.ok) throw new Error('readings-http-'+response.status);
-      const payload=await response.json(), readings=Object.create(null);
-      if (!payload.readings || typeof payload.readings!=='object') throw new Error('readings-invalid');
-      for (const [character,values] of Object.entries(payload.readings)) {
-        if ([...character].length!==1 || !Array.isArray(values)) continue;
-        const choices=values.filter(value => typeof value==='string' && value.length<=40)
-          .map(normalizeVideoSearch).filter(Boolean);
-        if (choices.length) readings[character]=[...new Set(choices)].slice(0,32);
-      }
-      searchReadings=readings; searchReadingLattices.clear();
-    } catch(error) {
-      searchReadingsRetryAt=Date.now()+30000;
-      console.warn('読み検索の補助データを読み込めませんでした。通常の文字検索は続けます。',error.message);
-    } finally { clearTimeout(timer); searchReadingsPromise=null; }
-  })();
-  return searchReadingsPromise;
-}
-function readingChoices(character,nextCharacter='') {
-  const readings=searchReadings?.[character];
-  if (!readings) return [character];
-  const result=[character,...readings];
-  // Restore stems before okurigana, e.g. 美(うつくしい)+しき -> うつく+しき.
-  if (/^[ぁ-ゖ]$/.test(nextCharacter)) {
-    for (const reading of readings) {
-      for (let i=Math.max(1,reading.length-3); i<reading.length; i++) {
-        if (reading[i]===nextCharacter) result.push(reading.slice(0,i));
-      }
-    }
-  }
-  return [...new Set(result)];
-}
-function searchReadingLattice(text) {
-  if (searchReadingLattices.has(text)) return searchReadingLattices.get(text);
-  const chars=[...text];
-  const lattice=chars.map((character,index) => readingChoices(character,chars[index+1]));
-  searchReadingLattices.set(text,lattice);
-  if (searchReadingLattices.size>800) searchReadingLattices.delete(searchReadingLattices.keys().next().value);
-  return lattice;
-}
-function queryReadingForms(token) {
-  if (!searchReadings || token.length>32) return [];
-  let forms=[''];
-  const chars=[...token];
-  for (let i=0; i<chars.length; i++) {
-    const choices=readingChoices(chars[i],chars[i+1]).filter(value => !/\p{Script=Han}/u.test(value));
-    if (!choices.length) return [];
-    const next=[];
-    for (const form of forms) for (const choice of choices) next.push(form+choice);
-    forms=[...new Set(next)].slice(0,24);
-  }
-  return forms.filter(form => form.length>=2 && form.length<=40);
-}
-function readingLatticeContains(lattice,pattern) {
-  // Shift-And over reading alternatives: no cartesian expansion of title readings.
-  let compiled=searchReadingPatterns.get(pattern);
-  if (!compiled) {
-    const chars=[...pattern],wide=chars.length>30, masks=Object.create(null);
-    chars.forEach((character,index) => {
-      const bit=wide ? 1n<<BigInt(index) : 1<<index;
-      masks[character]=(masks[character] || (wide?0n:0)) | bit;
-    });
-    compiled={masks,wide,last:wide?1n<<BigInt(chars.length-1):1<<(chars.length-1)};
-    searchReadingPatterns.set(pattern,compiled);
-    if (searchReadingPatterns.size>128) searchReadingPatterns.delete(searchReadingPatterns.keys().next().value);
-  }
-  const {masks,wide,last}=compiled;
-  if (wide) {
-    let state=0n;
-    for (const choices of lattice) {
-      let merged=0n;
-      for (const choice of choices) {
-        let current=state;
-        for (const character of choice) {
-          current=((current<<1n)|1n)&(masks[character]||0n);
-          if (current&last) return true;
-        }
-        merged|=current;
-      }
-      state=merged;
-    }
-  } else {
-    let state=0;
-    for (const choices of lattice) {
-      let merged=0;
-      for (const choice of choices) {
-        let current=state;
-        for (const character of choice) {
-          current=((current<<1)|1)&(masks[character]||0);
-          if (current&last) return true;
-        }
-        merged|=current;
-      }
-      state=merged;
-    }
-  }
-  return false;
-}
-function phoneticSearchMatch(text,forms) {
-  if (!forms.length) return false;
-  const lattice=searchReadingLattice(text);
-  return forms.some(form => readingLatticeContains(lattice,form));
-}
-
-function videoSearchDocument(video) {
-  let entry = searchDocumentCache.get(video);
-  if (!entry) {
-    entry = { video, title:normalizeVideoSearch(video.title),
-      author:normalizeVideoSearch(video.uploaderName), category:normalizeVideoSearch(video.category),
-      description:normalizeVideoSearch(String(video.desc || '').slice(0, 6000)) };
-    searchDocumentCache.set(video, entry);
-  }
-  return entry;
+  await loadSearchEngine().catch(error => console.warn(error.message));
+  await ensureCompleteVideoCatalog().catch(error => console.warn("検索用の追加取得を再試行してください:", error.code || "network"));
+  await hybridSearchEngine.ensureReadings(location.href);
 }
 function isVideoSearchVisible(video) {
   return !currentUserBlocks.includes(video.uploaderUid) &&
     !currentUserNotInterested.includes(video.uploaderUid) &&
     !subMovieIsMuted(video.title, video.desc, video.uploaderName);
 }
-function rankVideoSearch(videos, queryText) {
-  const query = normalizeVideoSearch(String(queryText).slice(0, 200));
-  if (!query) return videos.filter(isVideoSearchVisible);
-  const tokens = [...new Set(query.split(' '))].slice(0, 12);
-  if (searchIndexSource !== allVideos) {
-    searchIndexSource = allVideos;
-    searchIndex = window.Fuse ? new window.Fuse(allVideos.map(videoSearchDocument), {
-      keys:[{name:'title',weight:.65},{name:'author',weight:.2},
-        {name:'category',weight:.1},{name:'description',weight:.05}],
-      includeScore:true, ignoreLocation:true, threshold:.28, minMatchCharLength:3
-    }) : null;
-  }
-  // Every space-separated term must match; fuzzy matches are only a fallback.
-  const readingForms=tokens.map(queryReadingForms);
-  const fuzzy = tokens.map(token => token.length < 3 ? new Map() : new Map(
-    (searchIndex?.search(token)||[]).map(hit => [hit.item.video, hit.score || 0])
-  ));
-  const fields = [['title',60],['author',32],['category',18],['description',7]];
-  const ranked = [];
-  for (const video of videos) {
-    if (!isVideoSearchVisible(video)) continue;
-    const entry = videoSearchDocument(video);
-    let score = 0, matched = true;
-    for (let i=0; i<tokens.length; i++) {
-      const token = tokens[i];
-      let best = 0;
-      for (const [field,weight] of fields) {
-        if (entry[field].includes(token)) {
-          best = Math.max(best, weight + (entry[field] === token ? 14 : entry[field].startsWith(token) ? 5 : 0));
-        }
-      }
-      if (best<36 && readingForms[i].length) {
-        for (const [field,weight] of [['title',36],['author',20],['category',12],['description',4]]) {
-          if (best>=weight) continue;
-          const readable=entry[field].slice(0,field==='description'?600:300);
-          if (phoneticSearchMatch(readable,readingForms[i])) best=weight;
-        }
-      }
-      if (!best && fuzzy[i].has(video)) best = 3 + 5 * (1 - fuzzy[i].get(video));
-      if (!best) { matched = false; break; }
-      score += best;
-    }
-    if (!matched) continue;
-    if (entry.title === query) score += 180;
-    else if (entry.title.includes(query)) score += 75;
-    if (entry.author === query) score += 40;
-    ranked.push({video,score});
-  }
-  ranked.sort((a,b) => b.score-a.score ||
-    (Date.parse(b.video.uploadedAt)||0)-(Date.parse(a.video.uploadedAt)||0) ||
-    a.video.itemRef.fullPath.localeCompare(b.video.itemRef.fullPath));
-  return ranked.map(item => item.video);
+function rankVideoSearch(videos, queryText, sortMode = 'relevance') {
+  return hybridSearchEngine.searchVideos(videos, queryText, {
+    filter: isVideoSearchVisible,
+    getMetrics: getCachedVideoMetrics,
+    indexVideos: allVideos,
+    sortMode
+  });
 }
-function videoSearchSuggestions(queryText, count=7) {
-  const seen = new Set();
-  return rankVideoSearch(allVideos, queryText).filter(video => {
-    const title = normalizeVideoSearch(video.title);
-    if (seen.has(title)) return false;
-    seen.add(title); return true;
-  }).slice(0,count);
+function videoSearchSuggestions(queryText, count = 7) {
+  return hybridSearchEngine.suggestVideos(allVideos, queryText, count, {
+    filter: isVideoSearchVisible,
+    getMetrics: getCachedVideoMetrics,
+    indexVideos: allVideos
+  });
+}
+function syncSortControlsUI(isSearch) {
+  const setBtnLabel = (btn, label) => {
+    if (!btn) return;
+    const span = btn.querySelector('span');
+    if (span) span.textContent = label;
+    else btn.textContent = label;
+  };
+  if (isSearch) {
+    if (!['relevance', 'newest', 'views'].includes(currentSort)) currentSort = 'relevance';
+    if (sortRelevanceBtn) {
+      sortRelevanceBtn.hidden = false;
+      setBtnLabel(sortRelevanceBtn, t("関連度順"));
+      sortRelevanceBtn.classList.toggle('active', currentSort === 'relevance');
+      sortRelevanceBtn.setAttribute('aria-pressed', String(currentSort === 'relevance'));
+    }
+    setBtnLabel(sortNewestBtn, t("投稿日順"));
+    sortNewestBtn.classList.toggle('active', currentSort === 'newest');
+    sortNewestBtn.setAttribute('aria-pressed', String(currentSort === 'newest'));
+    setBtnLabel(sortPopularBtn, t("再生回数順"));
+    sortPopularBtn.classList.toggle('active', currentSort === 'views');
+    sortPopularBtn.setAttribute('aria-pressed', String(currentSort === 'views'));
+  } else {
+    if (currentSort === 'relevance') currentSort = 'newest';
+    else if (currentSort === 'views') currentSort = 'popular';
+    if (sortRelevanceBtn) {
+      sortRelevanceBtn.hidden = true;
+      sortRelevanceBtn.classList.remove('active');
+      sortRelevanceBtn.setAttribute('aria-pressed', 'false');
+    }
+    setBtnLabel(sortNewestBtn, t("新着順"));
+    sortNewestBtn.classList.toggle('active', currentSort !== 'popular');
+    sortNewestBtn.setAttribute('aria-pressed', String(currentSort !== 'popular'));
+    setBtnLabel(sortPopularBtn, t("人気順"));
+    sortPopularBtn.classList.toggle('active', currentSort === 'popular');
+    sortPopularBtn.setAttribute('aria-pressed', String(currentSort === 'popular'));
+  }
 }
 
 const desktopSearchMedia=window.matchMedia('(min-width:769px)');
@@ -6600,10 +6514,35 @@ async function loadVideoList(prefetched = null) {
       if (currentFeed==='following') list=list.filter(v => currentUserSubscriptions.includes(v.uploaderUid));
       if (currentCategory!=='すべて') list=list.filter(v => v.category===currentCategory);
     }
-    if (!sortNewestBtn.dataset.originalLabel) sortNewestBtn.dataset.originalLabel=sortNewestBtn.textContent;
-    sortNewestBtn.textContent=keyword ? t("関連度順") : sortNewestBtn.dataset.originalLabel;
-    if (keyword) list=rankVideoSearch(list,keyword);
-    else if(currentFeed==='following')list=followingOrder(list,currentUserSubscriptions,followingFeedSeed);
+    syncSortControlsUI(Boolean(keyword));
+    if (keyword) {
+      let scored = hybridSearchEngine.scoreCandidates(list, keyword, {
+        filter: isVideoSearchVisible,
+        getMetrics: getCachedVideoMetrics,
+        indexVideos: allVideos
+      });
+      const metricsTargets = currentSort === 'views'
+        ? scored.slice(0, 120).map(item => item.video)
+        : currentSort === 'relevance'
+          ? scored.filter(item => item.relevance >= RELEVANCE_BOOST_GATE).slice(0, 48).map(item => item.video)
+          : [];
+      if (metricsTargets.length) {
+        await ensureSearchCandidateMetrics(metricsTargets, metricsTargets.length, () => version === searchRenderVersion);
+        if (version !== searchRenderVersion) return;
+        if (currentSort === 'relevance') {
+          scored = hybridSearchEngine.scoreCandidates(list, keyword, {
+            filter: isVideoSearchVisible,
+            getMetrics: getCachedVideoMetrics,
+            indexVideos: allVideos
+          });
+        }
+      }
+      const ordered = hybridSearchEngine.sortSearchResults(scored, currentSort, getCachedVideoMetrics).map(item => item.video);
+      renderGrid(ordered, videoGrid);
+      installMoreVideosControl();
+      return;
+    }
+    if(currentFeed==='following')list=followingOrder(list,currentUserSubscriptions,followingFeedSeed);
     else if(currentFeed==='all'&&currentSort!=='popular')list=recommendationOrder(list,{history:watchHistory,subscriptions:currentUserSubscriptions});
     if (currentFeed==='history' || currentSort!=='popular') { renderGrid(list,videoGrid); installMoreVideosControl(); return; }
     // An explicit popularity selection sorts the matching set. Limit concurrent reads.
@@ -6614,6 +6553,7 @@ async function loadVideoList(prefetched = null) {
         try {
           const snapshot=await getDoc(doc(db,'videoStats',statsDocId(v.itemRef.fullPath)));
           const stats=snapshot.exists() ? snapshot.data() : {};
+          recordVideoMetrics(v.itemRef.fullPath, { views: stats.views || 0, likes: stats.likes || 0, dislikes: stats.dislikes || 0 });
           withScore[index]={...v,score:(Number(stats.views)||0)+(Number(stats.likes)||0)*3};
         } catch { withScore[index]={...v,score:0}; }
       }
@@ -6627,8 +6567,8 @@ async function loadVideoList(prefetched = null) {
     function executeSearch() {
       searchSuggestionVersion++;
       if(searchSuggestions) searchSuggestions.style.display='none';
-      currentFeed='all'; currentCategory='すべて'; currentSort='newest';
-      sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
+      currentFeed='all'; currentCategory='すべて'; currentSort=searchInput.value.trim() ? 'relevance' : 'newest';
+      syncSortControlsUI(Boolean(searchInput.value.trim()));
       setActiveNav('all');
       categoryFilterBar.querySelectorAll('.category-btn').forEach(button =>
         button.classList.toggle('active',button.dataset.cat==='すべて'));
@@ -6722,8 +6662,23 @@ async function loadVideoList(prefetched = null) {
     }
     setupStickyVideo();
 
-    sortNewestBtn.addEventListener('click', () => { currentSort = 'newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active'); applyFilterAndSort(); });
-    sortPopularBtn.addEventListener('click', () => { currentSort = 'popular'; sortPopularBtn.classList.add('active'); sortNewestBtn.classList.remove('active'); applyFilterAndSort(); });
+    if (sortRelevanceBtn) {
+      sortRelevanceBtn.addEventListener('click', () => {
+        currentSort = 'relevance';
+        syncSortControlsUI(Boolean(searchInput.value.trim()));
+        applyFilterAndSort();
+      });
+    }
+    sortNewestBtn.addEventListener('click', () => {
+      currentSort = 'newest';
+      syncSortControlsUI(Boolean(searchInput.value.trim()));
+      applyFilterAndSort();
+    });
+    sortPopularBtn.addEventListener('click', () => {
+      currentSort = searchInput.value.trim() ? 'views' : 'popular';
+      syncSortControlsUI(Boolean(searchInput.value.trim()));
+      applyFilterAndSort();
+    });
 
     function thumbnailHtml(v, className = 'thumbnail-img') {
       const node=document.createElement(v.thumbUrl ? 'img' : 'div');
@@ -6798,6 +6753,18 @@ function getHomeCardMetrics(videoId) {
   ]);
   homeMetricsCache.set(videoId, {at: Date.now(), promise});
   void promise.then(results => {
+    const [statsResult, commentsResult] = results;
+    const patch = {};
+    if (statsResult.status === 'fulfilled') {
+      const data = statsResult.value.data() || {};
+      patch.views = Number(data.views) || 0;
+      patch.likes = Number(data.likes) || 0;
+      patch.dislikes = Number(data.dislikes) || 0;
+    }
+    if (commentsResult.status === 'fulfilled') {
+      patch.danmaku = Number(commentsResult.value.data()?.count) || 0;
+    }
+    if (Object.keys(patch).length) recordVideoMetrics(videoId, patch);
     if (results.some(result => result.status === 'rejected') && homeMetricsCache.get(videoId)?.promise === promise) homeMetricsCache.delete(videoId);
   });
   return promise;
@@ -7494,6 +7461,8 @@ uploadDateEl.dataset.uploadTimestamp = Number.isNaN(uploadDate.getTime()) ? '' :
   searchInput.value = '';
   currentFeed = 'all';
   currentCategory = 'すべて';
+  currentSort = 'newest';
+  syncSortControlsUI(false);
 
   const mobileInput = document.getElementById('mobileSearchText');
   if (mobileInput) mobileInput.value = '';
@@ -8148,6 +8117,7 @@ function applyOwnRatingResult(kind,targetId,result,serial,uid,videoId){
 
 function showVideoStats(videoId, data) {
   if (currentVideoId !== videoId) return;
+  recordVideoMetrics(videoId, { views: data?.views || 0, likes: data?.likes || 0, dislikes: data?.dislikes || 0 });
 
   displayedVideoStats = { videoId, data };
 
@@ -10990,7 +10960,8 @@ volume.addEventListener('blur', () => {
     });
 
     searchInput.value = keyword;
-    currentSort='newest'; sortNewestBtn.classList.add('active'); sortPopularBtn.classList.remove('active');
+    currentSort = 'relevance';
+    syncSortControlsUI(true);
     goHome();
   }
 
