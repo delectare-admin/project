@@ -5,7 +5,7 @@
   <!-- セキュリティ設定：scriptの本文を変更した場合は、script-srcのsha256ハッシュも再計算してください。
        HTMLだけで設定できないX-Frame-Options等の代わりに、無効なmetaタグは追加していません。 -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none';
-    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-j3w6ZxfhL4XTJQx4i9vtC8Q2QU2irRJ3RdC75sYTAA0=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
+    script-src 'self' https://www.gstatic.com/firebasejs/10.12.2/ https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/ https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js 'sha256-Kuja9rADPxy1781Ub8zUpjLswKqpqfzJTFmPdTVK1DI=' 'sha256-JPsSu1DdVMSa9B+1LWLIrYSbRjV3MTVisPUIeJVoX6s=' 'sha256-Pur3xFReHX2OSvobCwkdffOOszwV3CE6tuDY58o/VH4=' 'sha256-ddsqwdw+d6kXw0OPxaaVHH43FjaFO+819nGm1XMLMJg=' 'sha256-iWixhhcR55Z8YQIqFWdD6+QVZp4V128wIz/0j0HVEL8=' 'sha256-GNqOehzXqUsTFG4NjsejfvCQZRTvVYUpAO+22Y/bX5g=';
     script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' https: data: blob:;
@@ -28,6 +28,8 @@
   <link rel="preconnect" href="https://asia-northeast1-testo-movie-site.cloudfunctions.net" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <link rel="stylesheet" href="./assets/creator-lab-v1.css?v=20261022">
   <link rel="stylesheet" href="./assets/community-features-v1.css?v=20261023-community1">
   <style>
@@ -4311,7 +4313,7 @@ body.watch-mode.video-comments-disabled #mobileCommentsPreview { display: none !
     let creatorLab=null;
     let watchProgress=null,communityFeatures=null;
     let followingFeedSeed=Math.floor(Math.random()*4294967296);
-    import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript} from "./assets/site-performance-v1.mjs?v=20261022";
+    import {VideoPager,orderedVideos,validVideoPath,trustedMediaUrl,windowForDanmaku,loadVerifiedScript,startupBandwidthProfile,createPlaybackPrefetcher,createTtffTracker} from "./assets/site-performance-v1.mjs?v=20261127-ttff1";
     import {createSearchEngine,normalizeSearchText,RELEVANCE_BOOST_GATE} from "./assets/search-engine-v1.mjs?v=20261127-1";
     const loadSearchEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/fuse.js@7.2.0/dist/fuse.js","sha384-it1zrjZg9Wow4/YazUTfchZX61ulfA0SAtXufVXx9G1XPgBIk+aLylHM5lWl03Bi","Fuse");
     const loadHlsEngine=()=>loadVerifiedScript(document,"https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js","sha384-cciJ0zi8d1uMKC2zJd7jvPY4HQt7W4ByUI/FlMkltvBi31aW61rcpVBhpmW8/NwX","Hls");
@@ -5701,6 +5703,20 @@ async function secureAuthChanged(user) {
   }
 
   updateAvatarLetter();
+  if (document.body.classList.contains('watch-mode') && currentVideoId) {
+    const activeUploaderUid = uploaderNameEl.dataset.uid || '';
+    blockUserBtn.style.display = (currentUser && activeUploaderUid && currentUser.uid !== activeUploaderUid) ? 'block' : 'none';
+    const saveVideoBtn = document.getElementById('saveVideoBtn');
+    if (saveVideoBtn) {
+      if (currentUserSaved.includes(currentVideoId)) {
+        setUiIcon(saveVideoBtn,'bookmark-check',t("保存済み"));
+        saveVideoBtn.style.color = '#065fd4';
+      } else {
+        setUiIcon(saveVideoBtn,'bookmark',t("保存"));
+        saveVideoBtn.style.color = '';
+      }
+    }
+  }
   loadVideoList(videoEntriesRequest);
 }
 
@@ -6448,9 +6464,16 @@ async function loadVideoList(prefetched = null) {
     if (requestId !== loadVideoList.requestId) return;
 
     // 最新情報へ更新し、次回のために保存
+    const currentWatchEntry = currentVideoId ? allVideos.find(v => v.itemRef.fullPath === currentVideoId) : null;
     allVideos = videos;
+    if (currentWatchEntry && !allVideos.some(v => v.itemRef.fullPath === currentVideoId)) {
+      mergeVideoEntries([currentWatchEntry]);
+    }
     saveVideoListCache(allVideos);
     await applyFilterAndSort();
+    if (document.body.classList.contains('watch-mode') && currentVideoId) {
+      renderSidebar(currentVideoId);
+    }
 
     if (requestId !== loadVideoList.requestId) return;
 
@@ -7051,6 +7074,7 @@ async function fillHomeCard(card, v) {
       list.forEach(v => {
         const canDelete = currentUser && v.uploaderUid && currentUser.uid === v.uploaderUid;
         const gridItem = document.createElement('div'); gridItem.className = 'grid-item';
+        registerPrefetchCard(gridItem, v);
         const mediaHtml = thumbnailHtml(v); 
         gridItem.innerHTML = `${mediaHtml}${canDelete ? `<button class="delete-video-btn" title="${th("この動画を削除")}" aria-label="${th("この動画を削除")}">`+uiIconMarkup('trash')+'</button>' : ''}
           <div class="grid-item-info"><div class="grid-item-text"><div class="grid-title">${escapeHtml(v.title)}</div><div class="grid-author">${escapeHtml(v.uploaderName)}</div></div></div>`;
@@ -7148,6 +7172,7 @@ gridItem.addEventListener('click', event => {
       const others = allVideos.filter(v => v.itemRef.fullPath !== excludePath && !currentUserNotInterested.includes(v.uploaderUid) && !currentUserBlocks.includes(v.uploaderUid)).sort((a, b) => Number(b.category === (current && current.category)) - Number(a.category === (current && current.category)));
       others.slice(0, 12).forEach(v => {
         const item = document.createElement('div'); item.className = 'related-item';
+        registerPrefetchCard(item, v);
         item.innerHTML = `${thumbnailHtml(v)}<div class="info grid-item-info"><div class="grid-item-text"><div class="info-title">${escapeHtml(v.title)}</div><div class="grid-author info-author">${escapeHtml(v.uploaderName)}</div></div></div>`;
         const page = new URL(location.pathname, location.origin); page.searchParams.set('v', v.itemRef.fullPath);
         for (const element of item.querySelectorAll('.thumbnail-img, .info-title')) {
@@ -7170,12 +7195,86 @@ gridItem.addEventListener('click', event => {
       });
     }
    // ==========================================
-// グローバル変数定義（HLSインスタンスの保持用）
+// グローバル変数定義（HLSインスタンス・先読み・TTFF計測）
 // ==========================================
 let hlsInstance = null;
 let playbackGeneration = 0;
 
-function stopMainPlayback() {
+const cardPrefetchVideos = new WeakMap();
+function registerPrefetchCard(element, videoData) {
+  if (!element || !videoData?.itemRef?.fullPath) return;
+  element.dataset.prefetchCard = '1';
+  cardPrefetchVideos.set(element, videoData);
+}
+
+const compactPlayerMedia = window.matchMedia('(max-width: 768px), (pointer: coarse)');
+const desktopHoverMedia = window.matchMedia('(hover: hover) and (pointer: fine)');
+function currentStartupProfile() {
+  return startupBandwidthProfile({
+    compact: compactPlayerMedia.matches,
+    connection: navigator.connection || null
+  });
+}
+function isCompactNativeHls() {
+  return Boolean(
+    compactPlayerMedia.matches &&
+    mainVideo.canPlayType('application/vnd.apple.mpegurl')
+  );
+}
+
+const playbackPrefetcher = createPlaybackPrefetcher({
+  bucket: firebaseConfig.storageBucket,
+  loadHls: loadHlsEngine,
+  getDownloadUrl: videoData => getDownloadURL(videoData.itemRef),
+  isNativeHls: isCompactNativeHls,
+  getProfile: currentStartupProfile
+});
+const ttffTracker = createTtffTracker(window);
+
+// Single persistent listeners for TTFF metrics (zero per-playback listener buildup).
+mainVideo.addEventListener('loadedmetadata', () => {
+  ttffTracker.mark(playbackGeneration, 'loadedMetadataMs');
+});
+mainVideo.addEventListener('playing', () => {
+  ttffTracker.finish(playbackGeneration);
+});
+
+// Delegated hover (150ms on desktop) and pointerdown prefetching via WeakMap (zero DOM leaks).
+let hoveredPrefetchCard = null;
+document.addEventListener('pointerover', event => {
+  if (!desktopHoverMedia.matches || event.pointerType === 'touch') return;
+  const card = event.target?.closest?.('[data-prefetch-card]') || null;
+  if (card === hoveredPrefetchCard) return;
+  hoveredPrefetchCard = card;
+  if (!card) {
+    playbackPrefetcher.cancelHover();
+    return;
+  }
+  const targetVideo = cardPrefetchVideos.get(card);
+  if (targetVideo) playbackPrefetcher.scheduleHover(targetVideo, 150);
+});
+document.addEventListener('pointerout', event => {
+  if (!hoveredPrefetchCard) return;
+  if (event.relatedTarget && hoveredPrefetchCard.contains(event.relatedTarget)) return;
+  hoveredPrefetchCard = null;
+  playbackPrefetcher.cancelHover();
+});
+document.addEventListener('pointerdown', event => {
+  if (
+    event.button !== 0 ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.altKey
+  ) return;
+  if (event.target?.closest?.('button, .grid-menu-wrapper, .grid-dropdown')) return;
+  const card = event.target?.closest?.('[data-prefetch-card]');
+  if (!card) return;
+  const targetVideo = cardPrefetchVideos.get(card);
+  if (targetVideo) playbackPrefetcher.prefetch(targetVideo, { eager: true });
+}, { passive: true });
+
+function stopMainPlayback({ keepPrefetchId = '' } = {}) {
   cancelPipPositionRestore?.();
   cancelPipPositionRestore = null;
   watchProgress?.stop();
@@ -7183,8 +7282,10 @@ function stopMainPlayback() {
   creatorLab?.clearPublic();
   stopRatingWatches();
   releaseBrowseMiniPlayer({ resume: false });
-  // 古い動画の再生処理を無効にする
+  // 古い動画の再生処理と無関係な先読みを無効にする
   playbackGeneration++;
+  playbackPrefetcher.cancel(keepPrefetchId);
+  ttffTracker.cancel();
   if (unsubscribeComments) {
     unsubscribeComments();
     unsubscribeComments = null;
@@ -7194,24 +7295,30 @@ function stopMainPlayback() {
   mainVideo.onerror = null;
 
   // HLSの通信とイベント処理を終了
+  const hadHls = Boolean(hlsInstance);
   if (hlsInstance) {
     const oldPlayer = hlsInstance;
     hlsInstance = null;
     oldPlayer.destroy();
   }
 
+  const hadMedia = Boolean(hadHls || mainVideo.getAttribute('src') || mainVideo.currentSrc);
   mainVideo.pause();
   mainVideo.removeAttribute('src');
-  mainVideo.load();
+  if (hadMedia) mainVideo.load();
 }
 
 
 // ==========================================
-// 1. 動画再生処理（HLS対応・最適化済み）
+// 1. 動画再生処理（HLS対応・並列起動・TTFF最適化済み）
 // ==========================================
 async function watchVideo(videoData, options = {}) {
+  const t0 = Number.isFinite(options.startedAt) ? options.startedAt : performance.now();
+  const source = options.source || 'click';
+  const videoId = videoData.itemRef.fullPath;
+
   creatorLab?.route("watch");creatorLab?.closeMenu();
-  if (browseMini.active && videoData.itemRef.fullPath === currentVideoId) {
+  if (browseMini.active && videoId === currentVideoId) {
     restoreBrowseMiniWatch({ updateUrl: options.updateUrl !== false });
     return;
   }
@@ -7229,184 +7336,217 @@ async function watchVideo(videoData, options = {}) {
   channelScreen.style.display = 'none'; 
   watchScreen.style.display = 'block';
 
- // --- HLS / 動画読み込み処理 ---
-stopMainPlayback();
-watchProgress?.start(videoData.itemRef.fullPath);
-const thisPlayback = playbackGeneration;
+  // --- 最優先：HLS / 動画ストリーム読み込み開始（Firestore等を待たない） ---
+  stopMainPlayback({ keepPrefetchId: videoId });
+  currentVideoId = videoId;
+  watchProgress?.start(videoId);
+  const thisPlayback = playbackGeneration;
+  const hlsPreloaded = Boolean(window.Hls);
+  ttffTracker.start({ generation: thisPlayback, videoId, source, hlsPreloaded, t0 });
 
-const hlsUrl = trustedMediaUrl(videoData.hlsUrl||'',firebaseConfig.storageBucket);
-if(hlsUrl&&!window.Hls&&!(window.matchMedia('(max-width: 768px), (pointer: coarse)').matches&&mainVideo.canPlayType('application/vnd.apple.mpegurl'))){try{await loadHlsEngine();}catch(error){console.warn(error.message);}if(thisPlayback!==playbackGeneration)return;}
-let originalStarted = false;
+  const hlsUrl = trustedMediaUrl(videoData.hlsUrl||'',firebaseConfig.storageBucket);
+  const startupProfile = currentStartupProfile();
+  const useCompactNativeHls = Boolean(hlsUrl && isCompactNativeHls());
+  let originalStarted = false;
 
-const play = () => {
-  if (thisPlayback !== playbackGeneration) return;
-
-  mainVideo.play().catch(() => {
-    // 自動再生が拒否された場合は再生ボタンで開始
-  });
-};
-
-const playOriginal = async () => {
-  if (thisPlayback !== playbackGeneration || originalStarted) return;
-
-  originalStarted = true;
-  mainVideo.onerror = null;
-
-  if (hlsInstance) {
-    const oldPlayer = hlsInstance;
-    hlsInstance = null;
-    oldPlayer.destroy();
-  }
-
-  try {
-    // HLSに失敗した場合だけ、元MP4のURLを取得
-    const originalUrl =
-      videoData.url || await getDownloadURL(videoData.itemRef);
-
-    // 待っている間にホームや別の動画へ移動した場合は再生しない
+  const play = () => {
     if (thisPlayback !== playbackGeneration) return;
 
-    videoData.url = originalUrl;
-    mainVideo.src = originalUrl;
-    mainVideo.load();
-    play();
-  } catch (error) {
-    if (thisPlayback !== playbackGeneration) return;
-
-    originalStarted = false;
-    console.error('元の動画を読み込めませんでした:', error);
-    alert(t("動画を読み込めませんでした。もう一度動画を開いてください。"));
-  }
-};
-
-mainVideo.preload='metadata';
-if (!hlsUrl) {
-  playOriginal();
-
-} else if (window.Hls && window.Hls.isSupported()) {
-  const player = new window.Hls({
-    maxBufferLength: 15,
-    maxMaxBufferLength: 30,
-    backBufferLength: 15,
-    maxBufferSize: 12 * 1000 * 1000,
-    startFragPrefetch: false,
-    startLevel: 0
-  });
-
-  hlsInstance = player;
-
-  player.on(window.Hls.Events.MANIFEST_PARSED, () => {
-    if (thisPlayback !== playbackGeneration) return;
-    const compact = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
-    const heightLimit = compact || navigator.connection?.saveData ? 360 : 720;
-    // HLSは帯域順のレベル番号で上限を指定する。先頭から上限内の範囲を使う。
-    // 低画質がない場合は最小帯域のレベルを使い、存在しない画質は生成しない。
-    let cap = 0;
-    for (let i = 0; i < player.levels.length; i++) {
-      const height = player.levels[i].height;
-      if (!Number.isFinite(height) || height <= 0 || height > heightLimit) break;
-      cap = i;
-    }
-    if (player.levels.length) player.autoLevelCapping = cap;
-    play();
-  });
-
-  player.on(window.Hls.Events.ERROR, (_event, data) => {
-    if (thisPlayback !== playbackGeneration) return;
-
-    if (data.fatal) {
-      console.warn(
-        'HLS再生失敗。元の動画に戻します:',
-        data.details
-      );
-      playOriginal();
-    }
-  });
-
-  player.loadSource(hlsUrl);
-  player.attachMedia(mainVideo);
-
-} else if (
-  mainVideo.canPlayType('application/vnd.apple.mpegurl')
-) {
-  mainVideo.onerror = () => {
-    if (thisPlayback !== playbackGeneration) return;
-    playOriginal();
+    mainVideo.play().catch(() => {
+      // 自動再生が拒否された場合は再生ボタンで開始
+    });
   };
 
-  mainVideo.src = hlsUrl;
-  mainVideo.load();
-  play();
+  const playOriginal = async () => {
+    if (thisPlayback !== playbackGeneration || originalStarted) return;
 
-} else {
-  playOriginal();
-}
-// --- 動画読み込み処理ここまで ---
+    originalStarted = true;
+    ttffTracker.setMode(thisPlayback, 'mp4');
+    mainVideo.onerror = null;
 
+    if (hlsInstance) {
+      const oldPlayer = hlsInstance;
+      hlsInstance = null;
+      oldPlayer.destroy();
+    }
+
+    try {
+      // HLSに失敗した場合だけ、元MP4のURLを取得（pointerdown先読み済みなら即利用）
+      const originalUrl =
+        videoData.url || await getDownloadURL(videoData.itemRef);
+
+      // 待っている間にホームや別の動画へ移動した場合は再生しない
+      if (thisPlayback !== playbackGeneration) return;
+
+      videoData.url = originalUrl;
+      ttffTracker.mark(thisPlayback, 'urlResolvedMs');
+      mainVideo.src = originalUrl;
+      mainVideo.load();
+      play();
+    } catch (error) {
+      if (thisPlayback !== playbackGeneration) return;
+
+      originalStarted = false;
+      console.error('元の動画を読み込めませんでした:', error);
+      alert(t("動画を読み込めませんでした。もう一度動画を開いてください。"));
+    }
+  };
+
+  mainVideo.preload = 'auto';
+
+  const startVideoStream = async () => {
+    if (!hlsUrl) {
+      void playOriginal();
+      return;
+    }
+    ttffTracker.mark(thisPlayback, 'urlResolvedMs');
+
+    if (useCompactNativeHls) {
+      ttffTracker.setMode(thisPlayback, 'native-hls');
+      mainVideo.onerror = () => {
+        if (thisPlayback !== playbackGeneration) return;
+        void playOriginal();
+      };
+      mainVideo.src = hlsUrl;
+      mainVideo.load();
+      play();
+      return;
+    }
+
+    if (!window.Hls) {
+      // 初回コールド時は hls.js 取得とマニフェスト先読みを完全並列化する
+      playbackPrefetcher.prefetch(videoData, { eager: true });
+      try { await loadHlsEngine(); } catch (error) { console.warn(error.message); }
+      if (thisPlayback !== playbackGeneration) return;
+    }
+    ttffTracker.mark(thisPlayback, 'hlsEngineReadyMs');
+
+    if (window.Hls && window.Hls.isSupported()) {
+      ttffTracker.setMode(thisPlayback, 'hls.js');
+      const loaders = playbackPrefetcher.createHlsLoaders(window.Hls.DefaultConfig?.loader, {
+        onPlaylistHit: (_url, type) => {
+          ttffTracker.notePrefetch(thisPlayback, type === 'manifest' ? 'manifestHit' : 'levelHit');
+        },
+        onFragmentHit: () => {
+          ttffTracker.notePrefetch(thisPlayback, 'fragHit');
+        }
+      });
+
+      const player = new window.Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        startFragPrefetch: true,
+        startLevel: -1,
+        abrEwmaDefaultEstimate: startupProfile.estimate,
+        abrEwmaFastVoD: 2,
+        abrEwmaSlowVoD: 6,
+        abrBandWidthFactor: startupProfile.bandWidthFactor,
+        abrBandWidthUpFactor: 0.75,
+        maxStarvationDelay: 2,
+        maxLoadingDelay: 2,
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
+        backBufferLength: 15,
+        maxBufferSize: 12 * 1000 * 1000,
+        ...loaders
+      });
+
+      hlsInstance = player;
+
+      player.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        if (thisPlayback !== playbackGeneration) return;
+        ttffTracker.mark(thisPlayback, 'manifestParsedMs');
+        const heightLimit = currentStartupProfile().heightLimit;
+        // HLSは帯域順のレベル番号で上限を指定する。先頭から上限内の範囲を使う。
+        // 低画質がない場合は最小帯域のレベルを使い、存在しない画質は生成しない。
+        let cap = 0;
+        for (let i = 0; i < player.levels.length; i++) {
+          const height = player.levels[i].height;
+          if (!Number.isFinite(height) || height <= 0 || height > heightLimit) break;
+          cap = i;
+        }
+        if (player.levels.length) player.autoLevelCapping = cap;
+        play();
+      });
+
+      let firstFragMarked = false;
+      player.on(window.Hls.Events.FRAG_LOADED, (_event, data) => {
+        if (firstFragMarked || thisPlayback !== playbackGeneration) return;
+        if (data?.frag?.type && data.frag.type !== 'main') return;
+        firstFragMarked = true;
+        const levelIndex = Number.isInteger(data?.frag?.level) ? data.frag.level : -1;
+        const levelHeight = player.levels?.[levelIndex]?.height || 0;
+        ttffTracker.mark(thisPlayback, 'firstFragLoadedMs', {
+          startLevel: levelIndex,
+          startHeight: levelHeight
+        });
+      });
+
+      player.on(window.Hls.Events.ERROR, (_event, data) => {
+        if (thisPlayback !== playbackGeneration) return;
+
+        if (data.fatal) {
+          console.warn(
+            'HLS再生失敗。元の動画に戻します:',
+            data.details
+          );
+          void playOriginal();
+        }
+      });
+
+      player.loadSource(hlsUrl);
+      player.attachMedia(mainVideo);
+
+    } else if (mainVideo.canPlayType('application/vnd.apple.mpegurl')) {
+      ttffTracker.setMode(thisPlayback, 'native-hls');
+      mainVideo.onerror = () => {
+        if (thisPlayback !== playbackGeneration) return;
+        void playOriginal();
+      };
+
+      mainVideo.src = hlsUrl;
+      mainVideo.load();
+      play();
+
+    } else {
+      void playOriginal();
+    }
+  };
+
+  void startVideoStream();
+  // --- 動画読み込み処理ここまで ---
+
+  // --- 視聴UIの即時描画と、周辺データ取得の完全並列化 ---
   mainTitle.textContent = videoData.title;
 
-// 説明文が空なら本文だけ隠す
-const descriptionText = document.getElementById('videoDescriptionText');
-const description = String(videoData.desc || '').trim();
+  // 説明文が空なら本文だけ隠す
+  const descriptionText = document.getElementById('videoDescriptionText');
+  const description = String(videoData.desc || '').trim();
 
-descriptionText.textContent = description;
-descriptionText.hidden = !description;
+  descriptionText.textContent = description;
+  descriptionText.hidden = !description;
 
-// 投稿日を日本時間で表示する
-const uploadDateEl = document.getElementById('videoUploadDate');
-const uploadDate = new Date(videoData.uploadedAt || '');
+  // 投稿日を日本時間で表示する
+  const uploadDateEl = document.getElementById('videoUploadDate');
+  const uploadDate = new Date(videoData.uploadedAt || '');
 
-uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
-  ? t("投稿日不明")
-  : new Intl.DateTimeFormat(locale, {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(uploadDate) + (locale === 'ja-JP' ? ' 投稿' : '');
-uploadDateEl.dataset.uploadTimestamp = Number.isNaN(uploadDate.getTime()) ? '' : uploadDate.toISOString();
+  uploadDateEl.textContent = Number.isNaN(uploadDate.getTime())
+    ? t("投稿日不明")
+    : new Intl.DateTimeFormat(locale, {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(uploadDate) + (locale === 'ja-JP' ? ' 投稿' : '');
+  uploadDateEl.dataset.uploadTimestamp = Number.isNaN(uploadDate.getTime()) ? '' : uploadDate.toISOString();
 
   uploaderNameEl.textContent = videoData.uploaderName; 
   uploaderNameEl.dataset.uid = videoData.uploaderUid;
-  
-  currentVideoId = videoData.itemRef.fullPath;
-  await loadVideoInteractionSettings(videoData);
-  if (thisPlayback !== playbackGeneration ||
-      currentVideoId !== videoData.itemRef.fullPath) return;
-  
-  watchHistory = watchHistory.filter(id => id !== currentVideoId); 
-  watchHistory.unshift(currentVideoId);
+
+  watchHistory = watchHistory.filter(id => id !== videoId); 
+  watchHistory.unshift(videoId);
   if (watchHistory.length > 50) watchHistory.pop();
   localStorage.setItem('delectare_history', JSON.stringify(watchHistory));
-
-  if (videoData.uploaderUid && videoData.uploaderUid !== "null" && videoData.uploaderUid !== "undefined") {
-    try {
-      const uploaderSnap = await getDoc(doc(db, 'users', videoData.uploaderUid));
-      if (uploaderSnap.exists()) {
-        const uData = uploaderSnap.data();
-        if (uData.avatarUrl) { 
-          uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`; 
-          uploaderAvatarEl.textContent = ''; 
-        } else { 
-          uploaderAvatarEl.style.backgroundImage = 'none'; 
-          uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
-        }
-        // 登録者数はchannelStatsから取得する。
-      } else { 
-        uploaderAvatarEl.style.backgroundImage = 'none'; 
-        uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
-        subCountEl.textContent = t("チャンネル登録者数 0人"); 
-      }
-    } catch (e) { 
-      uploaderAvatarEl.style.backgroundImage = 'none'; 
-      uploaderAvatarEl.textContent = videoData.uploaderName.charAt(0).toUpperCase(); 
-      subCountEl.textContent = t("チャンネル登録者数 0人"); 
-    }
-  } else { 
-    uploaderAvatarEl.style.backgroundImage = 'none'; 
-    uploaderAvatarEl.textContent = 'ゲ'; 
-    subCountEl.textContent = ''; 
-  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -7420,7 +7560,6 @@ uploadDateEl.dataset.uploadTimestamp = Number.isNaN(uploadDate.getTime()) ? '' :
   danmakuInput.value = ""; 
   danmakuSubmitBtn.disabled = true;
   
-  displaySubscriberCount(videoData.uploaderUid, subCountEl);
   hasLiked = false; 
   hasDisliked = false; 
   likeBtn.disabled = true; 
@@ -7430,30 +7569,61 @@ uploadDateEl.dataset.uploadTimestamp = Number.isNaN(uploadDate.getTime()) ? '' :
   
   viewCountEl.textContent = t("- 回視聴"); 
   likeCountEl.textContent = '0'; 
-  dislikeCountEl.textContent = '0';
-
-  loadComments(); 
-  void loadStats(); 
-  void creatorLab?.publicVideo(currentVideoId);
-  renderSidebar(currentVideoId);
+  dislikeCountEl.textContent = '0'; 
 
   blockUserBtn.style.display = (currentUser && currentUser.uid !== videoData.uploaderUid) ? 'block' : 'none';
 
   if (updateUrl) {
-    const nextUrl = window.location.pathname + '?v=' + encodeURIComponent(currentVideoId);
+    const nextUrl = window.location.pathname + '?v=' + encodeURIComponent(videoId);
     if (window.location.pathname + window.location.search !== nextUrl) {
       window.history.pushState(null, '', nextUrl);
     }
   }
 
   const saveVideoBtn = document.getElementById('saveVideoBtn');
-  if (currentUserSaved.includes(currentVideoId)) { 
+  if (currentUserSaved.includes(videoId)) { 
     setUiIcon(saveVideoBtn,'bookmark-check',t("保存済み")); 
     saveVideoBtn.style.color = '#065fd4'; 
   } else { 
     setUiIcon(saveVideoBtn,'bookmark',t("保存")); 
     saveVideoBtn.style.color = ''; 
   }
+
+  // 投稿者プロフィール（ホームカード等の60秒キャッシュも再利用し非同期で反映）
+  if (videoData.uploaderUid && videoData.uploaderUid !== "null" && videoData.uploaderUid !== "undefined") {
+    uploaderAvatarEl.style.backgroundImage = 'none';
+    uploaderAvatarEl.textContent = (videoData.uploaderName || '?').charAt(0).toUpperCase();
+    void getHomeProfile(videoData.uploaderUid).then(uData => {
+      if (thisPlayback !== playbackGeneration || currentVideoId !== videoId) return;
+      if (uData && uData.avatarUrl) {
+        uploaderAvatarEl.style.backgroundImage = `url(${uData.avatarUrl})`;
+        uploaderAvatarEl.textContent = '';
+      } else {
+        uploaderAvatarEl.style.backgroundImage = 'none';
+        uploaderAvatarEl.textContent = (videoData.uploaderName || '?').charAt(0).toUpperCase();
+      }
+    }).catch(() => {
+      if (thisPlayback !== playbackGeneration || currentVideoId !== videoId) return;
+      uploaderAvatarEl.style.backgroundImage = 'none';
+      uploaderAvatarEl.textContent = (videoData.uploaderName || '?').charAt(0).toUpperCase();
+    });
+  } else {
+    uploaderAvatarEl.style.backgroundImage = 'none';
+    uploaderAvatarEl.textContent = 'ゲ';
+    subCountEl.textContent = '';
+  }
+
+  // 統計・登録者数・関連動画・クリエイター設定・コメント設定をすべて動画読み込みと並列で開始
+  displaySubscriberCount(videoData.uploaderUid, subCountEl);
+  void loadStats();
+  void creatorLab?.publicVideo(videoId);
+  renderSidebar(videoId);
+
+  // コメント・弾幕は最新の投稿者設定（オン/オフ・ミュートワード）確定後に購読開始（再生や他UIは一切ブロックしない）
+  void loadVideoInteractionSettings(videoData).then(() => {
+    if (thisPlayback !== playbackGeneration || currentVideoId !== videoId) return;
+    loadComments();
+  });
 }
 
     function returnToHomeList() {
@@ -9565,6 +9735,7 @@ commentSortSelect.addEventListener('change',()=>{normalCommentVisible=20;renderS
   syncHeader();
 })();
 
+let commentsPerfReadyCache = { checkedAt: 0, ready: false };
 let refreshDanmakuWindow=null;
 function loadComments(){
  if(unsubscribeComments)unsubscribeComments();
@@ -9617,7 +9788,10 @@ function loadComments(){
  }
  unsubscribeComments=()=>{active=false;clearTimeout(countTimer);normalStop?.();danmakuStop?.();legacyStop?.();refreshDanmakuWindow=null;};
  (async()=>{
-  let ready=false;try{const status=await getDoc(doc(db,'performanceStatus','comments'));ready=status.exists()&&status.data().ready===true;}catch{/* old rules keep the current comment feature working */}
+  let ready=commentsPerfReadyCache.ready;
+  if(!ready&&Date.now()-commentsPerfReadyCache.checkedAt>60000){
+   try{const status=await getDoc(doc(db,'performanceStatus','comments'));ready=status.exists()&&status.data().ready===true;commentsPerfReadyCache={checkedAt:Date.now(),ready};}catch{/* old rules keep the current comment feature working */}
+  }
   if(!current())return;if(!ready){startLegacy();return;}
   if(videoFeatureEnabled('comments'))normalStop=onSnapshot(query(collection(db,'comments'),where('videoId','==',videoId),where('type','==','normal')),snapshot=>renderNormal(dataOf(snapshot)),error=>{if(current()){console.warn('通常コメントの取得を既存方式へ戻します:',error.code||'network');startLegacy();}});
   else renderNormal([]);
@@ -10455,15 +10629,23 @@ await uploadBytes(thumbRef, thumbFile, {
 
     let directVideoRequest=0;
     async function openVideoFromUrl(){
+      const startedAt=performance.now();
       const request=++directVideoRequest,videoId=new URLSearchParams(location.search).get('v');
       if(!videoId){goHome({updateUrl:false});return;}
       if(!validVideoPath(videoId)){console.warn('動画URLを確認してください。');return;}
       if(videoId===currentVideoId&&document.body.classList.contains('watch-mode'))return;
       let target=allVideos.find(v=>v.itemRef.fullPath===videoId);
-      if(!target){try{const itemRef=ref(storage,videoId),metadata=await getMetadata(itemRef);target=videoFromMetadata(itemRef,metadata);target.freshMetadata=metadata;}
-      catch(error){if(request===directVideoRequest)console.warn('動画を読み込めませんでした:',error.code||'network');return;}}
+      if(!target){
+        const cachedList=readVideoListCache();
+        target=cachedList?.find(v=>v.itemRef.fullPath===videoId)||null;
+      }
+      if(!target){
+        if(!isCompactNativeHls())void loadHlsEngine().catch(()=>{});
+        try{const itemRef=ref(storage,videoId),metadata=await getMetadata(itemRef);target=videoFromMetadata(itemRef,metadata);target.freshMetadata=metadata;}
+        catch(error){if(request===directVideoRequest)console.warn('動画を読み込めませんでした:',error.code||'network');return;}
+      }
       if(request!==directVideoRequest||new URLSearchParams(location.search).get('v')!==videoId)return;
-      mergeVideoEntries([target]);void watchVideo(target,{updateUrl:false});
+      mergeVideoEntries([target]);void watchVideo(target,{updateUrl:false,source:'url',startedAt});
     }
     window.addEventListener('popstate', openVideoFromUrl);
 
@@ -11191,6 +11373,7 @@ function renderMyPage() {
     videos.forEach(v => {
       const link = document.createElement('a');
       link.className = 'my-video-card';
+      registerPrefetchCard(link, v);
 
       const url = new URL(location.pathname, location.origin);
       url.searchParams.set('v', v.itemRef.fullPath);
@@ -14434,6 +14617,15 @@ communityFeatures=mountCommunityFeatures({
  profile:uid=>getHomeProfile(uid),
  api:async payload=>{const uid=auth.currentUser?.uid;if(!uid||auth.currentUser.isAnonymous)throw Error(t("ログインしてください。"));const {data}=await callCreatorLab(payload);if(auth.currentUser?.uid!==uid)throw Error(t("ログイン状態が変わりました。"));if(!data?.ok)throw Error(t("サーバーの応答を確認できませんでした。"));return data;}
 });
+
+// Direct ?v= links start playback immediately without waiting for auth/profile migrations.
+if (new URLSearchParams(location.search).get('v')) {
+  void openVideoFromUrl();
+} else if (!isCompactNativeHls() && !currentStartupProfile().slow) {
+  const warmHls = () => { if (!window.Hls) void loadHlsEngine().catch(() => {}); };
+  if ('requestIdleCallback' in window) window.requestIdleCallback(warmHls, { timeout: 2500 });
+  else setTimeout(warmHls, 1200);
+}
 
 </script>
 
