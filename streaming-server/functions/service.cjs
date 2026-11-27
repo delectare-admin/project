@@ -67,7 +67,7 @@ function createService({db,storage,FieldValue,logger,now=Date.now}){
    await fs.writeFile(path.join(output,'master.m3u8'),masterPlaylist(plan,prefix,BUCKET,token));
    const uploads=[...names,'master.m3u8'];let next=0;
    async function upload(){while(next<uploads.length){const name=uploads[next++];await bucket.upload(path.join(output,name),{destination:prefix+name,resumable:false,preconditionOpts:{ifGenerationMatch:0},metadata:{contentType:name.endsWith('.ts')?'video/mp2t':'application/vnd.apple.mpegurl',cacheControl:'public,max-age=31536000,immutable',metadata:{firebaseStorageDownloadTokens:token,streamProfile:PROFILE}}});}}
-   const uploadResults=await Promise.allSettled(Array.from({length:Math.min(4,uploads.length)},upload));if(uploadResults.some(r=>r.status==='rejected'))throw Error('output-upload-failed');
+   const uploadResults=await Promise.allSettled(Array.from({length:Math.min(10,uploads.length)},upload));if(uploadResults.some(r=>r.status==='rejected'))throw Error('output-upload-failed');
    const latest=await getSource(job.name),record=await db.doc('streamingJobs/'+job.jobId).get();
    if(!latest||String(latest.generation)!==job.generation||record.data()?.status!=='processing'||record.data()?.lease!==job.lease)throw Error('source-changed');
    // A metageneration precondition prevents overwriting a title, policy or deletion that changed during conversion.

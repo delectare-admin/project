@@ -10,7 +10,7 @@ const {createWriteStream}=require('node:fs');
 const {createServer}=require('node:http');
 const {pipeline}=require('node:stream/promises');
 // Local media input / accurate failure reporting v2
-const {mkdtemp,rm,readFile}=require('node:fs/promises');
+const {mkdtemp,rm,readFile,open,stat}=require('node:fs/promises');
 const {tmpdir}=require('node:os');
 const path=require('node:path');
 const {createHash,randomUUID}=require('node:crypto');
@@ -19,16 +19,18 @@ const BUCKET='testo-movie-site.firebasestorage.app';
 const REGION='us-east1';
 const options={region:REGION,memory:'1GiB',cpu:1,timeoutSeconds:540,
   minInstances:0,maxInstances:1,concurrency:1};
+const validateOptions={...options,memory:'2GiB'};
+const FASTSTART_MAX_BYTES=256*1024*1024;
 const ffmpeg=path.join(__dirname,'.media-bin','ffmpeg');
 const ffprobe=path.join(__dirname,'.media-bin','ffprobe');
 const {getFirestore,FieldValue}=require('firebase-admin/firestore');
 const {MAX_VIDEO_BYTES,POLICY_VERSION,validateProbe,invalid:invalidUpload}=require('./upload-policy.cjs');
 const {cleanDetails,validateThumbnail}=require('./video-metadata.cjs');
-function runMediaTool(binary,args) {
+function runMediaTool(binary,args,timeoutMs=95000) {
  return new Promise((resolve,reject)=>{
   const child=spawn(binary,args,{stdio:['ignore','pipe','pipe'],shell:false});
   let stdout='',stderr='',timedOut=false,settled=false;
-  const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},95000);
+  const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},timeoutMs);
   child.stdout.on('data',data=>{stdout+=data.toString();if(stdout.length>1024*1024)child.kill('SIGKILL');});
   child.stderr.on('data',data=>{stderr=(stderr+data.toString()).slice(-24000);});
   function fail(message){if(settled)return;settled=true;clearTimeout(timer);const error=new Error(message);reject(error);}
@@ -99,11 +101,11 @@ function parseByteRange(value,size) {
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start<0 || start>=size || end<start) return null;
   return {start,end,partial:true};
 }
-async function createVideoInput(sourceFile,metadata,directory) {
+async function createVideoInput(sourceFile,metadata,directory,maxLocalBytes=128*1024*1024) {
   const size=Number(metadata.size);
   if (!Number.isSafeInteger(size) || size<=0) throw new Error('video-size-invalid');
   // /tmp uses instance memory. Small files are fully downloaded; large files use range reads.
-  if (size<=128*1024*1024) {
+  if (size<=maxLocalBytes) {
     const local=path.join(directory,'source-video');
     await pipeline(sourceFile.createReadStream(),createWriteStream(local),{signal:AbortSignal.timeout(100000)});
     return {source:local,options:['-protocol_whitelist','file'],mode:'local-file',close:async()=>{}};
@@ -273,6 +275,76 @@ exports.submovieThumbnailBackfill=onSchedule({...options,schedule:'0 3 * * *',ti
 });
 // Internal helpers are not Firebase exports; unit tests load them via a VM fixture.
 
+async function needsMp4Faststart(filePath) {
+  const handle=await open(filePath,'r');
+  try {
+    const {size:fileSize}=await handle.stat();
+    if (!Number.isSafeInteger(fileSize) || fileSize<16) return false;
+    const header=Buffer.alloc(16);
+    let offset=0,seenFtyp=false,seenMdat=false,seenMoov=false,moovAfterMdat=false;
+    for (let boxes=0; boxes<64 && offset+8<=fileSize; boxes++) {
+      const {bytesRead}=await handle.read(header,0,Math.min(16,fileSize-offset),offset);
+      if (bytesRead<8) break;
+      let boxSize=header.readUInt32BE(0);
+      const type=header.subarray(4,8).toString('ascii');
+      let headerSize=8;
+      if (boxSize===1) {
+        if (bytesRead<16) return false;
+        const extended=header.readBigUInt64BE(8);
+        if (extended>BigInt(Number.MAX_SAFE_INTEGER)) return false;
+        boxSize=Number(extended);
+        headerSize=16;
+      } else if (boxSize===0) {
+        boxSize=fileSize-offset;
+      }
+      if (!/^[\x20-\x7e]{4}$/.test(type) || boxSize<headerSize || offset+boxSize>fileSize) return false;
+      if (boxes===0) {
+        if (type!=='ftyp') return false;
+        seenFtyp=true;
+      }
+      if (type==='moof') return false;
+      if (type==='mdat') seenMdat=true;
+      if (type==='moov') {
+        seenMoov=true;
+        if (seenMdat) moovAfterMdat=true;
+        break;
+      }
+      offset+=boxSize;
+    }
+    return seenFtyp && seenMoov && seenMdat && moovAfterMdat;
+  } finally {
+    await handle.close();
+  }
+}
+
+function isMp4Probe(contentType,probe) {
+  if (contentType!=='video/mp4') return false;
+  const formats=String(probe?.format?.format_name||'').toLowerCase().split(',');
+  return formats.includes('mp4') || formats.includes('mov');
+}
+
+async function tryFaststartMp4(sourcePath,outputPath,sourceSize,expectedDuration,formatArgs) {
+  await runMediaTool(ffmpeg,['-hide_banner','-loglevel','error','-nostdin',
+    '-protocol_whitelist','file',...formatArgs,'-i',sourcePath,
+    '-map','0:V:0','-map','0:a?','-sn','-dn','-c','copy',
+    '-movflags','+faststart','-f','mp4','-y',outputPath],120000);
+  const outInfo=await stat(outputPath);
+  if (!outInfo.isFile() || outInfo.size<=0 || outInfo.size>MAX_VIDEO_BYTES ||
+      outInfo.size<Math.floor(sourceSize*0.5) || outInfo.size>Math.ceil(sourceSize*1.1)+2*1024*1024) {
+    throw new Error('faststart-size-unexpected');
+  }
+  if (await needsMp4Faststart(outputPath)) throw new Error('faststart-moov-not-leading');
+  const verifyText=await runMediaTool(ffprobe,['-v','error','-protocol_whitelist','file',...formatArgs,
+    '-probesize','33554432','-analyzeduration','10000000','-show_entries',
+    'format=duration,format_name:stream=codec_type,codec_name,width,height,duration:stream_disposition=attached_pic',
+    '-of','json',outputPath]);
+  let verifyProbe;
+  try { verifyProbe=JSON.parse(verifyText.stdout); } catch { throw new Error('faststart-probe-invalid'); }
+  const verified=validateProbe(verifyProbe);
+  if (Math.abs(verified.duration-expectedDuration)>2) throw new Error('faststart-duration-mismatch');
+  return outInfo.size;
+}
+
 // Private upload inspection. Only the Admin SDK can publish to videos/.
 async function inspectPrivateUpload(name,generation) {
   const bucket=getStorage().bucket(BUCKET),stageFile=bucket.file(name,{generation:String(generation)});
@@ -316,7 +388,8 @@ async function inspectPrivateUpload(name,generation) {
     const details=cleanDetails(allowed,true);
     await validateThumbnail(bucket,ticket.uid,details.thumbUrl||'');
     directory=await mkdtemp(path.join(tmpdir(),'submovie-inspect-'));
-    input=await createVideoInput(stageFile,metadata,directory);
+    const maxLocalBytes=ticket.contentType==='video/mp4'&&ticket.size<=FASTSTART_MAX_BYTES?FASTSTART_MAX_BYTES:128*1024*1024;
+    input=await createVideoInput(stageFile,metadata,directory,maxLocalBytes);
     const format=['-format_whitelist','mov,matroska,webm,avi,flv,mpeg,mpegts,ogg,asf'];
     const probeText=await runMediaTool(ffprobe,['-v','error',...input.options,...format,
       '-probesize','33554432','-analyzeduration','10000000','-show_entries',
@@ -331,6 +404,21 @@ async function inspectPrivateUpload(name,generation) {
       '-vf','scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2',
       '-threads','1','-y',preview]);
     const image=await readFile(preview);if(!image.length||image.length>2*1024*1024)throw invalidUpload('動画の映像を確認できませんでした。');
+    let faststartPath='';
+    if(input.mode==='local-file'&&ticket.size<=FASTSTART_MAX_BYTES&&isMp4Probe(ticket.contentType,probe)) {
+      try {
+        if(await needsMp4Faststart(input.source)) {
+          const candidate=path.join(directory,'faststart.mp4');
+          const outBytes=await tryFaststartMp4(input.source,candidate,ticket.size,info.duration,format);
+          faststartPath=candidate;
+          await rm(input.source,{force:true}).catch(()=>{});
+          logger.info('upload-faststart-applied',{name,sourceBytes:ticket.size,outputBytes:outBytes});
+        }
+      } catch(error) {
+        await rm(path.join(directory,'faststart.mp4'),{force:true}).catch(()=>{});
+        logger.warn('upload-faststart-fallback',{name,reason:error.message||'unknown'});
+      }
+    }
     const profile=await database.doc('users/'+ticket.uid).get();
     const author=String(profile.data()?.channelName||'ユーザー').slice(0,200);
     const finalMetadata={...details,uploaderUid:ticket.uid,uploaderName:author,uploadTicketId:ticketId,
@@ -338,10 +426,24 @@ async function inspectPrivateUpload(name,generation) {
     const current=await ticketRef.get();
     if(!current.exists||!current.data().active||current.data().validationLease!==lease)return 'cancelled';
     const destination=bucket.file(ticket.publishedObjectName);
+    const publishCopy=()=>stageFile.copy(destination,{preconditionOpts:{ifGenerationMatch:0},
+      contentType:ticket.contentType,cacheControl:'public,max-age=3600',metadata:finalMetadata
+    });
+    const publishFaststart=async()=>{
+      try {
+        await bucket.upload(faststartPath,{destination:ticket.publishedObjectName,
+          resumable:ticket.size>8*1024*1024,preconditionOpts:{ifGenerationMatch:0},
+          metadata:{contentType:ticket.contentType,cacheControl:'public,max-age=3600',metadata:finalMetadata}
+        });
+      } catch(error) {
+        if(Number(error.code)===412)throw error;
+        logger.warn('upload-faststart-upload-fallback',{name,code:error.code||'',reason:error.message||'unknown'});
+        await publishCopy();
+      }
+    };
     try {
-      await stageFile.copy(destination,{preconditionOpts:{ifGenerationMatch:0},
-        contentType:ticket.contentType,cacheControl:'public,max-age=3600',metadata:finalMetadata
-      });
+      if(faststartPath) await publishFaststart();
+      else await publishCopy();
     } catch(error) {
       if(Number(error.code)!==412)throw error;
       const [existing]=await destination.getMetadata();
@@ -366,7 +468,7 @@ async function inspectPrivateUpload(name,generation) {
     if(directory)await rm(directory,{recursive:true,force:true});
   }
 }
-exports.submovieValidateUpload=onObjectFinalized({...options,bucket:BUCKET,retry:true},async event=>{
+exports.submovieValidateUpload=onObjectFinalized({...validateOptions,bucket:BUCKET,retry:true},async event=>{
  const object=event.data;if(!object?.name?.startsWith('video-uploads/'))return;
  await inspectPrivateUpload(object.name,object.generation);
 });

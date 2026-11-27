@@ -1,7 +1,7 @@
 'use strict';
 const {spawn}=require('node:child_process'),fs=require('node:fs/promises'),path=require('node:path');
 const {MAX_OUTPUT_BYTES}=require('./media-plan.cjs');
-async function listOutput(directory){const names=await fs.readdir(directory);let bytes=0;for(const name of names){const stat=await fs.lstat(path.join(directory,name));if(!stat.isFile()||stat.isSymbolicLink())throw Error('output-file-invalid');bytes+=stat.size;}if(names.length>2000||bytes>MAX_OUTPUT_BYTES)throw Error('output-size-limit');return {names,bytes};}
+async function listOutput(directory){const names=await fs.readdir(directory);let bytes=0;for(const name of names){const stat=await fs.lstat(path.join(directory,name));if(!stat.isFile()||stat.isSymbolicLink())throw Error('output-file-invalid');bytes+=stat.size;}if(names.length>4000||bytes>MAX_OUTPUT_BYTES)throw Error('output-size-limit');return {names,bytes};}
 function run(binary,args,{directory,timeout=430000}={}){
  return new Promise((resolve,reject)=>{
   const child=spawn(binary,args,{stdio:['ignore','pipe','pipe'],shell:false});let stdout='',reason='',settled=false,checking=false;

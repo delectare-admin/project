@@ -32,10 +32,10 @@ function ffmpegArgs(source,directory,plan){
  const n=plan.variants.length,filter='[0:'+plan.videoIndex+']fps=30,split='+n+plan.variants.map((_,i)=>'[in'+i+']').join('')+';'+plan.variants.map((v,i)=>'[in'+i+']scale='+v.width+':'+v.height+':flags=fast_bilinear,setsar=1,format=yuv420p[v'+i+']').join(';');
  const args=['-hide_banner','-loglevel','error','-nostdin','-max_alloc','268435456','-protocol_whitelist','file','-format_whitelist','mov,matroska,webm,avi,flv,mpeg,mpegts,ogg,asf','-probesize','33554432','-analyzeduration','10000000','-threads','2','-i',source,'-filter_complex_threads','1','-filter_complex',filter];
  for(let i=0;i<n;i++){args.push('-map','[v'+i+']');if(plan.hasAudio)args.push('-map','0:a:0');}
- args.push('-map_metadata','-1','-sn','-dn','-c:v','libx264','-preset','veryfast','-profile:v','main','-pix_fmt','yuv420p','-threads:v','2','-g','120','-keyint_min','120','-sc_threshold','0','-force_key_frames','expr:gte(t,n_forced*4)');
+ args.push('-map_metadata','-1','-sn','-dn','-c:v','libx264','-preset','veryfast','-profile:v','main','-pix_fmt','yuv420p','-threads:v','2','-g','60','-keyint_min','60','-sc_threshold','0','-force_key_frames','expr:gte(t,n_forced*2)');
  plan.variants.forEach((v,i)=>args.push('-b:v:'+i,String(v.bitrate),'-maxrate:v:'+i,String(Math.ceil(v.bitrate*1.25)),'-bufsize:v:'+i,String(v.bitrate*2)));
  if(plan.hasAudio)args.push('-c:a','aac','-b:a','64000','-ac','2');
- args.push('-max_muxing_queue_size','1024','-f','hls','-hls_time','4','-hls_playlist_type','vod','-hls_flags','independent_segments','-hls_segment_filename',directory+'/v%v_%05d.ts','-var_stream_map',plan.variants.map((_,i)=>'v:'+i+(plan.hasAudio?',a:'+i:'')).join(' '),'-y',directory+'/v%v.m3u8');return args;
+ args.push('-max_muxing_queue_size','1024','-f','hls','-hls_time','2','-hls_playlist_type','vod','-hls_flags','independent_segments','-hls_segment_filename',directory+'/v%v_%05d.ts','-var_stream_map',plan.variants.map((_,i)=>'v:'+i+(plan.hasAudio?',a:'+i:'')).join(' '),'-y',directory+'/v%v.m3u8');return args;
 }
 function rewriteVariant(text,files,prefix,bucket,token){
  if(!text.startsWith('#EXTM3U')||!text.includes('#EXT-X-ENDLIST')||/URI\s*=/i.test(text))throw Error('playlist-incomplete');
